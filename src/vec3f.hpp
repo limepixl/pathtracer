@@ -1,4 +1,5 @@
 #pragma once
+#include <math.h>
 
 struct Vec3f
 {
@@ -56,5 +57,5 @@ inline float32 Dot(Vec3f vec1, Vec3f vec2)
 
 inline Vec3f NormalizeVec3f(Vec3f vec)
 {
-	return vec / Dot(vec, vec);
+	return vec / sqrtf(Dot(vec, vec));
 }

@@ -24,12 +24,14 @@ int main()
 	Vec3f gridY = {0.0f, gridHeight, 0.0f};
 
 	// Lower left corner of virtual grid
-	Vec3f gridOrigin = eye - (gridX / 2) - (gridY / 2);
+	Vec3f gridOrigin = eye - (gridX / 2.0f) - (gridY / 2.0f);
 	gridOrigin.z = 0.0f;
 
 	Sphere spheres[]
 	{
-		{ {0.0f, 0.0f, -3.0f}, 1.0f }
+		{ {-1.0f, 0.0f, -2.0f}, 1.0f },
+		{ {1.0f, 0.0f, -2.0f}, 1.0f },
+		{ {0.0f, -1001.0f, -2.0f}, 1000.0f }
 	};
 	int32 numSpheres = (int32)((sizeof(spheres) / sizeof(Sphere)));
 

@@ -1,11 +1,10 @@
 #pragma once
-#include <math.h>
 
 bool SphereIntersect(Ray ray, Sphere sphere, HitData *data)
 {
 	Vec3f oc = ray.origin - sphere.origin;
 	float32 a = Dot(ray.direction, ray.direction);
-	float32 b = 2.0f * Dot(ray.direction, oc);
+	float32 b = 2.0f * Dot(oc, ray.direction);
 	float32 c = Dot(oc, oc) - sphere.radius * sphere.radius;
 	float32 discriminant = b*b - 4.0f*a*c;
 	if(discriminant >= 0)
@@ -26,7 +25,7 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data)
 		{
 			float32 t1 = (-b + sqrtDiscriminant) / (2.0f * a);
 			float32 t2 = (-b - sqrtDiscriminant) / (2.0f * a);
-			if(t1 < t2) 
+			if(t1 > t2) 
 			{
 				float32 tmp = t1;
 				t1 = t2;
@@ -37,14 +36,14 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data)
 			{
 				data->t = t1;
 				data->point = ray.origin + ray.direction * t1;
-				data->normal = NormalizeVec3f(data->point - sphere.origin);
+				data->normal = (data->point - sphere.origin) / sphere.radius;
 				return true;
 			}
 			else if(t2 > TMIN && t2 < TMAX)
 			{
 				data->t = t2;
 				data->point = ray.origin + ray.direction * t2;
-				data->normal = NormalizeVec3f(data->point - sphere.origin);
+				data->normal = (data->point - sphere.origin) / sphere.radius;
 				return true;
 			}
 		}
