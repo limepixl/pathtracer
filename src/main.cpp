@@ -11,8 +11,8 @@ int main()
 		return -1;
 	}
 
-	uint16 width = 640;
-	uint16 height = 360;
+	uint16 width = 1280;
+	uint16 height = 720;
 	float aspectRatio = (float)width / (float)height;
 
 	// x is right, y is up, z is backwards
@@ -27,13 +27,19 @@ int main()
 	Vec3f gridOrigin = eye - (gridX / 2.0f) - (gridY / 2.0f);
 	gridOrigin.z = 0.0f;
 
+	Material materials[]
+	{
+		CreateMaterial(CreateVec3f(1.0f, 0.3f, 0.1f) / PI, CreateVec3f(0.0f, 0.0f, 0.0f)),
+		CreateMaterial(CreateVec3f(0.8f, 0.8f, 0.8f) / PI, CreateVec3f(0.0f, 0.0f, 0.0f))
+	};
+	int32 numMaterials = (int32)(sizeof(materials) / sizeof(Material));
+
 	Sphere spheres[]
 	{
-		{ {-1.0f, 0.0f, -2.0f}, 1.0f },
-		{ {1.0f, 0.0f, -2.0f}, 1.0f },
-		{ {0.0f, -1001.0f, -2.0f}, 1000.0f }
+		{ {0.0f, 0.0f, -2.0f}, 1.0f, &materials[0] },
+		{ {0.0f, -1001.0f, -2.0f}, 1000.0f, &materials[1] }
 	};
-	int32 numSpheres = (int32)((sizeof(spheres) / sizeof(Sphere)));
+	int32 numSpheres = (int32)(sizeof(spheres) / sizeof(Sphere));
 
 	fprintf(result, "P3\n%d %d\n255\n", width, height);
 
@@ -42,13 +48,31 @@ int main()
 	{
 		for(int16 xpixel = 0; xpixel < width; xpixel++)
 		{
-			float u = (float)xpixel / (float)width;
-			float v = (float)ypixel / (float)height;
-			Vec3f pointOnGrid = gridOrigin + u * gridX + v * gridY;
-			Vec3f rayDirection = NormalizeVec3f(pointOnGrid - eye);
+			Vec3f color = {0.0f, 0.0f, 0.0f};
 
-			Ray ray = {eye, rayDirection};
-			Vec3f color = CastRay(ray, NUM_BOUNCES, spheres, numSpheres);
+			for(int16 sample = 0; sample < NUM_SAMPLES; sample++)
+			{
+				Vec2f offsetToPixelCenter = {0.5f, 0.5f};
+				Vec2f uvOffset = RandomVec2f() - offsetToPixelCenter;
+
+				float u = ((float)xpixel + uvOffset.x) / (float)width;
+				float v = ((float)ypixel + uvOffset.y) / (float)height;
+
+				Vec3f pointOnGrid = gridOrigin + u * gridX + v * gridY;
+				Vec3f rayDirection = NormalizeVec3f(pointOnGrid - eye);
+
+				Ray ray = {eye, rayDirection};
+				color += EstimatorPathTracingLambertian(ray, NUM_BOUNCES, spheres, numSpheres);
+			}
+
+			// Divide by the number of sample rays sent through pixel
+			// to get the average radiance accumulated
+			color /= (float)NUM_SAMPLES;
+
+			// Gamma correction
+			color.x = sqrtf(color.x);
+			color.y = sqrtf(color.y);
+			color.z = sqrtf(color.z);
 
 			// TODO: why is it like this?
 			int16 r = (int16)(255.99 * color.x);

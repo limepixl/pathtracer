@@ -4,9 +4,12 @@
 	Defines
 */
 
-#define NUM_BOUNCES 1
-#define TMIN 0.0001
-#define TMAX 10000.0
+#define NUM_BOUNCES 5
+#define NUM_SAMPLES 10
+#define TMIN 0.0001f
+#define TMAX 10000.0f
+#define PI 3.14159265f
+#define EPSILON 0.0001f
 
 // NOTE: This only holds for LLP64
 typedef unsigned char uint8;
@@ -22,7 +25,7 @@ typedef long int64;
 typedef float float32;
 typedef double float64;
 
-#include "vec3f.hpp"
+#include "math.hpp"
 
 /*
 	Structs
@@ -34,20 +37,8 @@ struct Ray
 	Vec3f direction;
 };
 
-struct Sphere
-{
-	Vec3f origin;
-	float32 radius;
-};
-
-struct HitData
-{
-	float32 t;
-	Vec3f normal;
-	Vec3f point;
-};
-
 #include "intersect.hpp"
+#include "material.hpp"
 
 /*
 	Functions
@@ -99,26 +90,43 @@ bool Intersect(Ray ray, Sphere *spheres, int32 numSpheres, HitData *data)
 // Cast ray into the scene, have the ray bounce around
 // a predetermined number of times accumulating radiance
 // along the way, and return the color for the given pixel
-Vec3f CastRay(Ray ray, uint8 numBounces, Sphere *spheres, int32 numSpheres)
+Vec3f EstimatorPathTracingLambertian(Ray ray, uint8 numBounces, Sphere *spheres, int32 numSpheres)
 {
 	// TODO: for now there are only spheres, but we need a formal
 	// definition of a scene with any objects within it!
 
 	Vec3f color {0.0f, 0.0f, 0.0f};
 
+	// ( BRDF * dot(Nx, psi) ) / PDF(psi)
+	Vec3f throughputTerm {1.0f, 1.0f, 1.0f};
+
 	for(uint8 b = 0; b < numBounces; b++)
 	{
 		HitData data = {};
 		bool intersect = Intersect(ray, spheres, numSpheres, &data);
-		if(intersect) // determine color and bounce
+		if(!intersect) // ray goes off into infinity
 		{
-			Vec3f offset = {1.0f, 1.0f, 1.0f};
-			color = 0.5f * (data.normal + offset);
+			color += throughputTerm * SkyColor(ray.direction);
+			break;
 		}
-		else // add background illumination and break
-		{
-			color += SkyColor(ray.direction);
-		}
+		
+		// add the light that the material emits
+		color += throughputTerm * data.mat->Le;
+
+		// update throughput
+		// The PI is here because we are sampling w.r.t the
+		// pdf p(psi) = cos(theta) / PI.
+		// This cos term cancels out with the dot product in
+		// the throughput term and all that is left is the BRDF
+		// along with PI.
+		throughputTerm *= PI * data.mat->color;
+
+		// pick random direction in unit hemisphere around the normal
+		// using spherical coordinates
+		Vec2f randomVec2f = RandomVec2f();
+		Vec3f dir = MapToUnitHemisphereCosineWeighted(randomVec2f);
+		Vec3f point = data.point;
+		ray = {point + EPSILON * data.normal, dir};
 	}
 
 	return color;
