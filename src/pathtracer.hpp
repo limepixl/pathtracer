@@ -5,7 +5,7 @@
 */
 
 #define NUM_BOUNCES 10
-#define NUM_SAMPLES 50
+#define NUM_SAMPLES 500
 #define TMIN 0.0001f
 #define TMAX 10000.0f
 #define PI 3.14159265f
@@ -106,7 +106,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, uint8 numBounces, Sphere *spheres,
 		bool intersect = Intersect(ray, spheres, numSpheres, &data);
 		if(!intersect) // ray goes off into infinity
 		{
-			// color += throughputTerm * SkyColor(ray.direction);
+			//color += throughputTerm * SkyColor(ray.direction);
 			break;
 		}
 		
@@ -114,9 +114,9 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, uint8 numBounces, Sphere *spheres,
 		color += throughputTerm * data.mat->Le;
 
 		// update throughput
-		// The PI is here because we are sampling w.r.t the
-		// pdf p(psi) = cos(theta) / PI.
-		// This cos term cancels out with the dot product in
+		// The PI is here because we are sampling w.r.t the pdf
+		// p(psi) = cos(theta) / PI.
+		// This cosine term cancels out with the dot product in
 		// the throughput term and all that is left is the BRDF
 		// along with PI.
 		throughputTerm *= PI * data.mat->color;

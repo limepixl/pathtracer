@@ -29,15 +29,17 @@ int main()
 
 	Material materials[]
 	{
-		CreateMaterial(CreateVec3f(0.8f, 0.1f, 0.0f) / PI, CreateVec3f(0.8f, 0.1f, 0.0f)),
-		CreateMaterial(CreateVec3f(0.8f, 0.8f, 0.8f) / PI, CreateVec3f(0.0f, 0.0f, 0.0f))
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(1.0f, 0.4f, 0.2f), CreateVec3f(1.0f, 0.6f, 0.2f)),
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.1f, 0.5f, 0.9f), CreateVec3f(0.1f, 0.5f, 0.9f)),
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.8f, 0.8f, 0.8f), CreateVec3f(0.0f, 0.0f, 0.0f))
 	};
 	int32 numMaterials = (int32)(sizeof(materials) / sizeof(Material));
 
 	Sphere spheres[]
 	{
-		{ {0.0f, 0.0f, -2.0f}, 1.0f, &materials[0] },
-		{ {0.0f, -101.0f, -2.0f}, 100.0f, &materials[1] }
+		{ {1.0f, 0.0f, -2.0f}, 1.0f, &materials[0] },
+		{ {-1.0f, 0.0f, -2.0f}, 1.0f, &materials[1] },
+		{ {0.0f, -101.0f, -2.0f}, 100.0f, &materials[2] }
 	};
 	int32 numSpheres = (int32)(sizeof(spheres) / sizeof(Sphere));
 
