@@ -4,8 +4,8 @@
 	Defines
 */
 
-#define NUM_BOUNCES 5
-#define NUM_SAMPLES 10
+#define NUM_BOUNCES 10
+#define NUM_SAMPLES 50
 #define TMIN 0.0001f
 #define TMAX 10000.0f
 #define PI 3.14159265f
@@ -106,7 +106,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, uint8 numBounces, Sphere *spheres,
 		bool intersect = Intersect(ray, spheres, numSpheres, &data);
 		if(!intersect) // ray goes off into infinity
 		{
-			color += throughputTerm * SkyColor(ray.direction);
+			// color += throughputTerm * SkyColor(ray.direction);
 			break;
 		}
 		
@@ -124,7 +124,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, uint8 numBounces, Sphere *spheres,
 		// pick random direction in unit hemisphere around the normal
 		// using spherical coordinates
 		Vec2f randomVec2f = RandomVec2f();
-		Vec3f dir = MapToUnitHemisphereCosineWeighted(randomVec2f);
+		Vec3f dir = MapToUnitHemisphereCosineWeighted(randomVec2f, data.normal);
 		Vec3f point = data.point;
 		ray = {point + EPSILON * data.normal, dir};
 	}

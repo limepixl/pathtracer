@@ -29,7 +29,7 @@ int main()
 
 	Material materials[]
 	{
-		CreateMaterial(CreateVec3f(1.0f, 0.3f, 0.1f) / PI, CreateVec3f(0.0f, 0.0f, 0.0f)),
+		CreateMaterial(CreateVec3f(0.8f, 0.1f, 0.0f) / PI, CreateVec3f(0.8f, 0.1f, 0.0f)),
 		CreateMaterial(CreateVec3f(0.8f, 0.8f, 0.8f) / PI, CreateVec3f(0.0f, 0.0f, 0.0f))
 	};
 	int32 numMaterials = (int32)(sizeof(materials) / sizeof(Material));
@@ -37,7 +37,7 @@ int main()
 	Sphere spheres[]
 	{
 		{ {0.0f, 0.0f, -2.0f}, 1.0f, &materials[0] },
-		{ {0.0f, -1001.0f, -2.0f}, 1000.0f, &materials[1] }
+		{ {0.0f, -101.0f, -2.0f}, 100.0f, &materials[1] }
 	};
 	int32 numSpheres = (int32)(sizeof(spheres) / sizeof(Sphere));
 
@@ -78,6 +78,10 @@ int main()
 			int16 r = (int16)(255.99 * color.x);
 			int16 g = (int16)(255.99 * color.y);
 			int16 b = (int16)(255.99 * color.z);
+
+			r = Clamp(r, 255);
+			g = Clamp(g, 255);
+			b = Clamp(b, 255);
 
 			fprintf(result, "%d %d %d ", r, g, b);
 		}

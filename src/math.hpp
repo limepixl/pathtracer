@@ -114,6 +114,14 @@ inline float32 Sign(float32 value)
 	return value;
 }
 
+inline int16 Clamp(int16 value, int16 max)
+{
+	if(value > max)
+		return max;
+
+	return value;
+}
+
 inline float32 Dot(Vec3f vec1, Vec3f vec2)
 {
 	return (vec1.x * vec2.x) + (vec1.y * vec2.y) + (vec1.z * vec2.z);
@@ -148,16 +156,19 @@ Vec3f MapToUnitHemisphereUniformly(Vec2f vec2)
 	return {};
 }
 
-// TODO: deeper understanding of this
-Vec3f MapToUnitHemisphereCosineWeighted(Vec2f vec2)
+Vec3f MapToUnitSphere(Vec2f uv)
 {
-	float32 m = 5.0f;
-	float32 theta = acosf(powf(1.0f - vec2.x, 1.0f / (1.0f + m)));
-    float32 phi = 2.0f * PI * vec2.y;
+	float32 cos_theta = 2.0f*uv.x-1.0f;
+    float32 phi = 2.0f*PI*uv.y;
+    float32 sin_theta = sqrtf(1.0f-cos_theta*cos_theta);
+    float32 sin_phi = sinf(phi);
+    float32 cos_phi = cosf(phi);
+    
+    return { sin_theta*cos_phi, cos_theta, sin_theta*sin_phi };
+}
 
-	// Convert hemispherical coordinates to Cartesian coordinates
-    float32 x = sinf(theta) * cosf(phi);
-    float32 y = sinf(theta) * sinf(phi);
-	float32 z = cosf(theta);
-	return {x, y, z};
+Vec3f MapToUnitHemisphereCosineWeighted(Vec2f uv, Vec3f normal)
+{
+    Vec3f p = MapToUnitSphere(uv);
+    return normal+p;
 }
