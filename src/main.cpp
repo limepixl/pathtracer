@@ -1,6 +1,5 @@
 // TODO: replace most C standard library calls with native platform layer
 #include <stdio.h>
-
 #include "pathtracer.hpp"
 
 int main()
@@ -28,6 +27,12 @@ int main()
 	Vec3f gridOrigin = eye - (gridX / 2) - (gridY / 2);
 	gridOrigin.z = 0.0f;
 
+	Sphere spheres[]
+	{
+		{ {0.0f, 0.0f, -3.0f}, 1.0f }
+	};
+	int32 numSpheres = (int32)((sizeof(spheres) / sizeof(Sphere)));
+
 	fprintf(result, "P3\n%d %d\n255\n", width, height);
 
 	// TODO: write to buffer first and then write to file
@@ -38,8 +43,10 @@ int main()
 			float u = (float)xpixel / (float)width;
 			float v = (float)ypixel / (float)height;
 			Vec3f pointOnGrid = gridOrigin + u * gridX + v * gridY;
-			Vec3f rayDirection = pointOnGrid - eye;
-			Vec3f color = SkyColor(rayDirection);
+			Vec3f rayDirection = NormalizeVec3f(pointOnGrid - eye);
+
+			Ray ray = {eye, rayDirection};
+			Vec3f color = CastRay(ray, NUM_BOUNCES, spheres, numSpheres);
 
 			// TODO: why is it like this?
 			int16 r = (int16)(255.99 * color.x);
