@@ -11,8 +11,8 @@ int main()
 		return -1;
 	}
 
-	uint16 width = 1280;
-	uint16 height = 720;
+	uint16 width = 640;
+	uint16 height = 480;
 	float aspectRatio = (float)width / (float)height;
 
 	// x is right, y is up, z is backwards
@@ -29,19 +29,22 @@ int main()
 
 	Material materials[]
 	{
-		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(1.0f, 0.4f, 0.2f), CreateVec3f(1.0f, 0.6f, 0.2f)),
-		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.1f, 0.5f, 0.9f), CreateVec3f(0.1f, 0.5f, 0.9f)),
-		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.8f, 0.8f, 0.8f), CreateVec3f(0.0f, 0.0f, 0.0f))
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(1.0f, 0.4f, 0.2f), CreateVec3f(0.0f, 0.0f, 0.0f)),
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.1f, 0.5f, 0.9f), CreateVec3f(0.0f, 0.0f, 0.0f)),
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.8f, 0.8f, 0.8f), CreateVec3f(0.0f, 0.0f, 0.0f)),
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.9f, 0.0f, 0.0f), CreateVec3f(0.0f, 0.0f, 0.0f))
 	};
 	int32 numMaterials = (int32)(sizeof(materials) / sizeof(Material));
 
 	Sphere spheres[]
 	{
-		{ {1.0f, 0.0f, -2.0f}, 1.0f, &materials[0] },
-		{ {-1.0f, 0.0f, -2.0f}, 1.0f, &materials[1] },
-		{ {0.0f, -101.0f, -2.0f}, 100.0f, &materials[2] }
+		{ CreateVec3f(1.0f, 0.0f, -2.0f), 1.0f, &materials[0] },
+		{ CreateVec3f(-1.0f, 0.0f, -2.0f), 1.0f, &materials[1] },
+		{ CreateVec3f(0.0f, -101.0f, -2.0f), 100.0f, &materials[2] }
 	};
 	int32 numSpheres = (int32)(sizeof(spheres) / sizeof(Sphere));
+
+	Scene scene = ConstructScene(spheres, numSpheres);
 
 	fprintf(result, "P3\n%d %d\n255\n", width, height);
 
@@ -64,7 +67,7 @@ int main()
 				Vec3f rayDirection = NormalizeVec3f(pointOnGrid - eye);
 
 				Ray ray = {eye, rayDirection};
-				color += EstimatorPathTracingLambertian(ray, NUM_BOUNCES, spheres, numSpheres);
+				color += EstimatorPathTracingLambertian(ray, NUM_BOUNCES, scene);
 			}
 
 			// Divide by the number of sample rays sent through pixel

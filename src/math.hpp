@@ -58,11 +58,24 @@ Vec3f operator/(const Vec3f lhs, const float32 rhs)
 	return {lhs.x / rhs, lhs.y / rhs, lhs.z / rhs};
 }
 
+Vec3f operator/(const float32 lhs, const Vec3f rhs)
+{
+	return {lhs / rhs.x, lhs / rhs.y, lhs / rhs.z};
+}
+
 Vec3f operator+=(Vec3f &lhs, const Vec3f rhs)
 {
 	lhs.x += rhs.x;
 	lhs.y += rhs.y;
 	lhs.z += rhs.z;
+	return lhs;
+}
+
+Vec3f operator*=(Vec3f &lhs, const float32 rhs)
+{
+	lhs.x *= rhs;
+	lhs.y *= rhs;
+	lhs.z *= rhs;
 	return lhs;
 }
 
@@ -114,6 +127,11 @@ inline float32 Sign(float32 value)
 	return value;
 }
 
+inline Vec3f Sign(Vec3f value)
+{
+	return {Sign(value.x), Sign(value.y), Sign(value.z)};
+}
+
 inline int16 Clamp(int16 value, int16 max)
 {
 	if(value > max)
@@ -125,6 +143,26 @@ inline int16 Clamp(int16 value, int16 max)
 inline float32 Dot(Vec3f vec1, Vec3f vec2)
 {
 	return (vec1.x * vec2.x) + (vec1.y * vec2.y) + (vec1.z * vec2.z);
+}
+
+inline float32 Max(float32 a, float32 b)
+{
+	return a > b ? a : b;
+}
+
+inline float32 Min(float32 a, float32 b)
+{
+	return a < b ? a : b;
+}
+
+inline float32 Step(float32 edge, float32 x)
+{
+	return x < edge ? 0.0f : 1.0f;
+}
+
+inline Vec3f Step(Vec3f edge, Vec3f x)
+{
+	return {Step(edge.x, x.x), Step(edge.y, x.y), Step(edge.z, x.z)};
 }
 
 inline Vec3f NormalizeVec3f(Vec3f vec)
@@ -143,32 +181,30 @@ Vec2f RandomVec2f()
 	return { RandomNumberNormalized(), RandomNumberNormalized() };
 }
 
-// Maps 2 uniformly sampled random numbers from [0, 1]
-// to corresponding theta and pfi values for a direction
-// in spherical coordinates. This can be converted to a 
-// Vec3f for a normal direction with 3 components.
-Vec3f MapToUnitHemisphereUniformly(Vec2f vec2)
+// TODO: understand the below functions
+Vec3f MapToUnitSphere(Vec2f vec2)
 {
-	// Phi has a range [0, 2PI]
-	//float32 phi = 2.0f * PI * vec2.y;
-	//float32 z = vec2.x;
-	//float32 r = sqrtf();
-	return {};
-}
+	// First we map [0,1] to [0,2] and subtract one to map
+	// that to [-1, 1], which is the range of cosine.
+	float32 cosTheta = 2.0f * vec2.x - 1.0f;
 
-Vec3f MapToUnitSphere(Vec2f uv)
-{
-	float32 cos_theta = 2.0f*uv.x-1.0f;
-    float32 phi = 2.0f*PI*uv.y;
-    float32 sin_theta = sqrtf(1.0f-cos_theta*cos_theta);
-    float32 sin_phi = sinf(phi);
-    float32 cos_phi = cosf(phi);
+	// We can directly map phi to [0, 2PI] from [0, 1] by just 
+	// multiplying it with 2PI
+    float32 Phi = 2.0f*PI*vec2.y;
+
+	// sin^2(x) = 1 - cos^2(x)
+	// sin(x) = sqrt(1 - cos^2(x))
+    float32 sinTheta = sqrtf(1.0f - cosTheta * cosTheta);
+
+    float32 sinPhi = sinf(Phi);
+    float32 cosPhi = cosf(Phi);
     
-    return { sin_theta*cos_phi, cos_theta, sin_theta*sin_phi };
+	// Just a conversion between spherical and Cartesian coordinates
+    return { sinTheta * cosPhi, cosTheta, sinTheta * sinPhi };
 }
 
 Vec3f MapToUnitHemisphereCosineWeighted(Vec2f uv, Vec3f normal)
 {
     Vec3f p = MapToUnitSphere(uv);
-    return normal+p;
+    return NormalizeVec3f(normal+p);
 }
