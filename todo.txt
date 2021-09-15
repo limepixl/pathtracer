@@ -1,0 +1,5 @@
+- Progressive rendering of frames so scene is interactable (CPU first before shader)
+- MIS
+- Stratified sampling
+- More BRDFs / BSDFs
+- Pararrelization (far off)

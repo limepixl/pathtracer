@@ -1,5 +1,5 @@
 #define NUM_BOUNCES 5
-#define NUM_SAMPLES 3000
+#define NUM_SAMPLES 10
 #define TMIN 0.0001f
 #define TMAX 10000.0f
 #define PI 3.14159265f
