@@ -49,31 +49,38 @@ Vec3f SkyColor(Vec3f dir)
 // Cast ray into the scene, have the ray bounce around
 // a predetermined number of times accumulating radiance
 // along the way, and return the color for the given pixel
-Vec3f EstimatorPathTracingLambertian(Ray ray, uint8 numBounces, Scene scene)
+Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 {
 	Vec3f color {0.0f, 0.0f, 0.0f};
 
 	// ( BRDF * dot(Nx, psi) ) / PDF(psi)
 	Vec3f throughputTerm {1.0f, 1.0f, 1.0f};
 
+	Vec3f oldNormal = CreateVec3f(0.0f);
+
 	// Vignette effect (basically undoing We=1/cos^3(theta) )
 	// float32 theta = acosf(-ray.direction.z);
 	// throughputTerm = throughputTerm * powf(cosf(theta), 3);
 
+	int8 numBounces = (int8)Max(5, NUM_BOUNCES);
 	for(uint8 b = 0; b < numBounces; b++)
 	{
 		HitData data = {};
 		bool intersect = Intersect(ray, scene, &data);
 		if(!intersect) // ray goes off into infinity
 		{
-			color += throughputTerm * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
+			if(BOUNCE_MIN <= b && b <= NUM_BOUNCES)
+				color += throughputTerm * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
 			break;
 		}
 
 		Material *mat = &scene.materials[data.materialIndex];
 
+		float32 cosTheta = Dot(ray.direction, NormalizeVec3f(data.normal));
+
 		// add the light that the material emits
-		color += throughputTerm * mat->Le;
+		if(BOUNCE_MIN <= b && b <= NUM_BOUNCES)
+			color += throughputTerm * mat->Le;
 
 		// update throughput
 		// The PI is here because we are sampling w.r.t the pdf
@@ -86,10 +93,12 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, uint8 numBounces, Scene scene)
 		Vec2f randomVec2f = RandomVec2f();
 
 		// pdf(psi) = cos(theta) / PI
-		Vec3f dir = MapToUnitHemisphereCosineWeighted(randomVec2f, data.normal);
+		Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, data.normal);
 
 		Vec3f point = data.point;
 		ray = {point + EPSILON * data.normal, dir};
+
+		oldNormal = data.normal;
 	}
 
 	return color;

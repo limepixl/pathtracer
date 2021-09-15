@@ -1,5 +1,7 @@
-#define NUM_BOUNCES 5
-#define NUM_SAMPLES 10
+#define BOUNCE_MIN 0
+#define BOUNCE_COUNT 5
+#define NUM_BOUNCES BOUNCE_MIN + BOUNCE_COUNT
+#define NUM_SAMPLES 5000
 #define TMIN 0.0001f
 #define TMAX 10000.0f
 #define PI 3.14159265f
@@ -19,12 +21,12 @@ int main()
 		return -1;
 	}
 
-	uint16 width = 1920;
-	uint16 height = 1080;
+	uint16 width = 1280;
+	uint16 height = 720;
 	float aspectRatio = (float)width / (float)height;
 
 	// x is right, y is up, z is backwards
-	Vec3f eye = CreateVec3f(0.0f, 0.0f, 1.0f);
+	Vec3f eye = CreateVec3f(0.0f, 0.0f, 2.0f);
 	
 	float gridHeight = 2.0f;
 	float gridWidth = aspectRatio * gridHeight;
@@ -40,7 +42,7 @@ int main()
 		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(1.0f, 0.4f, 0.2f), CreateVec3f(0.0f)),
 		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.1f, 0.5f, 0.9f), CreateVec3f(0.0f)),
 		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.8f), CreateVec3f(0.0f)),
-		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.0f), CreateVec3f(5.0f))
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.0f), CreateVec3f(6.0f))
 	};
 	int32 numMaterials = (int32)ARRAYCOUNT(materials);
 
@@ -62,6 +64,53 @@ int main()
 								 quads, numQuads, 
 								 materials, numMaterials);
 
+	// CONSTRUCTING CORNELL BOX
+	Scene cornellBox = {};
+	
+	Material cbMats[]
+	{
+		// light source
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.0f), CreateVec3f(5.0f)),
+			
+		// walls
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(1.0f, 0.1f, 0.1f), CreateVec3f(0.0f)),
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.1f, 1.0f, 0.1f), CreateVec3f(0.0f)),
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(1.0f, 1.0f, 1.0f), CreateVec3f(0.0f))
+	};
+	int32 cbNumMats = (int32)ARRAYCOUNT(cbMats);
+
+	float32 cbOffset = -0.2f;
+	float32 lightWidth = 0.5f;
+	float32 lightYOffset = -0.01f;
+	Quad cbQuads[]
+	{
+		// left
+		CreateQuad(CreateVec3f(-1.0f, -1.0f, -2.0f+cbOffset), CreateVec3f(-1.0f, 1.0f, 0.0f+cbOffset), 0, 1),
+		// right
+		CreateQuad(CreateVec3f(1.0f, -1.0f, -2.0f+cbOffset), CreateVec3f(1.0f, 1.0f, 0.0f+cbOffset), 0, 2),
+		// bottom
+		CreateQuad(CreateVec3f(-1.0f, -1.0f, -2.0f+cbOffset), CreateVec3f(1.0f, -1.0f, 0.0f+cbOffset), 1, 3),
+		// top
+		CreateQuad(CreateVec3f(-1.0f, 1.0f, -2.0f+cbOffset), CreateVec3f(1.0f, 1.0f, 0.0f+cbOffset), 1, 3),
+		// back
+		CreateQuad(CreateVec3f(-1.0f, -1.0f, -2.0f+cbOffset), CreateVec3f(1.0f, 1.0f, -2.0f+cbOffset), 2, 3),
+			
+		// light
+		CreateQuad(CreateVec3f(-0.5f*lightWidth, 1.0f+lightYOffset, (-1.0f-0.5f*lightWidth)+cbOffset), 
+			       CreateVec3f(0.5f*lightWidth, 1.0f+lightYOffset, (-1.0f+0.5f*lightWidth)+cbOffset), 1, 0),
+	};
+	int32 cbNumQuads = (int32)ARRAYCOUNT(cbQuads);
+
+	Sphere cbSpheres[]
+	{
+		CreateSphere(CreateVec3f(0.5f, -0.7f, -1.0f), 0.3f, 3)
+	};
+	int32 cbNumSpheres = (int32)ARRAYCOUNT(cbSpheres);
+
+	cornellBox = ConstructScene(cbSpheres, cbNumSpheres, cbQuads, cbNumQuads, cbMats, cbNumMats);
+
+	// END CORNELL BOX
+	
 	fprintf(result, "P3\n%d %d\n255\n", width, height);
 
 	// TODO: write to buffer first and then write to file
@@ -83,7 +132,7 @@ int main()
 				Vec3f rayDirection = NormalizeVec3f(pointOnGrid - eye);
 
 				Ray ray = {eye, rayDirection};
-				color += EstimatorPathTracingLambertian(ray, NUM_BOUNCES, scene);
+				color += EstimatorPathTracingLambertian(ray, cornellBox);
 			}
 
 			// Divide by the number of sample rays sent through pixel

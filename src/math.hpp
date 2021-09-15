@@ -70,6 +70,11 @@ Vec3f operator/(const float32 lhs, const Vec3f rhs)
 	return {lhs / rhs.x, lhs / rhs.y, lhs / rhs.z};
 }
 
+bool operator!=(const Vec3f lhs, const Vec3f rhs)
+{
+	return lhs.x != rhs.x && lhs.y != rhs.y && lhs.z != rhs.z;
+}
+
 Vec3f operator+=(Vec3f &lhs, const Vec3f rhs)
 {
 	lhs.x += rhs.x;
@@ -114,6 +119,16 @@ struct Vec2f
 	};
 };
 
+Vec2f CreateVec2f(float32 x, float32 y)
+{
+	return {x, y};
+}
+
+Vec2f CreateVec2f(float32 v)
+{
+	return {v, v};
+}
+
 Vec2f operator-(const Vec2f lhs, const Vec2f rhs)
 {
 	return {lhs.x - rhs.x, lhs.y - rhs.y};
@@ -122,6 +137,11 @@ Vec2f operator-(const Vec2f lhs, const Vec2f rhs)
 Vec2f operator+(const Vec2f lhs, const Vec2f rhs)
 {
 	return {lhs.x + rhs.x, lhs.y + rhs.y};
+}
+
+Vec2f operator*(const float32 lhs, const Vec2f rhs)
+{
+	return {lhs * rhs.x, lhs * rhs.y};
 }
 
 /*
@@ -144,6 +164,14 @@ inline Vec3f Sign(Vec3f value)
 	return {Sign(value.x), Sign(value.y), Sign(value.z)};
 }
 
+inline float32 Abs(float32 value)
+{
+	if(value < 0.0f)
+		return -value;
+	
+	return value;
+}
+
 inline int16 Clamp(int16 value, int16 max)
 {
 	if(value > max)
@@ -158,6 +186,11 @@ inline float32 Dot(Vec3f vec1, Vec3f vec2)
 }
 
 inline float32 Max(float32 a, float32 b)
+{
+	return a > b ? a : b;
+}
+
+inline int32 Max(int32 a, int32 b)
 {
 	return a > b ? a : b;
 }
@@ -182,9 +215,10 @@ inline Vec3f NormalizeVec3f(Vec3f vec)
 	return vec / sqrtf(Dot(vec, vec));
 }
 
+// Returns a number in (0, 1)
 float32 RandomNumberNormalized()
 {
-	return (float32)((float64)rand() / (float64)(RAND_MAX + 1));
+	return (float32)((float64)(rand() + 1) / (float64)(RAND_MAX + 2));
 }
 
 // TODO: create my own random function
@@ -215,8 +249,8 @@ Vec3f MapToUnitSphere(Vec2f vec2)
     return { sinTheta * cosPhi, cosTheta, sinTheta * sinPhi };
 }
 
-Vec3f MapToUnitHemisphereCosineWeighted(Vec2f uv, Vec3f normal)
+Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal)
 {
     Vec3f p = MapToUnitSphere(uv);
-    return NormalizeVec3f(normal+p);
+	return p+normal;
 }
