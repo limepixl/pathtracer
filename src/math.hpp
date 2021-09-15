@@ -112,6 +112,11 @@ Vec2f operator-(const Vec2f lhs, const Vec2f rhs)
 	return {lhs.x - rhs.x, lhs.y - rhs.y};
 }
 
+Vec2f operator+(const Vec2f lhs, const Vec2f rhs)
+{
+	return {lhs.x + rhs.x, lhs.y + rhs.y};
+}
+
 /*
 	Functions
 */
@@ -172,7 +177,7 @@ inline Vec3f NormalizeVec3f(Vec3f vec)
 
 float32 RandomNumberNormalized()
 {
-	return (float32)((float64)rand() / (float64)RAND_MAX);
+	return (float32)((float64)rand() / (float64)(RAND_MAX + 1));
 }
 
 // TODO: create my own random function

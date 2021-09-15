@@ -32,7 +32,7 @@ int main()
 		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(1.0f, 0.4f, 0.2f), CreateVec3f(0.0f, 0.0f, 0.0f)),
 		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.1f, 0.5f, 0.9f), CreateVec3f(0.0f, 0.0f, 0.0f)),
 		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.8f, 0.8f, 0.8f), CreateVec3f(0.0f, 0.0f, 0.0f)),
-		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.9f, 0.0f, 0.0f), CreateVec3f(0.0f, 0.0f, 0.0f))
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.0f, 0.0f, 0.0f), CreateVec3f(5.0f, 5.0f, 5.0f))
 	};
 	int32 numMaterials = (int32)(sizeof(materials) / sizeof(Material));
 
@@ -44,7 +44,13 @@ int main()
 	};
 	int32 numSpheres = (int32)(sizeof(spheres) / sizeof(Sphere));
 
-	Scene scene = ConstructScene(spheres, numSpheres);
+	Quad quads[]
+	{
+		{ CreateVec3f(-2.0f, 2.0f, -3.0f), CreateVec3f(2.0f, 2.0f, -1.0f), 1, &materials[3] }
+	};
+	int32 numQuads = (int32)(sizeof(quads) / sizeof(Quad));
+
+	Scene scene = ConstructScene(spheres, numSpheres, quads, numQuads);
 
 	fprintf(result, "P3\n%d %d\n255\n", width, height);
 
@@ -72,7 +78,7 @@ int main()
 
 			// Divide by the number of sample rays sent through pixel
 			// to get the average radiance accumulated
-			color /= (float)NUM_SAMPLES;
+			color /= (float32)NUM_SAMPLES;
 
 			// Gamma correction
 			color.x = sqrtf(color.x);

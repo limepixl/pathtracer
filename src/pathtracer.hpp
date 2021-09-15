@@ -5,11 +5,12 @@
 */
 
 #define NUM_BOUNCES 5
-#define NUM_SAMPLES 10
+#define NUM_SAMPLES 5000
 #define TMIN 0.0001f
 #define TMAX 10000.0f
 #define PI 3.14159265f
 #define EPSILON 0.0001f
+#define ENVIRONMENT_MAP_LE 0.0f
 
 // NOTE: This only holds for LLP64
 typedef unsigned char uint8;
@@ -40,19 +41,13 @@ struct Ray
 #include "intersect.hpp"
 #include "material.hpp"
 
-struct Scene
-{
-	Sphere *spheres;
-	int numSpheres;
-};
-
 /*
 	Functions
 */
 
-Scene ConstructScene(Sphere *spheres, int numSpheres)
+Scene ConstructScene(Sphere *spheres, int32 numSpheres, Quad *quads, int32 numQuads)
 {
-	return {spheres, numSpheres};
+	return {spheres, numSpheres, quads, numQuads};
 }
 
 // Gets a point along the ray's direction vector.
@@ -73,40 +68,11 @@ Vec3f SkyColor(Vec3f dir)
     return (1.0f-t) * startColor + t * endColor;
 }
 
-bool Intersect(Ray ray, Scene scene, HitData *data)
-{
-	bool hitAnything = false;
-	HitData resultData = {TMAX};
-
-	for(int32 i = 0; i < scene.numSpheres; i++)
-	{
-		HitData currentData = {};
-		Sphere current = scene.spheres[i];
-		bool intersect = SphereIntersect(ray, current, &currentData);
-		if(intersect)
-		{
-			hitAnything = true;
-
-			if(currentData.t < resultData.t)
-			{
-				// Found closer hit, store it.
-				resultData = currentData;
-			}
-		}
-	}
-
-	*data = resultData;
-	return hitAnything;
-}
-
 // Cast ray into the scene, have the ray bounce around
 // a predetermined number of times accumulating radiance
 // along the way, and return the color for the given pixel
 Vec3f EstimatorPathTracingLambertian(Ray ray, uint8 numBounces, Scene scene)
 {
-	// TODO: for now there are only spheres, but we need a formal
-	// definition of a scene with any objects within it!
-
 	Vec3f color {0.0f, 0.0f, 0.0f};
 
 	// ( BRDF * dot(Nx, psi) ) / PDF(psi)
@@ -122,7 +88,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, uint8 numBounces, Scene scene)
 		bool intersect = Intersect(ray, scene, &data);
 		if(!intersect) // ray goes off into infinity
 		{
-			color += throughputTerm * SkyColor(ray.direction);
+			color += throughputTerm * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
 			break;
 		}
 
