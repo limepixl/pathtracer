@@ -1,17 +1,5 @@
 #pragma once
 
-/*
-	Defines
-*/
-
-#define NUM_BOUNCES 5
-#define NUM_SAMPLES 5000
-#define TMIN 0.0001f
-#define TMAX 10000.0f
-#define PI 3.14159265f
-#define EPSILON 0.0001f
-#define ENVIRONMENT_MAP_LE 0.0f
-
 // NOTE: This only holds for LLP64
 typedef unsigned char uint8;
 typedef unsigned short uint16;
@@ -26,11 +14,10 @@ typedef long int64;
 typedef float float32;
 typedef double float64;
 
-#include "math.hpp"
+// Macro to return stack allocated array length
+#define ARRAYCOUNT(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-/*
-	Structs
-*/
+#include "math.hpp"
 
 struct Ray
 {
@@ -38,24 +25,15 @@ struct Ray
 	Vec3f direction;
 };
 
-#include "intersect.hpp"
-#include "material.hpp"
-
-/*
-	Functions
-*/
-
-Scene ConstructScene(Sphere *spheres, int32 numSpheres, Quad *quads, int32 numQuads)
-{
-	return {spheres, numSpheres, quads, numQuads};
-}
-
 // Gets a point along the ray's direction vector.
 // Assumes that the direction of the ray is normalized.
 Vec3f PointAlongRay(Ray r, float32 t)
 {
 	return r.origin + r.direction * t;
 }
+
+#include "intersect.hpp"
+#include "material.hpp"
 
 // A simple lerp between 2 colors
 Vec3f SkyColor(Vec3f dir)
@@ -92,8 +70,10 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, uint8 numBounces, Scene scene)
 			break;
 		}
 
+		Material *mat = &scene.materials[data.materialIndex];
+
 		// add the light that the material emits
-		color += throughputTerm * data.mat->Le;
+		color += throughputTerm * mat->Le;
 
 		// update throughput
 		// The PI is here because we are sampling w.r.t the pdf
@@ -101,7 +81,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, uint8 numBounces, Scene scene)
 		// This cosine term cancels out with the dot product in
 		// the throughput term and all that is left is the BRDF
 		// along with PI.
-		throughputTerm *= PI * data.mat->color;
+		throughputTerm *= PI * mat->color;
 
 		Vec2f randomVec2f = RandomVec2f();
 

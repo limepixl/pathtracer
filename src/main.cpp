@@ -1,3 +1,11 @@
+#define NUM_BOUNCES 5
+#define NUM_SAMPLES 3000
+#define TMIN 0.0001f
+#define TMAX 10000.0f
+#define PI 3.14159265f
+#define EPSILON 0.0001f
+#define ENVIRONMENT_MAP_LE 0.0f
+
 // TODO: replace most C standard library calls with native platform layer
 #include <stdio.h>
 #include "pathtracer.hpp"
@@ -11,12 +19,12 @@ int main()
 		return -1;
 	}
 
-	uint16 width = 640;
-	uint16 height = 480;
+	uint16 width = 1920;
+	uint16 height = 1080;
 	float aspectRatio = (float)width / (float)height;
 
 	// x is right, y is up, z is backwards
-	Vec3f eye = {0.0f, 0.0f, 1.0f};
+	Vec3f eye = CreateVec3f(0.0f, 0.0f, 1.0f);
 	
 	float gridHeight = 2.0f;
 	float gridWidth = aspectRatio * gridHeight;
@@ -29,28 +37,30 @@ int main()
 
 	Material materials[]
 	{
-		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(1.0f, 0.4f, 0.2f), CreateVec3f(0.0f, 0.0f, 0.0f)),
-		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.1f, 0.5f, 0.9f), CreateVec3f(0.0f, 0.0f, 0.0f)),
-		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.8f, 0.8f, 0.8f), CreateVec3f(0.0f, 0.0f, 0.0f)),
-		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.0f, 0.0f, 0.0f), CreateVec3f(5.0f, 5.0f, 5.0f))
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(1.0f, 0.4f, 0.2f), CreateVec3f(0.0f)),
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.1f, 0.5f, 0.9f), CreateVec3f(0.0f)),
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.8f), CreateVec3f(0.0f)),
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.0f), CreateVec3f(5.0f))
 	};
-	int32 numMaterials = (int32)(sizeof(materials) / sizeof(Material));
+	int32 numMaterials = (int32)ARRAYCOUNT(materials);
 
 	Sphere spheres[]
 	{
-		{ CreateVec3f(1.0f, 0.0f, -2.0f), 1.0f, &materials[0] },
-		{ CreateVec3f(-1.0f, 0.0f, -2.0f), 1.0f, &materials[1] },
-		{ CreateVec3f(0.0f, -101.0f, -2.0f), 100.0f, &materials[2] }
+		CreateSphere(CreateVec3f(1.0f, 0.0f, -2.0f), 1.0f, 0),
+		CreateSphere(CreateVec3f(-1.0f, 0.0f, -2.0f), 1.0f, 1),
+		CreateSphere(CreateVec3f(0.0f, -101.0f, -2.0f), 100.0f, 2)
 	};
-	int32 numSpheres = (int32)(sizeof(spheres) / sizeof(Sphere));
+	int32 numSpheres = (int32)ARRAYCOUNT(spheres);
 
 	Quad quads[]
 	{
-		{ CreateVec3f(-2.0f, 2.0f, -3.0f), CreateVec3f(2.0f, 2.0f, -1.0f), 1, &materials[3] }
+		CreateQuad(CreateVec3f(-2.0f, 2.0f, -3.0f), CreateVec3f(2.0f, 2.0f, -1.0f), 1, 3)
 	};
-	int32 numQuads = (int32)(sizeof(quads) / sizeof(Quad));
+	int32 numQuads = (int32)ARRAYCOUNT(quads);
 
-	Scene scene = ConstructScene(spheres, numSpheres, quads, numQuads);
+	Scene scene = ConstructScene(spheres, numSpheres, 
+								 quads, numQuads, 
+								 materials, numMaterials);
 
 	fprintf(result, "P3\n%d %d\n255\n", width, height);
 

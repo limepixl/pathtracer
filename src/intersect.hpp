@@ -5,15 +5,23 @@ struct HitData
 	float32 t;
 	Vec3f normal;
 	Vec3f point;
-	struct Material *mat;
+
+	int16 materialIndex;
 };
 
 struct Sphere
 {
 	Vec3f origin;
 	float32 radius;
-	struct Material *mat;
+	
+	int16 materialIndex;
 };
+
+Sphere CreateSphere(Vec3f origin, float32 radius, int16 materialIndex)
+{
+	Sphere result = {origin, radius, materialIndex};
+	return result;
+}
 
 bool SphereIntersect(Ray ray, Sphere sphere, HitData *data)
 {
@@ -33,7 +41,7 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data)
 				data->t = t;
 				data->point = ray.origin + ray.direction * t;
 				data->normal = data->point - sphere.origin;
-				data->mat = sphere.mat;
+				data->materialIndex = sphere.materialIndex;
 				return true;
 			}
 		}
@@ -53,7 +61,7 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data)
 				data->t = t1;
 				data->point = ray.origin + ray.direction * t1;
 				data->normal = (data->point - sphere.origin) / sphere.radius;
-				data->mat = sphere.mat;
+				data->materialIndex = sphere.materialIndex;
 				return true;
 			}
 			else if(t2 > TMIN && t2 < TMAX)
@@ -61,7 +69,7 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data)
 				data->t = t2;
 				data->point = ray.origin + ray.direction * t2;
 				data->normal = (data->point - sphere.origin) / sphere.radius;
-				data->mat = sphere.mat;
+				data->materialIndex = sphere.materialIndex;
 				return true;
 			}
 		}
@@ -75,8 +83,15 @@ struct Quad
 	Vec3f origin;
 	Vec3f end;
 	int8 component; // 0 for x, 1 for y, 2 for z
-	struct Material *mat;
+	
+	int16 materialIndex;
 };
+
+Quad CreateQuad(Vec3f origin, Vec3f end, int8 component, int16 materialIndex)
+{
+	Quad result = {origin, end, component, materialIndex};
+	return result;
+}
 
 bool QuadIntersect(Ray ray, Quad quad, HitData *data)
 {
@@ -120,7 +135,7 @@ bool QuadIntersect(Ray ray, Quad quad, HitData *data)
 		normalSign = 1.0f;
 	}
 
-	data->mat = quad.mat;
+	data->materialIndex = quad.materialIndex;
 	data->normal = {0.0f, 0.0f, 0.0f};
 	data->normal.values[c] = normalSign;
 	data->point = pointOnPlane;
@@ -132,9 +147,20 @@ struct Scene
 {
 	Sphere *spheres;
 	int32 numSpheres;
+
 	Quad *quads;
 	int32 numQuads;
+
+	struct Material *materials;
+	int32 numMaterials;
 };
+
+Scene ConstructScene(Sphere *spheres, int32 numSpheres, 
+					 Quad *quads, int32 numQuads,
+					 struct Material *materials, int32 numMaterials)
+{
+	return {spheres, numSpheres, quads, numQuads, materials, numMaterials};
+}
 
 bool Intersect(Ray ray, Scene scene, HitData *data)
 {

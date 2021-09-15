@@ -20,7 +20,14 @@ struct Vec3f
 
 Vec3f CreateVec3f(float32 x, float32 y, float32 z)
 {
-	return {x, y, z};
+	Vec3f result = {x, y, z};
+	return result;
+}
+
+Vec3f CreateVec3f(float32 v)
+{
+	Vec3f result = {v, v, v};
+	return result;
 }
 
 Vec3f operator+(const Vec3f lhs, const Vec3f rhs)
