@@ -82,15 +82,14 @@ struct Quad
 {
 	Vec3f origin;
 	Vec3f end;
-	Vec3f normal;
 	int8 component; // 0 for x, 1 for y, 2 for z
 	
 	int16 materialIndex;
 };
 
-Quad CreateQuad(Vec3f origin, Vec3f end, Vec3f normal, int8 component, int16 materialIndex)
+Quad CreateQuad(Vec3f origin, Vec3f end, int8 component, int16 materialIndex)
 {
-	Quad result = {origin, end, normal, component, materialIndex};
+	Quad result = {origin, end, component, materialIndex};
 	return result;
 }
 
@@ -124,8 +123,21 @@ bool QuadIntersect(Ray ray, Quad quad, HitData *data)
 		return false;
 
 	// Within quad!
+	// Check which way the normal points to
+	float32 normalSign = Sign(ray.origin.values[c] - pointOnPlane.values[c]);
+
+	// If this is true then the ray origin component is
+	// right inside the plane, which shouldn't happen if
+	// we avoid self intersection!
+	if(normalSign == 0.0f)
+	{
+		printf("help!\n");
+		normalSign = 1.0f;
+	}
+
 	data->materialIndex = quad.materialIndex;
-	data->normal = quad.normal;
+	data->normal = {0.0f, 0.0f, 0.0f};
+	data->normal.values[c] = normalSign;
 	data->point = pointOnPlane;
 	data->t = t;
 	return true;
@@ -139,19 +151,15 @@ struct Scene
 	Quad *quads;
 	int32 numQuads;
 
-	Quad **lights;
-	int32 numLights;
-
 	struct Material *materials;
 	int32 numMaterials;
 };
 
 Scene ConstructScene(Sphere *spheres, int32 numSpheres, 
 					 Quad *quads, int32 numQuads,
-					 Quad **lights, int32 numLights,
 					 struct Material *materials, int32 numMaterials)
 {
-	return {spheres, numSpheres, quads, numQuads, lights, numLights, materials, numMaterials};
+	return {spheres, numSpheres, quads, numQuads, materials, numMaterials};
 }
 
 bool Intersect(Ray ray, Scene scene, HitData *data)
