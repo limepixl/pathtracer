@@ -70,6 +70,16 @@ Vec3f operator/(const float32 lhs, const Vec3f rhs)
 	return {lhs / rhs.x, lhs / rhs.y, lhs / rhs.z};
 }
 
+bool operator==(const Vec3f lhs, const Vec3f rhs)
+{
+	return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
+}
+
+bool operator<=(const Vec3f lhs, const Vec3f rhs)
+{
+	return lhs.x <= rhs.x && lhs.y <= rhs.y && lhs.z <= rhs.z;
+}
+
 bool operator!=(const Vec3f lhs, const Vec3f rhs)
 {
 	return lhs.x != rhs.x && lhs.y != rhs.y && lhs.z != rhs.z;
@@ -172,6 +182,11 @@ inline float32 Abs(float32 value)
 	return value;
 }
 
+inline Vec3f Abs(Vec3f value)
+{
+	return {Abs(value.x), Abs(value.y), Abs(value.z)};
+}
+
 inline int16 Clamp(int16 value, int16 max)
 {
 	if(value > max)
@@ -249,7 +264,7 @@ Vec3f MapToUnitSphere(Vec2f vec2)
     return { sinTheta * cosPhi, cosTheta, sinTheta * sinPhi };
 }
 
-Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal)
+Vec3f MapToUnitHemisphereCosineWeighted(Vec2f uv, Vec3f normal)
 {
     Vec3f p = MapToUnitSphere(uv);
 	return p+normal;
