@@ -70,11 +70,6 @@ Vec3f operator/(const float32 lhs, const Vec3f rhs)
 	return {lhs / rhs.x, lhs / rhs.y, lhs / rhs.z};
 }
 
-bool operator!=(const Vec3f lhs, const Vec3f rhs)
-{
-	return lhs.x != rhs.x && lhs.y != rhs.y && lhs.z != rhs.z;
-}
-
 Vec3f operator+=(Vec3f &lhs, const Vec3f rhs)
 {
 	lhs.x += rhs.x;
@@ -105,6 +100,11 @@ Vec3f operator*=(Vec3f &lhs, const Vec3f rhs)
 	lhs.y *= rhs.y;
 	lhs.z *= rhs.z;
 	return lhs;
+}
+
+bool operator<=(Vec3f lhs, Vec3f rhs)
+{
+	return (lhs.x <= rhs.x && lhs.y <= rhs.y && lhs.z <= rhs.z);
 }
 
 struct Vec2f
@@ -170,6 +170,11 @@ inline float32 Abs(float32 value)
 		return -value;
 	
 	return value;
+}
+
+inline Vec3f Abs(Vec3f value)
+{
+	return {Abs(value.x), Abs(value.y), Abs(value.z)};
 }
 
 inline int16 Clamp(int16 value, int16 max)
@@ -253,4 +258,20 @@ Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal)
 {
     Vec3f p = MapToUnitSphere(uv);
 	return p+normal;
+}
+
+/*
+	Operators that use the utility functions above
+*/
+
+bool operator==(const Vec3f lhs, const Vec3f rhs)
+{
+	Vec3f graceInterval = {0.005f, 0.005f, 0.005f};
+	Vec3f absdiff = Abs(lhs - rhs);
+	return absdiff <= graceInterval;
+}
+
+bool operator!=(const Vec3f lhs, const Vec3f rhs)
+{
+	return !(lhs == rhs);
 }

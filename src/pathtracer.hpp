@@ -103,3 +103,152 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 
 	return color;
 }
+
+Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
+{
+	Vec3f color = CreateVec3f(0.0f);
+	Vec3f throughputTerm = CreateVec3f(1.0f);
+
+	for(int16 bounce = 0; bounce < NUM_BOUNCES; bounce++)
+	{
+		HitData data = {};
+		bool intersect = Intersect(ray, scene, &data);
+		if(!intersect)
+		{
+			// No intersection with scene, add env map contribution
+			color += throughputTerm * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
+			break;
+		}
+
+		Vec3f &BRDF = scene.materials[data.materialIndex].color; // convenience
+		Material *mat = &scene.materials[data.materialIndex];
+		float32 cosTheta = Dot(data.normal, ray.direction);
+		float32 pdfCosineWeightedHemisphere = cosTheta / PI;
+
+		// add light that is emitted from surface (but bounce right afterwards)
+		bool hitLight = false;
+		if(BOUNCE_MIN <= bounce && bounce <= NUM_BOUNCES && mat->Le.x >= 0.5f)
+		{
+			hitLight = true;
+			if(bounce == 0)
+				color = throughputTerm * mat->Le;
+			break;
+		}
+		else
+		{
+			// sample light sources for direct illumination
+			Vec3f directIllumination = CreateVec3f(0.0f);
+			int8 numShadowRays = 1;
+			for(int8 shadowRayIndex = 0; shadowRayIndex < numShadowRays; shadowRayIndex++)
+			{
+				// pick a light source
+				// TEMP: we only have one light source
+				// TODO: add a way to have a separate array of light sources
+				int16 numLightSources = 1;
+				float32 pdfPickLight = 1.0f / numLightSources;
+
+				Quad *lightSource = &scene.quads[5];
+				Material *lightSourceMat = &scene.materials[lightSource->materialIndex];
+
+				Vec3f v0 = lightSource->origin;
+				Vec3f v2 = lightSource->end;
+				Vec3f dims = v2 - v0;
+
+				// Get the area of the light source
+				float32 quadArea = 0.0f;
+				if(lightSource->component == 0) // yz
+					quadArea = dims.y * dims.z;
+				else if(lightSource->component == 1) // xz
+					quadArea = dims.x * dims.z;
+				else // xy
+					quadArea = dims.x * dims.y;
+
+				float32 pdfPickPointOnLight = 1.0f / quadArea;
+
+				// PDF in terms of area, for picking point on light source k
+				float32 pdfLight_area = pdfPickLight * pdfPickPointOnLight;
+
+				// Pick y on the light
+				Vec2f uv = RandomVec2f();
+				Vec3f pointOnLight = lightSource->origin;
+				if(lightSource->component == 0) // x
+				{
+					pointOnLight.y += uv.x * dims.y;
+					pointOnLight.z += uv.y * dims.z;
+				}
+				else if(lightSource->component == 1) // y
+				{
+					pointOnLight.x += uv.x * dims.x;
+					pointOnLight.z += uv.y * dims.z;
+				}
+				else // z
+				{
+					pointOnLight.x += uv.x * dims.x;
+					pointOnLight.y += uv.y * dims.y;
+				}
+
+				// Just for clarity
+				Vec3f x = data.point;
+				Vec3f y = pointOnLight;
+
+				// Send out a shadow ray in direction x->y
+				Vec3f distVec = y - x;
+				Vec3f shadowRayDir = NormalizeVec3f(distVec);
+				Ray shadowRay = {x, shadowRayDir};
+
+				// Check if ray hits anything before hitting the light source
+				HitData shadowData = {};
+				bool hitAnything = Intersect(shadowRay, scene, &shadowData);
+				if(!hitAnything)
+				{
+					// It shouldn't be possible to send a ray towards the light
+					// source and not hit anything in the scene, even the light
+					printf("ERROR: Shadow ray didn't hit anything!\n");
+					break;
+				}
+
+				// Visibility check means we have a clear line of sight!
+				if(y == shadowData.point)
+				{
+					float32 squaredDist = Dot(distVec, distVec);
+
+					// We want to only add light contribution from lights within 
+					// the hemisphere solid angle above X, and not from lights behind it.
+					float32 cosThetaX = Max(0.0f, Dot(data.normal, shadowRayDir));
+
+					// We can sample the light from both sides, it doesn't have to
+					// be a one-sided light source.
+					float32 cosThetaY = Abs(Dot(shadowData.normal, shadowRayDir));
+
+					float32 G = cosThetaX * cosThetaY / squaredDist;
+
+					directIllumination += lightSourceMat->Le * BRDF * G / pdfLight_area;
+					if(directIllumination.x != directIllumination.x ||
+					   directIllumination.y != directIllumination.y ||
+					   directIllumination.z != directIllumination.z)
+					{
+						printf("NaN!\n");
+					}
+				}
+			}
+			directIllumination /= (float32)numShadowRays;
+
+			// Because we are calculating for a non-emissive point, we can safely
+			// add the direct illumination to this point.
+			color += throughputTerm * directIllumination;
+		}
+
+		// Update the throughput term
+		// throughputTerm *= BRDF * cosTheta / pdfCosineWeightedHemisphere;
+		throughputTerm *= PI * BRDF;
+
+		// Pick a new direction
+		Vec2f randomVec2f = RandomVec2f();
+		Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, data.normal);
+
+		Vec3f point = data.point;
+		ray = {point + EPSILON * data.normal, dir};
+	}
+
+	return color;
+}
