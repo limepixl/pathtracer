@@ -104,7 +104,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 	return color;
 }
 
-Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
+Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, Quad **lights, int32 numLights)
 {
 	Vec3f color = CreateVec3f(0.0f);
 	Vec3f throughputTerm = CreateVec3f(1.0f);
@@ -134,20 +134,18 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 				color = throughputTerm * mat->Le;
 			break;
 		}
-		else
+		else if(numLights > 0)
 		{
 			// sample light sources for direct illumination
 			Vec3f directIllumination = CreateVec3f(0.0f);
-			int8 numShadowRays = 1;
-			for(int8 shadowRayIndex = 0; shadowRayIndex < numShadowRays; shadowRayIndex++)
+			for(int8 shadowRayIndex = 0; shadowRayIndex < NUM_SHADOW_RAYS; shadowRayIndex++)
 			{
 				// pick a light source
 				// TEMP: we only have one light source
 				// TODO: add a way to have a separate array of light sources
-				int16 numLightSources = 1;
-				float32 pdfPickLight = 1.0f / numLightSources;
+				float32 pdfPickLight = 1.0f / numLights;
 
-				Quad *lightSource = &scene.quads[5];
+				Quad *lightSource = lights[0];
 				Material *lightSourceMat = &scene.materials[lightSource->materialIndex];
 
 				Vec3f v0 = lightSource->origin;
@@ -218,7 +216,11 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 
 					// We can sample the light from both sides, it doesn't have to
 					// be a one-sided light source.
+				#if TWOSIDED_LIGHT_QUADS
 					float32 cosThetaY = Abs(Dot(shadowData.normal, shadowRayDir));
+				#else
+					float32 cosThetaY = Max(0.0f, Dot(shadowData.normal, -shadowRayDir));
+				#endif
 
 					float32 G = cosThetaX * cosThetaY / squaredDist;
 
@@ -231,7 +233,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 					}
 				}
 			}
-			directIllumination /= (float32)numShadowRays;
+			directIllumination /= (float32)NUM_SHADOW_RAYS;
 
 			// Because we are calculating for a non-emissive point, we can safely
 			// add the direct illumination to this point.

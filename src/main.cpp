@@ -1,12 +1,17 @@
 #define BOUNCE_MIN 0
 #define BOUNCE_COUNT 5
 #define NUM_BOUNCES BOUNCE_MIN + BOUNCE_COUNT
-#define NUM_SAMPLES 500
+#define NUM_SAMPLES 50
+#define NUM_SHADOW_RAYS 2
+
 #define TMIN 0.0001f
 #define TMAX 10000.0f
 #define PI 3.14159265f
 #define EPSILON 0.0001f
 #define ENVIRONMENT_MAP_LE 0.0f
+
+#define NEE_ONLY 1
+#define TWOSIDED_LIGHT_QUADS 1
 
 // TODO: replace most C standard library calls with native platform layer
 #include <stdio.h>
@@ -21,8 +26,8 @@ int main()
 		return -1;
 	}
 
-	uint16 width = 400;
-	uint16 height = 400;
+	uint16 width = 1920;
+	uint16 height = 1080;
 	float aspectRatio = (float)width / (float)height;
 
 	// x is right, y is up, z is backwards
@@ -99,6 +104,12 @@ int main()
 
 	cornellBox = ConstructScene(cbSpheres, cbNumSpheres, cbQuads, cbNumQuads, cbMats, cbNumMats);
 
+	Quad *cbLights[]
+	{
+		&cbQuads[5]
+	};
+	int32 cbNumLights = (int32)ARRAYCOUNT(cbLights);
+
 	// END CORNELL BOX
 	
 	fprintf(result, "P3\n%d %d\n255\n", width, height);
@@ -122,8 +133,11 @@ int main()
 				Vec3f rayDirection = NormalizeVec3f(pointOnGrid - eye);
 
 				Ray ray = {eye, rayDirection};
-				// color += EstimatorPathTracingLambertian(ray, cornellBox);
-				color += EstimatorPathTracingLambertianNEE(ray, cornellBox);
+			#if NEE_ONLY
+				color += EstimatorPathTracingLambertianNEE(ray, cornellBox, cbLights, cbNumLights);
+			#else 
+				color += EstimatorPathTracingLambertian(ray, cornellBox);
+			#endif
 			}
 
 			// Divide by the number of sample rays sent through pixel
