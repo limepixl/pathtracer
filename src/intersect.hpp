@@ -131,6 +131,22 @@ bool QuadIntersect(Ray ray, Quad quad, HitData *data)
 	return true;
 }
 
+enum LightSourceType
+{
+	QUAD
+};
+
+struct LightSource
+{
+	void *obj;
+	LightSourceType type;
+};
+
+LightSource CreateLightSource(void *obj, LightSourceType type)
+{
+	return {obj, type};
+}
+
 struct Scene
 {
 	Sphere *spheres;
@@ -139,15 +155,19 @@ struct Scene
 	Quad *quads;
 	int32 numQuads;
 
+	LightSource *lightSources;
+	int32 numLightSources;
+
 	struct Material *materials;
 	int32 numMaterials;
 };
 
 Scene ConstructScene(Sphere *spheres, int32 numSpheres, 
 					 Quad *quads, int32 numQuads,
+					 LightSource *lights, int32 numLights,
 					 struct Material *materials, int32 numMaterials)
 {
-	return {spheres, numSpheres, quads, numQuads, materials, numMaterials};
+	return {spheres, numSpheres, quads, numQuads, lights, numLights, materials, numMaterials};
 }
 
 bool Intersect(Ray ray, Scene scene, HitData *data)

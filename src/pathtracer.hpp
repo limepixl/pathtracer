@@ -104,7 +104,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 	return color;
 }
 
-Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, Quad **lights, int32 numLights)
+Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 {
 	Vec3f color = CreateVec3f(0.0f);
 	Vec3f throughputTerm = CreateVec3f(1.0f);
@@ -136,7 +136,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, Quad **lights, int
 		}
 		// If there is at least 1 light source in the scene and the material
 		// of the surface we hit is diffuse, we can use NEE.
-		else if(numLights > 0 && mat->type == MaterialType::MATERIAL_LAMBERTIAN)
+		else if(scene.numLightSources > 0 && mat->type == MaterialType::MATERIAL_LAMBERTIAN)
 		{
 			// sample light sources for direct illumination
 			Vec3f directIllumination = CreateVec3f(0.0f);
@@ -145,52 +145,62 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, Quad **lights, int
 				// pick a light source
 				// TEMP: we only have one light source
 				// TODO: add a way to have a separate array of light sources
-				float32 pdfPickLight = 1.0f / numLights;
+				float32 pdfPickLight = 1.0f / scene.numLightSources;
 
-				int32 pickedLightSource = (int32)(rand() % numLights);
-				Quad *lightSource = lights[pickedLightSource];
-				Material *lightSourceMat = &scene.materials[lightSource->materialIndex];
+				int32 pickedLightSource = (int32)(rand() % scene.numLightSources);
+				LightSource lightSource = scene.lightSources[pickedLightSource];
 
-				Vec3f v0 = lightSource->origin;
-				Vec3f v2 = lightSource->end;
-				Vec3f dims = v2 - v0;
+				
+				Material *lightSourceMat = NULL;
+				Vec3f y = CreateVec3f(0.0f);
+				float32 lightArea = 0.0f;
+				if(lightSource.type == LightSourceType::QUAD)
+				{
+					Quad *quadLight = (Quad *)(lightSource.obj);
+					lightSourceMat = &scene.materials[quadLight->materialIndex];
 
-				// Get the area of the light source
-				float32 quadArea = 0.0f;
-				if(lightSource->component == 0) // yz
-					quadArea = dims.y * dims.z;
-				else if(lightSource->component == 1) // xz
-					quadArea = dims.x * dims.z;
-				else // xy
-					quadArea = dims.x * dims.y;
+					Vec3f v0 = quadLight->origin;
+					Vec3f v2 = quadLight->end;
+					Vec3f dims = v2 - v0;
 
-				float32 pdfPickPointOnLight = 1.0f / quadArea;
+					// Get the area of the light source
+					float32 quadArea = 0.0f;
+					if(quadLight->component == 0) // yz
+						quadArea = dims.y * dims.z;
+					else if(quadLight->component == 1) // xz
+						quadArea = dims.x * dims.z;
+					else // xy
+						quadArea = dims.x * dims.y;
+
+					lightArea = quadArea;
+
+					// Pick y on the light
+					Vec2f uv = RandomVec2f();
+					Vec3f pointOnLight = quadLight->origin;
+					if(quadLight->component == 0) // x
+					{
+						pointOnLight.y += uv.x * dims.y;
+						pointOnLight.z += uv.y * dims.z;
+					}
+					else if(quadLight->component == 1) // y
+					{
+						pointOnLight.x += uv.x * dims.x;
+						pointOnLight.z += uv.y * dims.z;
+					}
+					else // z
+					{
+						pointOnLight.x += uv.x * dims.x;
+						pointOnLight.y += uv.y * dims.y;
+					}
+					y = pointOnLight;
+				}
+				float32 pdfPickPointOnLight = 1.0f / lightArea;
 
 				// PDF in terms of area, for picking point on light source k
 				float32 pdfLight_area = pdfPickLight * pdfPickPointOnLight;
 
-				// Pick y on the light
-				Vec2f uv = RandomVec2f();
-				Vec3f pointOnLight = lightSource->origin;
-				if(lightSource->component == 0) // x
-				{
-					pointOnLight.y += uv.x * dims.y;
-					pointOnLight.z += uv.y * dims.z;
-				}
-				else if(lightSource->component == 1) // y
-				{
-					pointOnLight.x += uv.x * dims.x;
-					pointOnLight.z += uv.y * dims.z;
-				}
-				else // z
-				{
-					pointOnLight.x += uv.x * dims.x;
-					pointOnLight.y += uv.y * dims.y;
-				}
-
 				// Just for clarity
 				Vec3f x = data.point;
-				Vec3f y = pointOnLight;
 
 				// Send out a shadow ray in direction x->y
 				Vec3f distVec = y - x;
@@ -244,8 +254,8 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, Quad **lights, int
 		}
 
 		// Update the throughput term
-		// throughputTerm *= BRDF * cosTheta / pdfCosineWeightedHemisphere;
-		throughputTerm *= PI * BRDF;
+		throughputTerm *= BRDF * cosTheta / pdfCosineWeightedHemisphere;
+		// throughputTerm *= PI * BRDF;
 
 		// Pick a new direction
 		Vec2f randomVec2f = RandomVec2f();

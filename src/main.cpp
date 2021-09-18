@@ -1,7 +1,7 @@
 #define BOUNCE_MIN 0
 #define BOUNCE_COUNT 5
 #define NUM_BOUNCES BOUNCE_MIN + BOUNCE_COUNT
-#define NUM_SAMPLES 50
+#define NUM_SAMPLES 100
 #define NUM_SHADOW_RAYS 1
 
 #define TMIN 0.0001f
@@ -10,7 +10,7 @@
 #define EPSILON 0.0001f
 #define ENVIRONMENT_MAP_LE 0.0f
 
-#define NEE_ONLY 1
+#define NEE_ONLY 0
 #define TWOSIDED_LIGHT_QUADS 1
 
 // TODO: replace most C standard library calls with native platform layer
@@ -94,20 +94,6 @@ int main()
 			       CreateVec3f(0.5f*lightWidth, 1.0f+lightYOffset, (-1.0f+0.5f*lightWidth)+cbOffset), 
 			       CreateVec3f(0.0f, -1.0f, 0.0f), 
 				   1, 0),
-
-		/*
-		// light1
-		CreateQuad(CreateVec3f(-lightXOffset + (-0.5f*lightWidth), 1.0f+lightYOffset, (-1.0f-0.5f*lightWidth)+cbOffset), 
-			       CreateVec3f(-lightXOffset + (0.5f*lightWidth), 1.0f+lightYOffset, (-1.0f+0.5f*lightWidth)+cbOffset), 
-			       CreateVec3f(0.0f, -1.0f, 0.0f), 
-				   1, 0),
-
-		// light2
-		CreateQuad(CreateVec3f(lightXOffset + (-0.5f*lightWidth), 1.0f+lightYOffset, (-1.0f-0.5f*lightWidth)+cbOffset), 
-			       CreateVec3f(lightXOffset + (0.5f*lightWidth), 1.0f+lightYOffset, (-1.0f+0.5f*lightWidth)+cbOffset), 
-			       CreateVec3f(0.0f, -1.0f, 0.0f), 
-				   1, 0),
-		*/
 	};
 	int32 cbNumQuads = (int32)ARRAYCOUNT(cbQuads);
 
@@ -117,13 +103,16 @@ int main()
 	};
 	int32 cbNumSpheres = (int32)ARRAYCOUNT(cbSpheres);
 
-	cornellBox = ConstructScene(cbSpheres, cbNumSpheres, cbQuads, cbNumQuads, cbMats, cbNumMats);
-
-	Quad *cbLights[]
+	LightSource cbLights[]
 	{
-		&cbQuads[5],
+		CreateLightSource(&cbQuads[5], LightSourceType::QUAD),
 	};
 	int32 cbNumLights = (int32)ARRAYCOUNT(cbLights);
+	
+	cornellBox = ConstructScene(cbSpheres, cbNumSpheres, 
+							    cbQuads, cbNumQuads, 
+								cbLights, cbNumLights,
+								cbMats, cbNumMats);
 
 	// END CORNELL BOX
 	
@@ -149,7 +138,7 @@ int main()
 
 				Ray ray = {eye, rayDirection};
 			#if NEE_ONLY
-				color += EstimatorPathTracingLambertianNEE(ray, cornellBox, cbLights, cbNumLights);
+				color += EstimatorPathTracingLambertianNEE(ray, cornellBox);
 			#else 
 				color += EstimatorPathTracingLambertian(ray, cornellBox);
 			#endif
