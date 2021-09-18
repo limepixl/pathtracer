@@ -134,7 +134,9 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, Quad **lights, int
 				color = throughputTerm * mat->Le;
 			break;
 		}
-		else if(numLights > 0)
+		// If there is at least 1 light source in the scene and the material
+		// of the surface we hit is diffuse, we can use NEE.
+		else if(numLights > 0 && mat->type == MaterialType::MATERIAL_LAMBERTIAN)
 		{
 			// sample light sources for direct illumination
 			Vec3f directIllumination = CreateVec3f(0.0f);
@@ -145,7 +147,8 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, Quad **lights, int
 				// TODO: add a way to have a separate array of light sources
 				float32 pdfPickLight = 1.0f / numLights;
 
-				Quad *lightSource = lights[0];
+				int32 pickedLightSource = (int32)(rand() % numLights);
+				Quad *lightSource = lights[pickedLightSource];
 				Material *lightSourceMat = &scene.materials[lightSource->materialIndex];
 
 				Vec3f v0 = lightSource->origin;

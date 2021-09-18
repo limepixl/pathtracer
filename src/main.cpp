@@ -2,7 +2,7 @@
 #define BOUNCE_COUNT 5
 #define NUM_BOUNCES BOUNCE_MIN + BOUNCE_COUNT
 #define NUM_SAMPLES 50
-#define NUM_SHADOW_RAYS 2
+#define NUM_SHADOW_RAYS 1
 
 #define TMIN 0.0001f
 #define TMAX 10000.0f
@@ -26,8 +26,8 @@ int main()
 		return -1;
 	}
 
-	uint16 width = 1920;
-	uint16 height = 1080;
+	uint16 width = 500;
+	uint16 height = 500;
 	float aspectRatio = (float)width / (float)height;
 
 	// x is right, y is up, z is backwards
@@ -60,6 +60,7 @@ int main()
 	float32 cbOffset = -0.2f;
 	float32 lightWidth = 0.5f;
 	float32 lightYOffset = -0.01f;
+	float32 lightXOffset = 0.3f;
 	Quad cbQuads[]
 	{
 		// left
@@ -87,12 +88,26 @@ int main()
 				   CreateVec3f(1.0f, 1.0f, -2.0f+cbOffset), 
 				   CreateVec3f(0.0f, 0.0f, 1.0f), 
 				   2, 3),
-			
+		
 		// light
 		CreateQuad(CreateVec3f(-0.5f*lightWidth, 1.0f+lightYOffset, (-1.0f-0.5f*lightWidth)+cbOffset), 
 			       CreateVec3f(0.5f*lightWidth, 1.0f+lightYOffset, (-1.0f+0.5f*lightWidth)+cbOffset), 
 			       CreateVec3f(0.0f, -1.0f, 0.0f), 
 				   1, 0),
+
+		/*
+		// light1
+		CreateQuad(CreateVec3f(-lightXOffset + (-0.5f*lightWidth), 1.0f+lightYOffset, (-1.0f-0.5f*lightWidth)+cbOffset), 
+			       CreateVec3f(-lightXOffset + (0.5f*lightWidth), 1.0f+lightYOffset, (-1.0f+0.5f*lightWidth)+cbOffset), 
+			       CreateVec3f(0.0f, -1.0f, 0.0f), 
+				   1, 0),
+
+		// light2
+		CreateQuad(CreateVec3f(lightXOffset + (-0.5f*lightWidth), 1.0f+lightYOffset, (-1.0f-0.5f*lightWidth)+cbOffset), 
+			       CreateVec3f(lightXOffset + (0.5f*lightWidth), 1.0f+lightYOffset, (-1.0f+0.5f*lightWidth)+cbOffset), 
+			       CreateVec3f(0.0f, -1.0f, 0.0f), 
+				   1, 0),
+		*/
 	};
 	int32 cbNumQuads = (int32)ARRAYCOUNT(cbQuads);
 
@@ -106,7 +121,7 @@ int main()
 
 	Quad *cbLights[]
 	{
-		&cbQuads[5]
+		&cbQuads[5],
 	};
 	int32 cbNumLights = (int32)ARRAYCOUNT(cbLights);
 
