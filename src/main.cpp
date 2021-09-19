@@ -1,7 +1,7 @@
 #define BOUNCE_MIN 0
 #define BOUNCE_COUNT 5
 #define NUM_BOUNCES BOUNCE_MIN + BOUNCE_COUNT
-#define NUM_SAMPLES 100
+#define NUM_SAMPLES 256
 #define NUM_SHADOW_RAYS 1
 
 #define TMIN 0.0001f
@@ -10,8 +10,8 @@
 #define EPSILON 0.0001f
 #define ENVIRONMENT_MAP_LE 0.0f
 
-#define NEE_ONLY 0
-#define TWOSIDED_LIGHT_QUADS 1
+#define NEE_ONLY 1
+#define TWOSIDED_LIGHT_QUADS 0
 
 // TODO: replace most C standard library calls with native platform layer
 #include <stdio.h>
@@ -26,8 +26,8 @@ int main()
 		return -1;
 	}
 
-	uint16 width = 500;
-	uint16 height = 500;
+	uint16 width = 1280;
+	uint16 height = 720;
 	float aspectRatio = (float)width / (float)height;
 
 	// x is right, y is up, z is backwards
@@ -97,11 +97,14 @@ int main()
 	};
 	int32 cbNumQuads = (int32)ARRAYCOUNT(cbQuads);
 
-	Sphere cbSpheres[]
+	Box cbBoxes[]
 	{
-		CreateSphere(CreateVec3f(0.5f, -0.7f, -1.0f), 0.3f, 3)
+		CreateBox(CreateVec3f(-0.6f, -1.0f, -1.5f+cbOffset), 
+				  CreateVec3f(0.0f, 0.2f, -0.8f+cbOffset), 3),
+		CreateBox(CreateVec3f(0.1f, -1.0f, -1.0f+cbOffset), 
+				  CreateVec3f(0.7f, -0.4f, -0.4f+cbOffset), 3),
 	};
-	int32 cbNumSpheres = (int32)ARRAYCOUNT(cbSpheres);
+	int32 cbNumBoxes = (int32)ARRAYCOUNT(cbBoxes);
 
 	LightSource cbLights[]
 	{
@@ -109,8 +112,9 @@ int main()
 	};
 	int32 cbNumLights = (int32)ARRAYCOUNT(cbLights);
 	
-	cornellBox = ConstructScene(cbSpheres, cbNumSpheres, 
-							    cbQuads, cbNumQuads, 
+	cornellBox = ConstructScene(NULL, 0, 
+							    cbQuads, cbNumQuads,
+								cbBoxes, cbNumBoxes,
 								cbLights, cbNumLights,
 								cbMats, cbNumMats);
 

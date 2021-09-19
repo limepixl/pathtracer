@@ -131,6 +131,88 @@ bool QuadIntersect(Ray ray, Quad quad, HitData *data)
 	return true;
 }
 
+struct Box
+{
+	Vec3f origin;
+	Vec3f end;
+
+	union
+	{
+		struct
+		{
+			Quad xmin, xmax, ymin, ymax, zmin, zmax;
+		};
+		Quad quads[6];
+	};
+};
+
+Box CreateBox(Vec3f origin, Vec3f end, int16 materialIndex)
+{
+	// Each _min or _max quad has component equal
+	// to its name. Ex.: xmin is a yz quad
+
+	// xmin
+	Vec3f v0 = origin;
+	Vec3f v1 = CreateVec3f(origin.x, end.y, end.z);
+	Vec3f n = CreateVec3f(-1.0f, 0.0f, 0.0f);
+	Quad xmin = CreateQuad(v0, v1, n, 0, materialIndex);
+
+	// xmax
+	v0.x = end.x;
+	v1.x = end.x;
+	n.x = 1.0f;
+	Quad xmax = CreateQuad(v0, v1, n, 0, materialIndex);
+
+	// ymin
+	v0 = origin;
+	v1 = CreateVec3f(end.x, origin.y, end.z);
+	n = CreateVec3f(0.0f, -1.0f, 0.0f);
+	Quad ymin = CreateQuad(v0, v1, n, 1, materialIndex);
+
+	// ymax
+	v0.y = end.y;
+	v1.y = end.y;
+	n.y = 1.0f;
+	Quad ymax = CreateQuad(v0, v1, n, 1, materialIndex);
+
+	// zmin
+	v0 = origin;
+	v1 = CreateVec3f(end.x, end.y, origin.z);
+	n = CreateVec3f(0.0f, 0.0f, -1.0f);
+	Quad zmin = CreateQuad(v0, v1, n, 2, materialIndex);
+
+	// zmax
+	v0.z = end.z;
+	v1.z = end.z;
+	n.z = 1.0f;
+	Quad zmax = CreateQuad(v0, v1, n, 2, materialIndex);
+
+	return { origin, end, xmin, xmax, ymin, ymax, zmin, zmax };
+}
+
+bool BoxIntersect(Ray ray, Box box, HitData *data)
+{
+	bool hitAnyQuad = false;
+	HitData resultData = {TMAX};
+
+	for(int8 i = 0; i < 6; i++)
+	{
+		Quad currentQuad = box.quads[i];
+		HitData quadData = {};
+		if(QuadIntersect(ray, currentQuad, &quadData))
+		{
+			if(quadData.t < resultData.t)
+			{
+				hitAnyQuad = true;
+				resultData = quadData;
+			}
+		}
+	}
+
+	*data = resultData;
+	return hitAnyQuad;
+}
+
 enum LightSourceType
 {
 	QUAD
@@ -155,6 +237,9 @@ struct Scene
 	Quad *quads;
 	int32 numQuads;
 
+	Box *boxes;
+	int32 numBoxes;
+
 	LightSource *lightSources;
 	int32 numLightSources;
 
@@ -164,12 +249,18 @@ struct Scene
 
 Scene ConstructScene(Sphere *spheres, int32 numSpheres, 
 					 Quad *quads, int32 numQuads,
+					 Box *boxes, int32 numBoxes,
 					 LightSource *lights, int32 numLights,
 					 struct Material *materials, int32 numMaterials)
 {
-	return {spheres, numSpheres, quads, numQuads, lights, numLights, materials, numMaterials};
+	return {spheres, numSpheres, 
+			quads, numQuads, 
+			boxes, numBoxes, 
+			lights, numLights, 
+			materials, numMaterials};
 }
 
+// TODO: clean this up
 bool Intersect(Ray ray, Scene scene, HitData *data)
 {
 	bool hitAnything = false;
@@ -196,6 +287,22 @@ bool Intersect(Ray ray, Scene scene, HitData *data)
 		HitData currentData = {};
 		Quad current = scene.quads[i];
 		bool intersect = QuadIntersect(ray, current, &currentData);
+		if(intersect)
+		{
+			if(currentData.t < resultData.t)
+			{
+				// Found closer hit, store it.
+				hitAnything = true;
+				resultData = currentData;
+			}
+		}
+	}
+
+	for(int32 i = 0; i < scene.numBoxes; i++)
+	{
+		HitData currentData = {};
+		Box current = scene.boxes[i];
+		bool intersect = BoxIntersect(ray, current, &currentData);
 		if(intersect)
 		{
 			if(currentData.t < resultData.t)
