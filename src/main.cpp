@@ -1,7 +1,7 @@
 #define BOUNCE_MIN 0
 #define BOUNCE_COUNT 5
 #define NUM_BOUNCES BOUNCE_MIN + BOUNCE_COUNT
-#define NUM_SAMPLES 256
+#define NUM_SAMPLES 20
 #define NUM_SHADOW_RAYS 1
 
 #define TMIN 0.0001f
@@ -11,7 +11,7 @@
 #define ENVIRONMENT_MAP_LE 0.0f
 
 #define NEE_ONLY 1
-#define TWOSIDED_LIGHT_QUADS 0
+#define TWOSIDED_LIGHT_QUADS 1
 
 // TODO: replace most C standard library calls with native platform layer
 #include <stdio.h>
@@ -26,12 +26,12 @@ int main()
 		return -1;
 	}
 
-	uint16 width = 1280;
-	uint16 height = 720;
+	uint16 width = 400;
+	uint16 height = 400;
 	float aspectRatio = (float)width / (float)height;
 
 	// x is right, y is up, z is backwards
-	Vec3f eye = CreateVec3f(0.0f, 0.0f, 2.0f);
+	Vec3f eye = CreateVec3f(0.0f, 0.0f, 0.0f);
 	
 	float gridHeight = 2.0f;
 	float gridWidth = aspectRatio * gridHeight;
@@ -40,7 +40,7 @@ int main()
 
 	// Lower left corner of virtual grid
 	Vec3f gridOrigin = eye - (gridX / 2.0f) - (gridY / 2.0f);
-	gridOrigin.z = 0.0f;
+	gridOrigin.z = -2.0f;
 
 	// CONSTRUCTING CORNELL BOX
 	Scene cornellBox = {};
@@ -64,47 +64,46 @@ int main()
 	Quad cbQuads[]
 	{
 		// left
-		CreateQuad(CreateVec3f(-1.0f, -1.0f, -2.0f+cbOffset), 
-				   CreateVec3f(-1.0f, 1.0f, 0.0f+cbOffset), 
+		CreateQuad(CreateVec3f(-1.0f, -1.0f, -4.0f+cbOffset), 
+				   CreateVec3f(-1.0f, 1.0f, -2.0f+cbOffset), 
 				   CreateVec3f(1.0f, 0.0f, 0.0f), 
 				   0, 1),
 		// right
-		CreateQuad(CreateVec3f(1.0f, -1.0f, -2.0f+cbOffset), 
-				   CreateVec3f(1.0f, 1.0f, 0.0f+cbOffset), 
+		CreateQuad(CreateVec3f(1.0f, -1.0f, -4.0f+cbOffset), 
+				   CreateVec3f(1.0f, 1.0f, -2.0f+cbOffset), 
 				   CreateVec3f(-1.0f, 0.0f, 0.0f), 
 				   0, 2),
 		// bottom
-		CreateQuad(CreateVec3f(-1.0f, -1.0f, -2.0f+cbOffset), 
-				   CreateVec3f(1.0f, -1.0f, 0.0f+cbOffset), 
+		CreateQuad(CreateVec3f(-1.0f, -1.0f, -4.0f+cbOffset), 
+				   CreateVec3f(1.0f, -1.0f, -2.0f+cbOffset), 
 				   CreateVec3f(0.0f, 1.0f, 0.0f), 
 				   1, 3),
 		// top
-		CreateQuad(CreateVec3f(-1.0f, 1.0f, -2.0f+cbOffset), 
-				   CreateVec3f(1.0f, 1.0f, 0.0f+cbOffset), 
+		CreateQuad(CreateVec3f(-1.0f, 1.0f, -4.0f+cbOffset), 
+				   CreateVec3f(1.0f, 1.0f, -2.0f+cbOffset), 
 				   CreateVec3f(0.0f, -1.0f, 0.0f), 
 				   1, 3),
 		// back
-		CreateQuad(CreateVec3f(-1.0f, -1.0f, -2.0f+cbOffset), 
-				   CreateVec3f(1.0f, 1.0f, -2.0f+cbOffset), 
+		CreateQuad(CreateVec3f(-1.0f, -1.0f, -4.0f+cbOffset), 
+				   CreateVec3f(1.0f, 1.0f, -4.0f+cbOffset), 
 				   CreateVec3f(0.0f, 0.0f, 1.0f), 
 				   2, 3),
 		
 		// light
-		CreateQuad(CreateVec3f(-0.5f*lightWidth, 1.0f+lightYOffset, (-1.0f-0.5f*lightWidth)+cbOffset), 
-			       CreateVec3f(0.5f*lightWidth, 1.0f+lightYOffset, (-1.0f+0.5f*lightWidth)+cbOffset), 
+		CreateQuad(CreateVec3f(-0.5f*lightWidth, 1.0f+lightYOffset, (-3.0f-0.5f*lightWidth)+cbOffset), 
+			       CreateVec3f(0.5f*lightWidth, 1.0f+lightYOffset, (-3.0f+0.5f*lightWidth)+cbOffset), 
 			       CreateVec3f(0.0f, -1.0f, 0.0f), 
 				   1, 0),
 	};
 	int32 cbNumQuads = (int32)ARRAYCOUNT(cbQuads);
 
-	Box cbBoxes[]
+	Triangle cbTriangles[]
 	{
-		CreateBox(CreateVec3f(-0.6f, -1.0f, -1.5f+cbOffset), 
-				  CreateVec3f(0.0f, 0.2f, -0.8f+cbOffset), 3),
-		CreateBox(CreateVec3f(0.1f, -1.0f, -1.0f+cbOffset), 
-				  CreateVec3f(0.7f, -0.4f, -0.4f+cbOffset), 3),
+		CreateTriangle(CreateVec3f(-1.0f, -0.5f, -3.0f+cbOffset),
+					   CreateVec3f(1.0f, -0.5f, -3.9f+cbOffset),
+					   CreateVec3f(0.0f, 0.5f, -3.5f+cbOffset), 3),
 	};
-	int32 cbNumBoxes = (int32)ARRAYCOUNT(cbBoxes);
+	int32 cbNumTriangles = (int32)ARRAYCOUNT(cbTriangles);
 
 	LightSource cbLights[]
 	{
@@ -114,12 +113,12 @@ int main()
 	
 	cornellBox = ConstructScene(NULL, 0, 
 							    cbQuads, cbNumQuads,
-								cbBoxes, cbNumBoxes,
+								cbTriangles, cbNumTriangles,
 								cbLights, cbNumLights,
 								cbMats, cbNumMats);
 
 	// END CORNELL BOX
-	
+
 	fprintf(result, "P3\n%d %d\n255\n", width, height);
 
 	// TODO: write to buffer first and then write to file

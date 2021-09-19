@@ -2,6 +2,9 @@
 #include <math.h>
 #include <stdlib.h>
 
+// a == b is transformed into Abs(a-b) <= FLOAT_EQUALITY_PRECISION
+#define FLOAT_EQUALITY_PRECISION 0.005f
+
 /*
 	Vec structs and their operators
 */
@@ -190,6 +193,14 @@ inline float32 Dot(Vec3f vec1, Vec3f vec2)
 	return (vec1.x * vec2.x) + (vec1.y * vec2.y) + (vec1.z * vec2.z);
 }
 
+inline Vec3f Cross(Vec3f a, Vec3f b)
+{
+	float32 x = a.y*b.z - a.z*b.y;
+	float32 y = a.z*b.x - a.x*b.z;
+	float32 z = a.x*b.y - a.y*b.x;
+	return {x, y, z};
+}
+
 inline float32 Max(float32 a, float32 b)
 {
 	return a > b ? a : b;
@@ -266,7 +277,9 @@ Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal)
 
 bool operator==(const Vec3f lhs, const Vec3f rhs)
 {
-	Vec3f graceInterval = {0.005f, 0.005f, 0.005f};
+	Vec3f graceInterval = {FLOAT_EQUALITY_PRECISION, 
+						   FLOAT_EQUALITY_PRECISION, 
+						   FLOAT_EQUALITY_PRECISION};
 	Vec3f absdiff = Abs(lhs - rhs);
 	return absdiff <= graceInterval;
 }

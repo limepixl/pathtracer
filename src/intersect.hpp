@@ -146,7 +146,7 @@ struct Box
 	};
 };
 
-Box CreateBox(Vec3f origin, Vec3f end, int16 materialIndex)
+Box CreateBoxFromEndpoints(Vec3f origin, Vec3f end, int16 materialIndex)
 {
 	// Each _min or _max quad has component equal
 	// to its name. Ex.: xmin is a yz quad
@@ -190,6 +190,13 @@ Box CreateBox(Vec3f origin, Vec3f end, int16 materialIndex)
 	return { origin, end, xmin, xmax, ymin, ymax, zmin, zmax };
 }
 
+// Just a convenience function
+Box CreateBox(Vec3f origin, Vec3f dimensions, int16 materialIndex)
+{
+	Vec3f end = origin + dimensions;
+	return CreateBoxFromEndpoints(origin, end, materialIndex);
+}
+
 bool BoxIntersect(Ray ray, Box box, HitData *data)
 {
 	bool hitAnyQuad = false;
@@ -211,6 +218,70 @@ bool BoxIntersect(Ray ray, Box box, HitData *data)
 
 	*data = resultData;
 	return hitAnyQuad;
+}
+
+struct Triangle
+{
+	Vec3f v0, v1, v2;
+	Vec3f normal;
+
+	int16 materialIndex;
+};
+
+// NOTE: expects CCW winding order
+Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, int16 materialIndex)
+{
+	Vec3f A = v1 - v0;
+	Vec3f B = v2 - v0;
+	Vec3f normal = NormalizeVec3f(Cross(A, B));
+	return {v0, v1, v2, normal, materialIndex};
+}
+
+bool TriangleIntersect(Ray ray, Triangle tri, HitData *data)
+{
+	// First we check intersection with plane
+	// Plane eq: Ax+By+Cz+D=0
+
+	// Check if ray is parallel to triangle plane
+	float32 NdotRD = Dot(tri.normal, ray.direction);
+	if(Abs(NdotRD) <= FLOAT_EQUALITY_PRECISION)
+		return false;
+
+	// Distance of triangle plane to origin (0, 0, 0)
+	float32 D = Dot(tri.normal, tri.v0);
+
+	// Find point on triangle plane
+	if(NdotRD < 0.0f)
+		NdotRD *= -1.0f;
+	float32 t = -(D + Dot(tri.normal, ray.origin)) / NdotRD;
+	if(t <= TMIN || t >= TMAX)
+		return false;
+
+	Vec3f pointOnTrianglePlane = ray.origin + t * ray.direction;
+
+	Vec3f edge0 = tri.v1 - tri.v0;
+	Vec3f v0P = pointOnTrianglePlane - tri.v0;
+
+	Vec3f edge1 = tri.v2 - tri.v1;
+	Vec3f v1P = pointOnTrianglePlane - tri.v1;
+	
+	Vec3f edge2 = tri.v0 - tri.v2;
+	Vec3f v2P = pointOnTrianglePlane - tri.v2;
+	
+	Vec3f C = Cross(edge0, v0P);
+	if(Dot(tri.normal, C) < 0.0f) return false;
+
+	C = Cross(edge1, v1P);
+	if(Dot(tri.normal, C) < 0.0f) return false;
+
+	C = Cross(edge2, v2P);
+	if(Dot(tri.normal, C) < 0.0f) return false;
+
+	data->t = t;
+	data->normal = tri.normal;
+	data->point = pointOnTrianglePlane;
+	data->materialIndex = tri.materialIndex;
+	return true;
 }
 
 enum LightSourceType
@@ -237,8 +308,8 @@ struct Scene
 	Quad *quads;
 	int32 numQuads;
 
-	Box *boxes;
-	int32 numBoxes;
+	Triangle *triangles;
+	int32 numTriangles;
 
 	LightSource *lightSources;
 	int32 numLightSources;
@@ -249,13 +320,13 @@ struct Scene
 
 Scene ConstructScene(Sphere *spheres, int32 numSpheres, 
 					 Quad *quads, int32 numQuads,
-					 Box *boxes, int32 numBoxes,
+					 Triangle *triangles, int32 numTriangles,
 					 LightSource *lights, int32 numLights,
 					 struct Material *materials, int32 numMaterials)
 {
 	return {spheres, numSpheres, 
 			quads, numQuads, 
-			boxes, numBoxes, 
+			triangles, numTriangles,
 			lights, numLights, 
 			materials, numMaterials};
 }
@@ -298,11 +369,11 @@ bool Intersect(Ray ray, Scene scene, HitData *data)
 		}
 	}
 
-	for(int32 i = 0; i < scene.numBoxes; i++)
+	for(int32 i = 0; i < scene.numTriangles; i++)
 	{
 		HitData currentData = {};
-		Box current = scene.boxes[i];
-		bool intersect = BoxIntersect(ray, current, &currentData);
+		Triangle current = scene.triangles[i];
+		bool intersect = TriangleIntersect(ray, current, &currentData);
 		if(intersect)
 		{
 			if(currentData.t < resultData.t)
