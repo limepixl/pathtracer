@@ -197,9 +197,16 @@ Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, int16 materialIndex)
 	return {v0, v1, v2, normal, materialIndex};
 }
 
+Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal, int16 materialIndex)
+{
+	return {v0, v1, v2, normal, materialIndex};
+}
+
 // Moller–Trumbore ray-triangle intersection algorithm
 bool TriangleIntersect(Ray ray, Triangle tri, HitData *data)
 {
+	const float32 TRI_EPSILON = 0.0001f;
+
 	Vec3f edge1 = tri.v1 - tri.v0;
 	Vec3f edge2 = tri.v2 - tri.v0;
 
@@ -207,7 +214,7 @@ bool TriangleIntersect(Ray ray, Triangle tri, HitData *data)
 	float32 a = Dot(edge1, h);
 
 	// Ray direction parallel to the triangle plane
-    if(Abs(a) <= FLOAT_EQUALITY_PRECISION)
+    if(Abs(a) < TRI_EPSILON)
         return false;    
 
     float32 f = 1.0f / a;
@@ -233,6 +240,38 @@ bool TriangleIntersect(Ray ray, Triangle tri, HitData *data)
     }
     
 	return false;
+}
+
+// TODO: replace with actual transformation matrices
+void ApplyScaleToTriangle(Triangle *tri, Vec3f scaleVec)
+{
+	tri->v0.x *= scaleVec.x;
+	tri->v1.x *= scaleVec.x;
+	tri->v2.x *= scaleVec.x;
+
+	tri->v0.y *= scaleVec.y;
+	tri->v1.y *= scaleVec.y;
+	tri->v2.y *= scaleVec.y;
+
+	tri->v0.z *= scaleVec.z;
+	tri->v1.z *= scaleVec.z;
+	tri->v2.z *= scaleVec.z;
+}
+
+// TODO: replace with actual transformation matrices
+void ApplyTranslationToTriangle(Triangle *tri, Vec3f translationVec)
+{
+	tri->v0.x += translationVec.x;
+	tri->v1.x += translationVec.x;
+	tri->v2.x += translationVec.x;
+
+	tri->v0.y += translationVec.y;
+	tri->v1.y += translationVec.y;
+	tri->v2.y += translationVec.y;
+
+	tri->v0.z += translationVec.z;
+	tri->v1.z += translationVec.z;
+	tri->v2.z += translationVec.z;
 }
 
 LightSource CreateLightSource(void *obj, LightSourceType type)

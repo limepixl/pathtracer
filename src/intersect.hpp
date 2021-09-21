@@ -70,7 +70,10 @@ struct Triangle
 };
 
 Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, int16 materialIndex);
+Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal, int16 materialIndex);
 bool TriangleIntersect(Ray ray, Triangle tri, HitData *data);
+void ApplyScaleToTriangle(Triangle *tri, Vec3f scaleVec);
+void ApplyTranslationToTriangle(Triangle *tri, Vec3f translationVec);
 
 enum LightSourceType
 {
