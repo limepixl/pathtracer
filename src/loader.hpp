@@ -1,4 +1,4 @@
 #pragma once
 #include "defines.hpp"
 
-void LoadObjModel(const char *path, struct Triangle **outTris, int32 *numOutTris);
+bool LoadObjModel(const char *path, struct Triangle **outTris, int32 *numOutTris, int16 matIndex);

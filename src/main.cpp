@@ -91,6 +91,12 @@ int main()
 	};
 	int32 cbNumLights = (int32)ARRAYCOUNT(cbLights);
 
+	// Load OBJ model
+	Triangle *modelTris;
+	int32 numTris;
+	bool loadedOBJ = LoadObjModel("../res/suzanne.obj", &modelTris, &numTris, 1);
+
+	/*
 	Triangle cbTriangles[]
 	{
 		CreateTriangle(CreateVec3f(-0.2f, -0.3f, -3.9f+cbOffset),
@@ -99,10 +105,11 @@ int main()
 					   1)
 	};
 	int32 cbNumTriangles = (int32)ARRAYCOUNT(cbTriangles);
+	*/
 
 	cornellBox = ConstructScene(NULL, 0, 
 							    cbQuads, cbNumQuads,
-								cbTriangles, cbNumTriangles,
+								modelTris, numTris,
 								cbLights, cbNumLights,
 								cbMats, cbNumMats);
 
