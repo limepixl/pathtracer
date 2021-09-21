@@ -1,290 +1,44 @@
 #pragma once
-#include <math.h>
-#include <stdlib.h>
-
-// a == b is transformed into Abs(a-b) <= FLOAT_EQUALITY_PRECISION
-#define FLOAT_EQUALITY_PRECISION 0.005f
-
-/*
-	Vec structs and their operators
-*/
-
-struct Vec3f
-{
-	union
-	{
-		float32 values[3];
-		struct
-		{
-			float32 x, y, z;
-		};
-	};
-};
-
-Vec3f CreateVec3f(float32 x, float32 y, float32 z)
-{
-	Vec3f result = {x, y, z};
-	return result;
-}
-
-Vec3f CreateVec3f(float32 v)
-{
-	Vec3f result = {v, v, v};
-	return result;
-}
-
-Vec3f operator+(const Vec3f lhs, const Vec3f rhs)
-{
-	return {lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z};
-}
-
-Vec3f operator-(const Vec3f lhs, const Vec3f rhs)
-{
-	return {lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z};
-}
-
-Vec3f operator-(const Vec3f vec)
-{
-	return {-vec.x, -vec.y, -vec.z};
-}
-
-Vec3f operator*(const float32 lhs, const Vec3f rhs)
-{
-	return {rhs.x * lhs, rhs.y * lhs, rhs.z * lhs};
-}
-
-Vec3f operator*(const Vec3f lhs, const float32 rhs)
-{
-	return {lhs.x * rhs, lhs.y * rhs, lhs.z * rhs};
-}
-
-Vec3f operator*(const Vec3f lhs, const Vec3f rhs)
-{
-	return {lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z};
-}
-
-Vec3f operator/(const Vec3f lhs, const float32 rhs)
-{
-	return {lhs.x / rhs, lhs.y / rhs, lhs.z / rhs};
-}
-
-Vec3f operator/(const float32 lhs, const Vec3f rhs)
-{
-	return {lhs / rhs.x, lhs / rhs.y, lhs / rhs.z};
-}
-
-Vec3f operator+=(Vec3f &lhs, const Vec3f rhs)
-{
-	lhs.x += rhs.x;
-	lhs.y += rhs.y;
-	lhs.z += rhs.z;
-	return lhs;
-}
-
-Vec3f operator*=(Vec3f &lhs, const float32 rhs)
-{
-	lhs.x *= rhs;
-	lhs.y *= rhs;
-	lhs.z *= rhs;
-	return lhs;
-}
-
-Vec3f operator/=(Vec3f &lhs, const float32 rhs)
-{
-	lhs.x /= rhs;
-	lhs.y /= rhs;
-	lhs.z /= rhs;
-	return lhs;
-}
-
-Vec3f operator*=(Vec3f &lhs, const Vec3f rhs)
-{
-	lhs.x *= rhs.x;
-	lhs.y *= rhs.y;
-	lhs.z *= rhs.z;
-	return lhs;
-}
-
-bool operator<=(Vec3f lhs, Vec3f rhs)
-{
-	return (lhs.x <= rhs.x && lhs.y <= rhs.y && lhs.z <= rhs.z);
-}
-
-struct Vec2f
-{
-	union
-	{
-		float32 values[2];
-		struct
-		{
-			float32 x, y;
-		};
-	};
-};
-
-Vec2f CreateVec2f(float32 x, float32 y)
-{
-	return {x, y};
-}
-
-Vec2f CreateVec2f(float32 v)
-{
-	return {v, v};
-}
-
-Vec2f operator-(const Vec2f lhs, const Vec2f rhs)
-{
-	return {lhs.x - rhs.x, lhs.y - rhs.y};
-}
-
-Vec2f operator+(const Vec2f lhs, const Vec2f rhs)
-{
-	return {lhs.x + rhs.x, lhs.y + rhs.y};
-}
-
-Vec2f operator*(const float32 lhs, const Vec2f rhs)
-{
-	return {lhs * rhs.x, lhs * rhs.y};
-}
+#include "defines.hpp"
+#include "vec.hpp"
+#include <cstdlib>
 
 /*
 	Functions
 */
 
-inline float32 Sign(float32 value)
-{
-	if(value < 0.0f)
-		return -1.0f;
-	
-	if(value > 0.0f)
-		return 1.0f;
-	
-	return value;
-}
+float32 Sign(float32 value);
+Vec3f Sign(Vec3f value);
 
-inline Vec3f Sign(Vec3f value)
-{
-	return {Sign(value.x), Sign(value.y), Sign(value.z)};
-}
+float32 Abs(float32 value);
+Vec3f Abs(Vec3f value);
 
-inline float32 Abs(float32 value)
-{
-	if(value < 0.0f)
-		return -value;
-	
-	return value;
-}
+int16 Clamp(int16 value, int16 max);
 
-inline Vec3f Abs(Vec3f value)
-{
-	return {Abs(value.x), Abs(value.y), Abs(value.z)};
-}
+float32 Dot(Vec3f vec1, Vec3f vec2);
 
-inline int16 Clamp(int16 value, int16 max)
-{
-	if(value > max)
-		return max;
+Vec3f Cross(Vec3f a, Vec3f b);
 
-	return value;
-}
+float32 Max(float32 a, float32 b);
+int32 Max(int32 a, int32 b);
 
-inline float32 Dot(Vec3f vec1, Vec3f vec2)
-{
-	return (vec1.x * vec2.x) + (vec1.y * vec2.y) + (vec1.z * vec2.z);
-}
+float32 Min(float32 a, float32 b);
 
-inline Vec3f Cross(Vec3f a, Vec3f b)
-{
-	float32 x = a.y*b.z - a.z*b.y;
-	float32 y = a.z*b.x - a.x*b.z;
-	float32 z = a.x*b.y - a.y*b.x;
-	return {x, y, z};
-}
+float32 Step(float32 edge, float32 x);
+Vec3f Step(Vec3f edge, Vec3f x);
 
-inline float32 Max(float32 a, float32 b)
-{
-	return a > b ? a : b;
-}
-
-inline int32 Max(int32 a, int32 b)
-{
-	return a > b ? a : b;
-}
-
-inline float32 Min(float32 a, float32 b)
-{
-	return a < b ? a : b;
-}
-
-inline float32 Step(float32 edge, float32 x)
-{
-	return x < edge ? 0.0f : 1.0f;
-}
-
-inline Vec3f Step(Vec3f edge, Vec3f x)
-{
-	return {Step(edge.x, x.x), Step(edge.y, x.y), Step(edge.z, x.z)};
-}
-
-inline Vec3f NormalizeVec3f(Vec3f vec)
-{
-	return vec / sqrtf(Dot(vec, vec));
-}
-
-// Returns a number in (0, 1)
-float32 RandomNumberNormalized()
-{
-	return (float32)((float64)(rand() + 1) / (float64)(RAND_MAX + 2));
-}
+Vec3f NormalizeVec3f(Vec3f vec);
 
 // TODO: create my own random function
-Vec2f RandomVec2f()
-{
-	return { RandomNumberNormalized(), RandomNumberNormalized() };
-}
+float32 RandomNumberNormalized();
+Vec2f RandomVec2f();
 
-// TODO: understand the below functions
-Vec3f MapToUnitSphere(Vec2f vec2)
-{
-	// First we map [0,1] to [0,2] and subtract one to map
-	// that to [-1, 1], which is the range of cosine.
-	float32 cosTheta = 2.0f * vec2.x - 1.0f;
-
-	// We can directly map phi to [0, 2PI] from [0, 1] by just 
-	// multiplying it with 2PI
-    float32 Phi = 2.0f*PI*vec2.y;
-
-	// sin^2(x) = 1 - cos^2(x)
-	// sin(x) = sqrt(1 - cos^2(x))
-    float32 sinTheta = sqrtf(1.0f - cosTheta * cosTheta);
-
-    float32 sinPhi = sinf(Phi);
-    float32 cosPhi = cosf(Phi);
-    
-	// Just a conversion between spherical and Cartesian coordinates
-    return { sinTheta * cosPhi, cosTheta, sinTheta * sinPhi };
-}
-
-Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal)
-{
-    Vec3f p = MapToUnitSphere(uv);
-	return p+normal;
-}
+Vec3f MapToUnitSphere(Vec2f vec2);
+Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal);
 
 /*
 	Operators that use the utility functions above
 */
 
-bool operator==(const Vec3f lhs, const Vec3f rhs)
-{
-	Vec3f graceInterval = {FLOAT_EQUALITY_PRECISION, 
-						   FLOAT_EQUALITY_PRECISION, 
-						   FLOAT_EQUALITY_PRECISION};
-	Vec3f absdiff = Abs(lhs - rhs);
-	return absdiff <= graceInterval;
-}
-
-bool operator!=(const Vec3f lhs, const Vec3f rhs)
-{
-	return !(lhs == rhs);
-}
+bool operator==(const Vec3f lhs, const Vec3f rhs);
+bool operator!=(const Vec3f lhs, const Vec3f rhs);

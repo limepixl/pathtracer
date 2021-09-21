@@ -1,39 +1,7 @@
 #pragma once
-
-// NOTE: This only holds for LLP64
-typedef unsigned char uint8;
-typedef unsigned short uint16;
-typedef unsigned int uint32;
-typedef unsigned long long uint64;
-
-typedef char int8;
-typedef short int16;
-typedef int int32;
-typedef long int64;
-
-typedef float float32;
-typedef double float64;
-
-// Macro to return stack allocated array length
-#define ARRAYCOUNT(arr) (sizeof(arr) / sizeof((arr)[0]))
-
-#include "math.hpp"
-
-struct Ray
-{
-	Vec3f origin;
-	Vec3f direction;
-};
-
-// Gets a point along the ray's direction vector.
-// Assumes that the direction of the ray is normalized.
-Vec3f PointAlongRay(Ray r, float32 t)
-{
-	return r.origin + r.direction * t;
-}
-
 #include "intersect.hpp"
 #include "material.hpp"
+#include "math.hpp"
 
 // A simple lerp between 2 colors
 Vec3f SkyColor(Vec3f dir)
@@ -149,7 +117,6 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 
 				int32 pickedLightSource = (int32)(rand() % scene.numLightSources);
 				LightSource lightSource = scene.lightSources[pickedLightSource];
-
 				
 				Material *lightSourceMat = NULL;
 				Vec3f y = CreateVec3f(0.0f);

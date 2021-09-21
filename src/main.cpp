@@ -1,21 +1,9 @@
-#define BOUNCE_MIN 0
-#define BOUNCE_COUNT 5
-#define NUM_BOUNCES BOUNCE_MIN + BOUNCE_COUNT
-#define NUM_SAMPLES 20
-#define NUM_SHADOW_RAYS 1
-
-#define TMIN 0.0001f
-#define TMAX 10000.0f
-#define PI 3.14159265f
-#define EPSILON 0.0001f
-#define ENVIRONMENT_MAP_LE 0.0f
-
-#define NEE_ONLY 1
-#define TWOSIDED_LIGHT_QUADS 1
-
+#include "defines.hpp"
 // TODO: replace most C standard library calls with native platform layer
 #include <stdio.h>
 #include "pathtracer.hpp"
+#include "loader.hpp"
+#include <math.h>
 
 int main()
 {
@@ -97,20 +85,21 @@ int main()
 	};
 	int32 cbNumQuads = (int32)ARRAYCOUNT(cbQuads);
 
-	Triangle cbTriangles[]
-	{
-		CreateTriangle(CreateVec3f(-1.0f, -0.5f, -3.0f+cbOffset),
-					   CreateVec3f(1.0f, -0.5f, -3.9f+cbOffset),
-					   CreateVec3f(0.0f, 0.5f, -3.5f+cbOffset), 3),
-	};
-	int32 cbNumTriangles = (int32)ARRAYCOUNT(cbTriangles);
-
 	LightSource cbLights[]
 	{
 		CreateLightSource(&cbQuads[5], LightSourceType::QUAD),
 	};
 	int32 cbNumLights = (int32)ARRAYCOUNT(cbLights);
-	
+
+	Triangle cbTriangles[]
+	{
+		CreateTriangle(CreateVec3f(-0.2f, -0.3f, -3.9f+cbOffset),
+					   CreateVec3f(0.2f, -0.3f, -3.9f+cbOffset),
+					   CreateVec3f(0.0f, 0.3f, -3.9f+cbOffset),
+					   1)
+	};
+	int32 cbNumTriangles = (int32)ARRAYCOUNT(cbTriangles);
+
 	cornellBox = ConstructScene(NULL, 0, 
 							    cbQuads, cbNumQuads,
 								cbTriangles, cbNumTriangles,
@@ -173,6 +162,5 @@ int main()
 	fclose(result);
 	printf("Finished rendering to image!\n");
 
-	// TODO: timing
 	return 0;
 }

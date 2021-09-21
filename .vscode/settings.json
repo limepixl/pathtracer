@@ -1,0 +1,12 @@
+{
+	"files.associations": {
+		"iterator": "cpp",
+		"xtree": "cpp",
+		"atomic": "cpp",
+		"fstream": "cpp",
+		"istream": "cpp",
+		"ostream": "cpp",
+		"sstream": "cpp",
+		"streambuf": "cpp"
+	}
+}
