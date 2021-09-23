@@ -14,8 +14,8 @@ int main()
 		return -1;
 	}
 
-	uint16 width = 400;
-	uint16 height = 400;
+	uint16 width = 700;
+	uint16 height = 700;
 	float aspectRatio = (float)width / (float)height;
 
 	// x is right, y is up, z is backwards
@@ -41,11 +41,16 @@ int main()
 		// walls
 		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(1.0f, 0.1f, 0.1f), CreateVec3f(0.0f)),
 		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.1f, 1.0f, 0.1f), CreateVec3f(0.0f)),
-		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(1.0f, 1.0f, 1.0f), CreateVec3f(0.0f))
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(1.0f, 1.0f, 1.0f), CreateVec3f(0.0f)),
+
+		// alternative walls
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.98f, 0.52f, 0.1f), CreateVec3f(0.0f)),
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.1f, 0.62f, 0.98f), CreateVec3f(0.0f)),
+
 	};
 	int32 cbNumMats = (int32)ARRAYCOUNT(cbMats);
 
-	float32 cbOffset = -0.2f;
+	float32 cbOffset = -0.05f;
 	float32 lightWidth = 0.5f;
 	float32 lightYOffset = -0.01f;
 	float32 lightXOffset = 0.3f;
@@ -55,12 +60,12 @@ int main()
 		CreateQuad(CreateVec3f(-1.0f, -1.0f, -4.0f+cbOffset), 
 				   CreateVec3f(-1.0f, 1.0f, -2.0f+cbOffset), 
 				   CreateVec3f(1.0f, 0.0f, 0.0f), 
-				   0, 1),
+				   0, 4),
 		// right
 		CreateQuad(CreateVec3f(1.0f, -1.0f, -4.0f+cbOffset), 
 				   CreateVec3f(1.0f, 1.0f, -2.0f+cbOffset), 
 				   CreateVec3f(-1.0f, 0.0f, 0.0f), 
-				   0, 2),
+				   0, 5),
 		// bottom
 		CreateQuad(CreateVec3f(-1.0f, -1.0f, -4.0f+cbOffset), 
 				   CreateVec3f(1.0f, -1.0f, -2.0f+cbOffset), 
@@ -94,22 +99,17 @@ int main()
 	// Load OBJ model
 	Triangle *modelTris;
 	int32 numTris;
-	bool loadedOBJ = LoadObjModel("../res/suzanne.obj", &modelTris, &numTris, 1);
+	bool loadedOBJ = LoadModelFromObj("../res/suzanne.obj", &modelTris, &numTris);
 
-	/*
-	Triangle cbTriangles[]
+	TriangleModel triModels[]
 	{
-		CreateTriangle(CreateVec3f(-0.2f, -0.3f, -3.9f+cbOffset),
-					   CreateVec3f(0.2f, -0.3f, -3.9f+cbOffset),
-					   CreateVec3f(0.0f, 0.3f, -3.9f+cbOffset),
-					   1)
+		CreateTriangleModel(modelTris, numTris, 3)
 	};
-	int32 cbNumTriangles = (int32)ARRAYCOUNT(cbTriangles);
-	*/
+	int32 numTriModels = (int32)ARRAYCOUNT(triModels);
 
 	cornellBox = ConstructScene(NULL, 0, 
 							    cbQuads, cbNumQuads,
-								modelTris, numTris,
+								triModels, numTriModels,
 								cbLights, cbNumLights,
 								cbMats, cbNumMats);
 

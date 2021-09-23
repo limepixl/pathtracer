@@ -8,7 +8,7 @@
 #include <vector>
 #include <string>
 
-bool LoadObjModel(const char *path, Triangle **outTris, int32 *numOutTris, int16 matIndex)
+bool LoadModelFromObj(const char *path, Triangle **outTris, int32 *numOutTris)
 {
 	printf("Loading .obj model from path: %s\n", path);
 
@@ -114,7 +114,7 @@ bool LoadObjModel(const char *path, Triangle **outTris, int32 *numOutTris, int16
 			Vec3f v0 = CreateVec3f(vertex0[0], vertex0[1], vertex0[2]);
 			Vec3f v1 = CreateVec3f(vertex1[0], vertex1[1], vertex1[2]);
 			Vec3f v2 = CreateVec3f(vertex2[0], vertex2[1], vertex2[2]);
-			Triangle tri = CreateTriangle(v0, v1, v2, normal, matIndex);
+			Triangle tri = CreateTriangle(v0, v1, v2, normal);
 
 			ApplyScaleToTriangle(&tri, CreateVec3f(0.3f, 0.3f, 0.3f));
 			ApplyTranslationToTriangle(&tri, CreateVec3f(0.0f, 0.0f, -3.0f));

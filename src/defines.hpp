@@ -3,7 +3,7 @@
 #define BOUNCE_MIN 0
 #define BOUNCE_COUNT 5
 #define NUM_BOUNCES BOUNCE_MIN + BOUNCE_COUNT
-#define NUM_SAMPLES 1
+#define NUM_SAMPLES 300
 #define NUM_SHADOW_RAYS 1
 
 #define TMIN 0.001f
@@ -13,7 +13,7 @@
 #define ENVIRONMENT_MAP_LE 0.0f
 
 #define NEE_ONLY 1
-#define TWOSIDED_LIGHT_QUADS 1
+#define TWOSIDED_LIGHT_QUADS 0
 
 // NOTE: This only holds for LLP64
 typedef unsigned char uint8;

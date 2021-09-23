@@ -2,4 +2,6 @@
 - MIS
 - Stratified sampling
 - More BRDFs / BSDFs
-- Pararrelization (far off)
+- Pararrelization
+- BVH
+- Materials from model data

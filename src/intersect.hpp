@@ -66,14 +66,37 @@ struct Triangle
 	Vec3f v0, v1, v2;
 	Vec3f normal;
 
-	int16 materialIndex;
+	// Precomputed values
+	Vec3f edge1, edge2;
 };
 
-Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, int16 materialIndex);
-Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal, int16 materialIndex);
-bool TriangleIntersect(Ray ray, Triangle tri, HitData *data);
+Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2);
+Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal);
+bool TriangleIntersect(Ray ray, Triangle *tri, HitData *data);
 void ApplyScaleToTriangle(Triangle *tri, Vec3f scaleVec);
 void ApplyTranslationToTriangle(Triangle *tri, Vec3f translationVec);
+
+struct AABB
+{
+	Vec3f bmin;
+	Vec3f bmax;
+};
+
+bool AABBIntersect(Ray ray, AABB aabb);
+
+struct TriangleModel
+{
+	Triangle *triangles;
+	int32 numTrianges;
+	AABB aabb;
+
+	int16 materialIndex;
+
+	// TODO: store a model matrix that can be applied to vertices
+};
+
+TriangleModel CreateTriangleModel(Triangle *tris, int32 numTris, int16 materialIndex);
+bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data);
 
 enum LightSourceType
 {
@@ -96,8 +119,8 @@ struct Scene
 	Quad *quads;
 	int32 numQuads;
 
-	Triangle *triangles;
-	int32 numTriangles;
+	TriangleModel *triModels;
+	int32 numTriModels;
 
 	LightSource *lightSources;
 	int32 numLightSources;
@@ -108,7 +131,7 @@ struct Scene
 
 Scene ConstructScene(Sphere *spheres, int32 numSpheres, 
 					 Quad *quads, int32 numQuads,
-					 Triangle *triangles, int32 numTriangles,
+					 TriangleModel *triModels, int32 numTriModels,
 					 LightSource *lights, int32 numLights,
 					 struct Material *materials, int32 numMaterials);
 
