@@ -189,53 +189,51 @@ bool BoxIntersect(Ray ray, Box box, HitData *data)
 }
 
 // NOTE: expects CCW winding order
-Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, int16 materialIndex)
+Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2)
 {
 	Vec3f A = v1 - v0;
 	Vec3f B = v2 - v0;
 	Vec3f normal = NormalizeVec3f(Cross(A, B));
-	return {v0, v1, v2, normal, materialIndex};
+	return {v0, v1, v2, normal, A, B};
 }
 
-Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal, int16 materialIndex)
+Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal)
 {
-	return {v0, v1, v2, normal, materialIndex};
+	Vec3f A = v1 - v0;
+	Vec3f B = v2 - v0;
+	return {v0, v1, v2, normal, A, B};
 }
 
 // Moller–Trumbore ray-triangle intersection algorithm
-bool TriangleIntersect(Ray ray, Triangle tri, HitData *data)
+bool TriangleIntersect(Ray ray, Triangle *tri, HitData *data)
 {
-	const float32 TRI_EPSILON = 0.0001f;
+	const float32 TRI_EPSILON = 0.00001f;
 
-	Vec3f edge1 = tri.v1 - tri.v0;
-	Vec3f edge2 = tri.v2 - tri.v0;
-
-	Vec3f h = Cross(ray.direction, edge2);
-	float32 a = Dot(edge1, h);
+	Vec3f h = Cross(ray.direction, tri->edge2);
+	float32 a = Dot(tri->edge1, h);
 
 	// Ray direction parallel to the triangle plane
-    if(Abs(a) < TRI_EPSILON)
+    if(a < TRI_EPSILON)
         return false;    
 
     float32 f = 1.0f / a;
-    Vec3f s = ray.origin - tri.v0;
+    Vec3f s = ray.origin - tri->v0;
     float32 u = f * Dot(s, h);
-    if(u < 0.0 || u > 1.0)
+    if((u < 0.0f) || (u > 1.0f))
         return false;
 
-    Vec3f q = Cross(s, edge1);
+    Vec3f q = Cross(s, tri->edge1);
     float32 v = f * Dot(ray.direction, q);
-    if(v < 0.0 || u + v > 1.0)
+    if((v < 0.0f) || (u + v > 1.0f))
         return false;
 
 	// Computing t
-    float32 t = f * Dot(edge2, q);
-    if(t >= TMIN && t < TMAX)
+    float32 t = f * Dot(tri->edge2, q);
+    if(t > TMIN && t < TMAX)
     {
 		data->t = t;
-		data->materialIndex = tri.materialIndex;
         data->point = ray.origin + ray.direction * t;
-		data->normal = tri.normal;
+		data->normal = tri->normal;
         return true;
     }
     
@@ -256,6 +254,9 @@ void ApplyScaleToTriangle(Triangle *tri, Vec3f scaleVec)
 	tri->v0.z *= scaleVec.z;
 	tri->v1.z *= scaleVec.z;
 	tri->v2.z *= scaleVec.z;
+
+	tri->edge1 = tri->v1 - tri->v0;
+	tri->edge2 = tri->v2 - tri->v0;
 }
 
 // TODO: replace with actual transformation matrices
@@ -272,6 +273,122 @@ void ApplyTranslationToTriangle(Triangle *tri, Vec3f translationVec)
 	tri->v0.z += translationVec.z;
 	tri->v1.z += translationVec.z;
 	tri->v2.z += translationVec.z;
+
+	tri->edge1 = tri->v1 - tri->v0;
+	tri->edge2 = tri->v2 - tri->v0;
+}
+
+bool AABBIntersect(Ray ray, AABB aabb)
+{
+	float32 t0x, t1x, t0y, t1y, t0z, t1z;
+	Vec3f inverseDir = 1.0f / ray.direction;
+	
+	// X axis interval
+	if(inverseDir.x >= 0)
+	{
+		t0x = (aabb.bmin.x - ray.origin.x) * inverseDir.x;
+		t1x = (aabb.bmax.x - ray.origin.x) * inverseDir.x;
+	}
+	else
+	{
+		t0x = (aabb.bmax.x - ray.origin.x) * inverseDir.x;
+		t1x = (aabb.bmin.x - ray.origin.x) * inverseDir.x;
+	}
+	
+	// Y axis interval
+	if(inverseDir.y >= 0)
+	{
+		t0y = (aabb.bmin.y - ray.origin.y) * inverseDir.y;
+		t1y = (aabb.bmax.y - ray.origin.y) * inverseDir.y;
+	}
+	else
+	{
+		t0y = (aabb.bmax.y - ray.origin.y) * inverseDir.y;
+		t1y = (aabb.bmin.y - ray.origin.y) * inverseDir.y;
+	}
+
+	if(t0x > t1y || t0y > t1x)
+		return false;
+
+	float32 tmin = Max(t0x, t0y);
+	float32 tmax = Min(t1x, t1y);
+
+	// Z axis interval
+	if(inverseDir.z >= 0)
+	{
+		t0z = (aabb.bmin.z - ray.origin.z) * inverseDir.z;
+		t1z = (aabb.bmax.z - ray.origin.z) * inverseDir.z;
+	}
+	else
+	{
+		t0z = (aabb.bmax.z - ray.origin.z) * inverseDir.z;
+		t1z = (aabb.bmin.z - ray.origin.z) * inverseDir.z;
+	}
+
+	if(tmin > t1z || t0z > tmax)
+		return false;
+
+	tmin = Max(tmin, t0z);
+	tmax = Min(tmax, t1z);
+
+	if(tmin <= TMIN || tmax >= TMAX)
+		return false;
+
+	return true;
+}
+
+TriangleModel CreateTriangleModel(Triangle *tris, int32 numTris, int16 materialIndex)
+{
+	Vec3f maxVec = CreateVec3f(INFINITY);
+	Vec3f minVec = CreateVec3f(-INFINITY);
+	AABB aabb = {maxVec, minVec};
+
+	for(int32 tIndex = 0; tIndex < numTris; tIndex++)
+	{
+		Vec3f &v0 = tris[tIndex].v0;
+		Vec3f &v1 = tris[tIndex].v1;
+		Vec3f &v2 = tris[tIndex].v2;
+
+		aabb.bmin = MinComponentWise(aabb.bmin, v0);
+		aabb.bmin = MinComponentWise(aabb.bmin, v1);
+		aabb.bmin = MinComponentWise(aabb.bmin, v2);
+
+		aabb.bmax = MaxComponentWise(aabb.bmax, v0);
+		aabb.bmax = MaxComponentWise(aabb.bmax, v1);
+		aabb.bmax = MaxComponentWise(aabb.bmax, v2);
+	}
+
+	return {tris, numTris, aabb, materialIndex};
+}
+
+bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data)
+{
+	// Check if ray intersects AABB at all before checking
+	// intersections with any of the model's triangles
+	bool intersectsAABB = AABBIntersect(ray, triModel.aabb);
+	if(intersectsAABB)
+	{
+		bool hitAnyTri = false;
+		HitData resultData = {TMAX};
+		
+		for(int32 tri = 0; tri < triModel.numTrianges; tri++)
+		{
+			HitData currentData = {};
+			Triangle *current = &triModel.triangles[tri];
+			bool intersectTri = TriangleIntersect(ray, current, &currentData);
+			if(intersectTri && currentData.t < resultData.t)
+			{
+				hitAnyTri = true;
+				resultData = currentData;
+				resultData.materialIndex = triModel.materialIndex;
+			}
+		}
+
+		*data = resultData;
+		return true;
+	}
+
+	return false;
 }
 
 LightSource CreateLightSource(void *obj, LightSourceType type)
@@ -281,13 +398,13 @@ LightSource CreateLightSource(void *obj, LightSourceType type)
 
 Scene ConstructScene(Sphere *spheres, int32 numSpheres, 
 					 Quad *quads, int32 numQuads,
-					 Triangle *triangles, int32 numTriangles,
+					 TriangleModel *triModels, int32 numTriModels,
 					 LightSource *lights, int32 numLights,
 					 struct Material *materials, int32 numMaterials)
 {
 	return {spheres, numSpheres, 
 			quads, numQuads, 
-			triangles, numTriangles,
+			triModels, numTriModels,
 			lights, numLights, 
 			materials, numMaterials};
 }
@@ -330,11 +447,11 @@ bool Intersect(Ray ray, Scene scene, HitData *data)
 		}
 	}
 
-	for(int32 i = 0; i < scene.numTriangles; i++)
+	for(int32 i = 0; i < scene.numTriModels; i++)
 	{
 		HitData currentData = {};
-		Triangle current = scene.triangles[i];
-		bool intersect = TriangleIntersect(ray, current, &currentData);
+		TriangleModel current = scene.triModels[i];
+		bool intersect = TriangleModelIntersect(ray, current, &currentData);
 		if(intersect)
 		{
 			if(currentData.t < resultData.t)

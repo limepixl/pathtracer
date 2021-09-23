@@ -65,9 +65,19 @@ int32 Max(int32 a, int32 b)
 	return a > b ? a : b;
 }
 
+Vec3f MaxComponentWise(Vec3f a, Vec3f b)
+{
+	return { Max(a.x, b.x), Max(a.y, b.y), Max(a.z, b.z) };
+}
+
 float32 Min(float32 a, float32 b)
 {
 	return a < b ? a : b;
+}
+
+Vec3f MinComponentWise(Vec3f a, Vec3f b)
+{
+	return { Min(a.x, b.x), Min(a.y, b.y), Min(a.z, b.z) };
 }
 
 float32 Step(float32 edge, float32 x)
@@ -78,6 +88,13 @@ float32 Step(float32 edge, float32 x)
 Vec3f Step(Vec3f edge, Vec3f x)
 {
 	return {Step(edge.x, x.x), Step(edge.y, x.y), Step(edge.z, x.z)};
+}
+
+void Swap(float32 *v1, float32 *v2)
+{
+	float32 tmp = *v1;
+	*v1 = *v2;
+	*v2 = tmp;
 }
 
 Vec3f NormalizeVec3f(Vec3f vec)

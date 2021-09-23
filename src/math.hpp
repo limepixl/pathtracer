@@ -22,10 +22,16 @@ Vec3f Cross(Vec3f a, Vec3f b);
 float32 Max(float32 a, float32 b);
 int32 Max(int32 a, int32 b);
 
+Vec3f MaxComponentWise(Vec3f a, Vec3f b);
+
 float32 Min(float32 a, float32 b);
+
+Vec3f MinComponentWise(Vec3f a, Vec3f b);
 
 float32 Step(float32 edge, float32 x);
 Vec3f Step(Vec3f edge, Vec3f x);
+
+void Swap(float32 *v1, float32 *v2);
 
 Vec3f NormalizeVec3f(Vec3f vec);
 
