@@ -1,6 +1,17 @@
-#pragma once
 #include "vec.hpp"
 #include "defines.hpp"
+
+Vec4f CreateVec4f(float32 x, float32 y, float32 z, float32 w)
+{
+	Vec4f result = {x, y, z, w};
+	return result;
+}
+
+Vec4f CreateVec4f(float32 v)
+{
+	Vec4f result = {v, v, v, v};
+	return result;
+}
 
 Vec3f CreateVec3f(float32 x, float32 y, float32 z)
 {

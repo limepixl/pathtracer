@@ -1,4 +1,3 @@
-#pragma once
 #include "intersect.hpp"
 #include "math.hpp"
 #include <math.h>
@@ -79,7 +78,7 @@ Quad CreateQuad(Vec3f origin, Vec3f end, Vec3f normal, int8 component, int16 mat
 
 bool QuadIntersect(Ray ray, Quad quad, HitData *data)
 {
-	int8 c = quad.component;
+	uint8 c = quad.component;
 	float32 componentValue = quad.origin.values[c];
 
 	// First we check if the ray hits the xy plane
@@ -170,7 +169,7 @@ bool BoxIntersect(Ray ray, Box box, HitData *data)
 	bool hitAnyQuad = false;
 	HitData resultData = {TMAX};
 
-	for(int8 i = 0; i < 6; i++)
+	for(uint8 i = 0; i < 6; i++)
 	{
 		Quad currentQuad = box.quads[i];
 		HitData quadData = {};
@@ -337,7 +336,7 @@ bool AABBIntersect(Ray ray, AABB aabb)
 	return true;
 }
 
-TriangleModel CreateTriangleModel(Triangle *tris, int32 numTris, int16 materialIndex)
+TriangleModel CreateTriangleModel(Triangle *tris, int32 numTris, Mat4f modelMatrix, int16 materialIndex)
 {
 	Vec3f maxVec = CreateVec3f(INFINITY);
 	Vec3f minVec = CreateVec3f(-INFINITY);
@@ -349,6 +348,13 @@ TriangleModel CreateTriangleModel(Triangle *tris, int32 numTris, int16 materialI
 		Vec3f &v1 = tris[tIndex].v1;
 		Vec3f &v2 = tris[tIndex].v2;
 
+		// Apply model's transformation matrix to vertices
+		v0 = modelMatrix * v0;
+		v1 = modelMatrix * v1;
+		v2 = modelMatrix * v2;
+		tris[tIndex].edge1 = v1 - v0;
+		tris[tIndex].edge2 = v2 - v0;
+
 		aabb.bmin = MinComponentWise(aabb.bmin, v0);
 		aabb.bmin = MinComponentWise(aabb.bmin, v1);
 		aabb.bmin = MinComponentWise(aabb.bmin, v2);
@@ -358,7 +364,7 @@ TriangleModel CreateTriangleModel(Triangle *tris, int32 numTris, int16 materialI
 		aabb.bmax = MaxComponentWise(aabb.bmax, v2);
 	}
 
-	return {tris, numTris, aabb, materialIndex};
+	return {tris, numTris, aabb, modelMatrix, materialIndex};
 }
 
 bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data)

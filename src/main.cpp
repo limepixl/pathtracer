@@ -14,8 +14,8 @@ int main()
 		return -1;
 	}
 
-	uint16 width = 700;
-	uint16 height = 700;
+	uint16 width = 400;
+	uint16 height = 400;
 	float aspectRatio = (float)width / (float)height;
 
 	// x is right, y is up, z is backwards
@@ -101,9 +101,14 @@ int main()
 	int32 numTris;
 	bool loadedOBJ = LoadModelFromObj("../res/suzanne.obj", &modelTris, &numTris);
 
+	// Model transformation matrix
+	Mat4f modelMatrix = CreateIdentityMat4f();
+	modelMatrix = ScaleMat4f(CreateVec3f(0.3f, 0.3f, 0.3f), modelMatrix);
+	modelMatrix = TranslationMat4f(CreateVec3f(0.0f, 0.0f, -3.0f), modelMatrix);
+
 	TriangleModel triModels[]
 	{
-		CreateTriangleModel(modelTris, numTris, 3)
+		CreateTriangleModel(modelTris, numTris, modelMatrix, 3)
 	};
 	int32 numTriModels = (int32)ARRAYCOUNT(triModels);
 
@@ -118,6 +123,7 @@ int main()
 	fprintf(result, "P3\n%d %d\n255\n", width, height);
 
 	// TODO: write to buffer first and then write to file
+	// #pragma omp parallel for
 	for(int16 ypixel = height - 1; ypixel >= 0; ypixel--)
 	{
 		for(int16 xpixel = 0; xpixel < width; xpixel++)

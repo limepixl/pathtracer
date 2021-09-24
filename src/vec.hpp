@@ -1,6 +1,25 @@
 #pragma once
 #include "defines.hpp"
 
+struct Vec4f
+{
+	union
+	{
+		struct
+		{
+			float32 x, y, z, w;
+		};
+		struct
+		{
+			float32 r, g, b, a;
+		};
+		float32 values[4];
+	};
+};
+
+Vec4f CreateVec4f(float32 x, float32 y, float32 z, float32 w);
+Vec4f CreateVec4f(float32 v);
+
 struct Vec3f
 {
 	union
