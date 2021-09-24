@@ -1,5 +1,5 @@
 #pragma once
-#include "vec.hpp"
+#include "mat4.hpp"
 
 struct Ray
 {
@@ -88,14 +88,15 @@ struct TriangleModel
 {
 	Triangle *triangles;
 	int32 numTrianges;
+	
 	AABB aabb;
 
+	Mat4f modelMatrix;
+	
 	int16 materialIndex;
-
-	// TODO: store a model matrix that can be applied to vertices
 };
 
-TriangleModel CreateTriangleModel(Triangle *tris, int32 numTris, int16 materialIndex);
+TriangleModel CreateTriangleModel(Triangle *tris, int32 numTris, Mat4f modelMatrix, int16 materialIndex);
 bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data);
 
 enum LightSourceType

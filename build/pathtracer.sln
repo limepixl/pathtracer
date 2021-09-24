@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
-VisualStudioVersion = 16.0.31613.86
+VisualStudioVersion = 16.0.31702.278
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "pathtracer", "pathtracer.exe", "{2CB0E0EC-F82A-454D-BDC0-20D6C28B4E5E}"
+Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "pathtracer", "pathtracer.exe", "{263AADF7-009C-4DB3-BC50-45DAF0242759}"
 	ProjectSection(DebuggerProjectSystem) = preProject
 		PortSupplier = 00000000-0000-0000-0000-000000000000
 		Executable = C:\dev\projects\pathtracer\build\pathtracer.exe
@@ -22,12 +22,12 @@ Global
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{2CB0E0EC-F82A-454D-BDC0-20D6C28B4E5E}.Release|x64.ActiveCfg = Release|x64
+		{263AADF7-009C-4DB3-BC50-45DAF0242759}.Release|x64.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {B1818D00-6591-4C6D-893E-70C4E7E6FA34}
+		SolutionGuid = {6835B198-7753-46AC-910C-4D252F298381}
 	EndGlobalSection
 EndGlobal
