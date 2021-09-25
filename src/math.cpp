@@ -103,12 +103,16 @@ Vec3f NormalizeVec3f(Vec3f vec)
 	return vec / sqrtf(Dot(vec, vec));
 }
 
+#include <stdio.h>
+
 // Returns a number in (0, 1)
 float32 RandomNumberNormalized()
 {
 	unsigned int val = 0;
 	rand_s(&val);
-	return (float32)((float64)val / (float64)UINT_MAX);
+
+	float64 result = (float64)(val+1000.0) / ((float64)UINT_MAX + 2000.0);
+	return (float32)result;
 }
 
 // TODO: create my own random function

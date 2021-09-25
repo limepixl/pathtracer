@@ -5,3 +5,6 @@
 - Pararrelization
 - BVH
 - Materials from model data
+
+Naive threading 512spp 1920x1080: 42min
+Row threading 512spp 1920x1080 29min
