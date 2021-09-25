@@ -1,4 +1,5 @@
 #pragma once
+#include "vec.hpp"
 
 enum MaterialType
 {
@@ -12,10 +13,4 @@ struct Material
 	Vec3f Le; // emmision of light
 };
 
-Material CreateMaterial(MaterialType type, Vec3f color, Vec3f Le)
-{
-	if(type == MaterialType::MATERIAL_LAMBERTIAN)
-		color /= PI;
-
-	return {type, color, Le};
-}
+Material CreateMaterial(MaterialType type, Vec3f color, Vec3f Le);

@@ -111,8 +111,6 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 			for(int8 shadowRayIndex = 0; shadowRayIndex < NUM_SHADOW_RAYS; shadowRayIndex++)
 			{
 				// pick a light source
-				// TEMP: we only have one light source
-				// TODO: add a way to have a separate array of light sources
 				float32 pdfPickLight = 1.0f / scene.numLightSources;
 
 				int32 pickedLightSource = (int32)(rand() % scene.numLightSources);

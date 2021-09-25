@@ -1,3 +1,4 @@
+#define _CRT_RAND_S
 #include "math.hpp"
 #include <math.h>
 
@@ -105,7 +106,9 @@ Vec3f NormalizeVec3f(Vec3f vec)
 // Returns a number in (0, 1)
 float32 RandomNumberNormalized()
 {
-	return (float32)((float64)(rand() + 1) / (float64)(RAND_MAX + 2));
+	unsigned int val = 0;
+	rand_s(&val);
+	return (float32)((float64)val / (float64)UINT_MAX);
 }
 
 // TODO: create my own random function
