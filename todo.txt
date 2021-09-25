@@ -2,9 +2,10 @@
 - MIS
 - Stratified sampling
 - More BRDFs / BSDFs
-- Pararrelization
 - BVH
 - Materials from model data
+- Timing
+- Reduce dependency on CRT
 
 Naive threading 512spp 1920x1080: 42min
 Row threading 512spp 1920x1080 29min
