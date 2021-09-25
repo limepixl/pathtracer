@@ -7,16 +7,12 @@
 
 int main()
 {
-	FILE *result = fopen("../result.ppm", "w+");
-	if(!result)
-	{
-		printf("Failed to create file!\n");
-		return -1;
-	}
-
 	uint16 width = 400;
 	uint16 height = 400;
 	float aspectRatio = (float)width / (float)height;
+
+	// Memory allocation for bitmap buffer
+	uint8 *bitmapBuffer = (uint8 *)malloc(sizeof(uint8) * width * height * 3);
 
 	// x is right, y is up, z is backwards
 	Vec3f eye = CreateVec3f(0.0f, 0.0f, 0.0f);
@@ -120,10 +116,6 @@ int main()
 
 	// END CORNELL BOX
 
-	fprintf(result, "P3\n%d %d\n255\n", width, height);
-
-	// TODO: write to buffer first and then write to file
-	// #pragma omp parallel for
 	for(int16 ypixel = height - 1; ypixel >= 0; ypixel--)
 	{
 		for(int16 xpixel = 0; xpixel < width; xpixel++)
@@ -166,11 +158,24 @@ int main()
 			r = Clamp(r, 255);
 			g = Clamp(g, 255);
 			b = Clamp(b, 255);
-
-			fprintf(result, "%d %d %d ", r, g, b);
+			bitmapBuffer[(xpixel + (height - ypixel) * width) * 3 + 0] = (uint8)r;
+			bitmapBuffer[(xpixel + (height - ypixel) * width) * 3 + 1] = (uint8)g;
+			bitmapBuffer[(xpixel + (height - ypixel) * width) * 3 + 2] = (uint8)b;
 		}
-		fprintf(result, "\n");
 	}
+
+	printf("Finished rendering to memory!\n");
+
+	FILE *result = fopen("../result.ppm", "w+");
+	if(!result)
+	{
+		printf("Failed to create file!\n");
+		return -1;
+	}
+	fprintf(result, "P3\n%d %d\n255\n", width, height);
+
+	for(uint32 i = 0; i < (uint32)(width * height * 3); i+=3)
+		fprintf(result, "%d %d %d\n", bitmapBuffer[i], bitmapBuffer[i+1], bitmapBuffer[i+2]);
 
 	fclose(result);
 	printf("Finished rendering to image!\n");
