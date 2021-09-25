@@ -20,4 +20,5 @@ struct RenderData
 
 void *CreateThreadWin32(void *param);
 void WaitForThreadWin32(void *threadHandle);
+void CloseThreadWin32(void *threadHandle);
 bool CanRelaunchThread(void *handle);

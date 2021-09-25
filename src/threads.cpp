@@ -89,10 +89,14 @@ void *CreateThreadWin32(void *param)
 	return threadHandle;
 }
 
+void CloseThreadWin32(void *threadHandle)
+{
+	CloseHandle(threadHandle);
+}
+
 void WaitForThreadWin32(void *threadHandle)
 {
 	WaitForSingleObject(threadHandle, INFINITE);
-	CloseHandle(threadHandle);
 }
 
 bool CanRelaunchThread(void *handle)
