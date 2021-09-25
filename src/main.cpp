@@ -10,8 +10,8 @@
 
 int main()
 {
-	uint32 width = 1920;
-	uint32 height = 1080;
+	uint32 width = 400;
+	uint32 height = 400;
 	float32 aspectRatio = (float32)width / (float32)height;
 	
 	// Memory allocation for bitmap buffer
@@ -119,35 +119,69 @@ int main()
 
 	// END CORNELL BOX
 
-	// Create and run threads
+	// Each thread's handle and data to be used by it
 	void *threadHandles[NUM_THREADS];
-	uint32 threadMemorySize = sizeof(uint8) * 3 * width * (height / NUM_THREADS);
 	RenderData *dataForThreads[NUM_THREADS];
+
+	// y keeps track of what row is next to be rendered
+	uint32 y = 0;
+	
+	uint32 threadMemorySize = sizeof(uint8) * 3 * width;
 	for(uint8 i = 0; i < NUM_THREADS; i++)
 	{
 		// TODO: move malloc to the actual thread
 		uint8 *threadMemory = (uint8 *)malloc(threadMemorySize);
 		dataForThreads[i] = (RenderData *)malloc(sizeof(RenderData));
 		
-		*dataForThreads[i] = {(void *)threadMemory, threadMemorySize, 
-							 (uint32)(i * (height / NUM_THREADS)), 
-							 (uint32)((i+1) * (height / NUM_THREADS)), 
+		*dataForThreads[i] = {(void *)threadMemory, 
+							 threadMemorySize, 
+							 y, 
+							 y+1, 
 							 width, height,
 							 gridOrigin, gridX, gridY, eye,
 							 cornellBox};
+
 		threadHandles[i] = CreateThreadWin32(dataForThreads[i]);
+		y++;
 	}
 
-	// Wait for threads to finish, close them and release their resources
+	// Wait for threads to finish, start them as soon as they can be started
+	for(uint8 i = 0; i <= NUM_THREADS; i++)
+	{
+		if(y == height)
+			break;
+
+		if(i == NUM_THREADS)
+			i = 0;
+
+		// If we can relaunch the thread, launch it to render the next row
+		if(CanRelaunchThread(threadHandles[i]))
+		{
+			
+			memcpy(bitmapBuffer + (dataForThreads[i]->startY * dataForThreads[i]->memorySize), 
+				   dataForThreads[i]->threadMemoryChunk, 
+				   dataForThreads[i]->memorySize);
+			dataForThreads[i]->startY = y;
+			dataForThreads[i]->endY = y+1;
+
+			WaitForThreadWin32(threadHandles[i]);
+			threadHandles[i] = CreateThreadWin32(dataForThreads[i]);
+
+			y++;
+		}
+	}
+
+	// Close all threads and free the memory
 	for(uint8 i = 0; i < NUM_THREADS; i++)
 	{
 		WaitForThreadWin32(threadHandles[i]);
-		
+	
 		RenderData *currentData = dataForThreads[i];
-		memcpy(bitmapBuffer + (i * currentData->memorySize), currentData->threadMemoryChunk, currentData->memorySize);
+		memcpy(bitmapBuffer + (currentData->startY * currentData->memorySize), 
+		       currentData->threadMemoryChunk, 
+			   currentData->memorySize);
 		free(currentData->threadMemoryChunk);
 		free(currentData);
-
 		// TODO: write currently rendered part into image
 	}
 
@@ -165,5 +199,8 @@ int main()
 
 	fclose(result);
 	printf("Finished rendering to image!\n");
+
+	free(bitmapBuffer);
+
 	return 0;
 }

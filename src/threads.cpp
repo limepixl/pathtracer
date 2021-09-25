@@ -69,10 +69,10 @@ DWORD WINAPI render_function(LPVOID param)
 			memory[(xpixel + y * width) * 3 + 1] = (uint8)g;
 			memory[(xpixel + y * width) * 3 + 2] = (uint8)b;
 		}
-		printf("THREAD: %d-%d | Progress: %.2f%%\n", renderData->startY, renderData->endY, (float32)y / deltaY);
+		// printf("THREAD: %d-%d | Progress: %.2f%%\n", renderData->startY, renderData->endY, (float32)y / deltaY);
 	}
 
-	printf("Finished rendering from y=%d to y=%d\n", renderData->startY, renderData->endY);
+	// printf("Finished rendering from y=%d to y=%d\n", renderData->startY, renderData->endY);
 	ExitThread(0);
 }
 
@@ -85,7 +85,7 @@ void *CreateThreadWin32(void *param)
 		OutputDebugStringA("Failed to create thread!\n");
 	}
 
-	printf("Successfully created thread with ID: %d\n", (int)threadID);
+	// printf("Successfully created thread with ID: %d\n", (int)threadID);
 	return threadHandle;
 }
 
@@ -93,4 +93,14 @@ void WaitForThreadWin32(void *threadHandle)
 {
 	WaitForSingleObject(threadHandle, INFINITE);
 	CloseHandle(threadHandle);
+}
+
+bool CanRelaunchThread(void *handle)
+{
+	DWORD exitCode = {};
+	BOOL res = GetExitCodeThread(handle, &exitCode);
+	if(exitCode == STILL_ACTIVE)
+		return false;
+
+	return true;
 }
