@@ -1,9 +1,11 @@
 #pragma once
 
+#define NUM_THREADS 12
+
 #define BOUNCE_MIN 0
 #define BOUNCE_COUNT 5
 #define NUM_BOUNCES BOUNCE_MIN + BOUNCE_COUNT
-#define NUM_SAMPLES 1
+#define NUM_SAMPLES 512
 #define NUM_SHADOW_RAYS 1
 
 #define TMIN 0.001f

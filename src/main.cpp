@@ -1,16 +1,19 @@
-#include "defines.hpp"
 // TODO: replace most C standard library calls with native platform layer
 #include <stdio.h>
-#include "pathtracer.hpp"
+#include <string.h>
+#include <stdlib.h>
+
+#include "defines.hpp"
+#include "material.hpp"
 #include "loader.hpp"
-#include <math.h>
+#include "threads.hpp"
 
 int main()
 {
-	uint16 width = 400;
-	uint16 height = 400;
-	float aspectRatio = (float)width / (float)height;
-
+	uint32 width = 1920;
+	uint32 height = 1080;
+	float32 aspectRatio = (float32)width / (float32)height;
+	
 	// Memory allocation for bitmap buffer
 	uint8 *bitmapBuffer = (uint8 *)malloc(sizeof(uint8) * width * height * 3);
 
@@ -20,7 +23,7 @@ int main()
 	float gridHeight = 2.0f;
 	float gridWidth = aspectRatio * gridHeight;
 	Vec3f gridX = {gridWidth, 0.0f, 0.0f};
-	Vec3f gridY = {0.0f, gridHeight, 0.0f};
+	Vec3f gridY = {0.0f, -gridHeight, 0.0f}; // negative because of the way I am writing to the file
 
 	// Lower left corner of virtual grid
 	Vec3f gridOrigin = eye - (gridX / 2.0f) - (gridY / 2.0f);
@@ -116,56 +119,39 @@ int main()
 
 	// END CORNELL BOX
 
-	for(int16 ypixel = height - 1; ypixel >= 0; ypixel--)
+	// Create and run threads
+	void *threadHandles[NUM_THREADS];
+	uint32 threadMemorySize = sizeof(uint8) * 3 * width * (height / NUM_THREADS);
+	RenderData *dataForThreads[NUM_THREADS];
+	for(uint8 i = 0; i < NUM_THREADS; i++)
 	{
-		for(int16 xpixel = 0; xpixel < width; xpixel++)
-		{
-			Vec3f color = {0.0f, 0.0f, 0.0f};
-
-			for(int16 sample = 0; sample < NUM_SAMPLES; sample++)
-			{
-				Vec2f offsetToPixelCenter = {0.5f, 0.5f};
-				Vec2f uvOffset = RandomVec2f() - offsetToPixelCenter;
-
-				float u = ((float)xpixel + uvOffset.x) / (float)width;
-				float v = ((float)ypixel + uvOffset.y) / (float)height;
-
-				Vec3f pointOnGrid = gridOrigin + u * gridX + v * gridY;
-				Vec3f rayDirection = NormalizeVec3f(pointOnGrid - eye);
-
-				Ray ray = {eye, rayDirection};
-			#if NEE_ONLY
-				color += EstimatorPathTracingLambertianNEE(ray, cornellBox);
-			#else 
-				color += EstimatorPathTracingLambertian(ray, cornellBox);
-			#endif
-			}
-
-			// Divide by the number of sample rays sent through pixel
-			// to get the average radiance accumulated
-			color /= (float32)NUM_SAMPLES;
-
-			// Gamma correction
-			color.x = sqrtf(color.x);
-			color.y = sqrtf(color.y);
-			color.z = sqrtf(color.z);
-
-			// TODO: why is it like this?
-			int16 r = (int16)(255.99 * color.x);
-			int16 g = (int16)(255.99 * color.y);
-			int16 b = (int16)(255.99 * color.z);
-
-			r = Clamp(r, 255);
-			g = Clamp(g, 255);
-			b = Clamp(b, 255);
-			bitmapBuffer[(xpixel + (height - ypixel) * width) * 3 + 0] = (uint8)r;
-			bitmapBuffer[(xpixel + (height - ypixel) * width) * 3 + 1] = (uint8)g;
-			bitmapBuffer[(xpixel + (height - ypixel) * width) * 3 + 2] = (uint8)b;
-		}
+		// TODO: move malloc to the actual thread
+		uint8 *threadMemory = (uint8 *)malloc(threadMemorySize);
+		dataForThreads[i] = (RenderData *)malloc(sizeof(RenderData));
+		
+		*dataForThreads[i] = {(void *)threadMemory, threadMemorySize, 
+							 (uint32)(i * (height / NUM_THREADS)), 
+							 (uint32)((i+1) * (height / NUM_THREADS)), 
+							 width, height,
+							 gridOrigin, gridX, gridY, eye,
+							 cornellBox};
+		threadHandles[i] = CreateThreadWin32(dataForThreads[i]);
 	}
 
-	printf("Finished rendering to memory!\n");
+	// Wait for threads to finish, close them and release their resources
+	for(uint8 i = 0; i < NUM_THREADS; i++)
+	{
+		WaitForThreadWin32(threadHandles[i]);
+		
+		RenderData *currentData = dataForThreads[i];
+		memcpy(bitmapBuffer + (i * currentData->memorySize), currentData->threadMemoryChunk, currentData->memorySize);
+		free(currentData->threadMemoryChunk);
+		free(currentData);
 
+		// TODO: write currently rendered part into image
+	}
+
+	// Write resulting rendered image to file
 	FILE *result = fopen("../result.ppm", "w+");
 	if(!result)
 	{
@@ -179,6 +165,5 @@ int main()
 
 	fclose(result);
 	printf("Finished rendering to image!\n");
-
 	return 0;
 }
