@@ -26,9 +26,6 @@ DWORD WINAPI render_function(LPVOID param)
 	uint32 startY = renderData->startY;
 	uint32 endY = renderData->endY;
 
-	uint32 deltaX = endX - startX;
-	uint32 deltaY = endY - startY;
-
 	// Index for memory buffer
 	uint32 index = 0;
 	for(uint32 ypixel = renderData->startY; ypixel < endY; ypixel++)
@@ -84,7 +81,7 @@ DWORD WINAPI render_function(LPVOID param)
 		}
 	}
 
-	printf("Finished: x = %d-%d, y = %d-%d\n", startX, endX, startY, endY);
+	printf("Finished: x = %u-%u, y = %u-%u\n", startX, endX, startY, endY);
 	ExitThread(0);
 }
 

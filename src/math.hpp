@@ -51,5 +51,5 @@ Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal);
 	Operators that use the utility functions above
 */
 
-bool operator==(const Vec3f lhs, const Vec3f rhs);
-bool operator!=(const Vec3f lhs, const Vec3f rhs);
+bool operator==(const Vec3f &lhs, const Vec3f &rhs);
+bool operator!=(const Vec3f &lhs, const Vec3f &rhs);
