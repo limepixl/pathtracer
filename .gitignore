@@ -1,5 +1,5 @@
 *.ppm
-*.obj
 *.pdb
 *.exe
 .vs
+build
