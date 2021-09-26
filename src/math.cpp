@@ -66,12 +66,22 @@ int32 Max(int32 a, int32 b)
 	return a > b ? a : b;
 }
 
+uint32 Max(uint32 a, uint32 b)
+{
+	return a > b ? a : b;
+}
+
 Vec3f MaxComponentWise(Vec3f a, Vec3f b)
 {
 	return { Max(a.x, b.x), Max(a.y, b.y), Max(a.z, b.z) };
 }
 
 float32 Min(float32 a, float32 b)
+{
+	return a < b ? a : b;
+}
+
+uint32 Min(uint32 a, uint32 b)
 {
 	return a < b ? a : b;
 }
@@ -89,6 +99,14 @@ float32 Step(float32 edge, float32 x)
 Vec3f Step(Vec3f edge, Vec3f x)
 {
 	return {Step(edge.x, x.x), Step(edge.y, x.y), Step(edge.z, x.z)};
+}
+
+float32 Ceil(float32 num)
+{
+	if(num - (int32)num > 0.0f)
+		return float32((int32)num + 1);
+	
+	return num;
 }
 
 void Swap(float32 *v1, float32 *v2)

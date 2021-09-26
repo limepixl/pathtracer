@@ -19,13 +19,26 @@ DWORD WINAPI render_function(LPVOID param)
 
 	uint8 *memory = (uint8 *)renderData->threadMemoryChunk;
 
-	uint32 deltaY = renderData->endY - renderData->startY;
-	for(int32 ypixel = renderData->startY; ypixel < (int32)renderData->endY; ypixel++)
+	// Margins
+	uint32 startX = renderData->startX;
+	uint32 endX = renderData->endX;
+
+	uint32 startY = renderData->startY;
+	uint32 endY = renderData->endY;
+
+	uint32 deltaX = endX - startX;
+	uint32 deltaY = endY - startY;
+
+	// Index for memory buffer
+	uint32 index = 0;
+	for(uint32 ypixel = renderData->startY; ypixel < endY; ypixel++)
 	{
 		uint32 y = (ypixel - renderData->startY);
 
-		for(int32 xpixel = 0; xpixel < (int32)width; xpixel++)
+		for(uint32 xpixel = renderData->startX; xpixel < endX; xpixel++)
 		{
+			uint32 x = (xpixel - renderData->startX);
+
 			Vec3f color = {0.0f, 0.0f, 0.0f};
 
 			for(int16 sample = 0; sample < NUM_SAMPLES; sample++)
@@ -64,15 +77,14 @@ DWORD WINAPI render_function(LPVOID param)
 			g = Clamp(g, 255);
 			b = Clamp(b, 255);
 
-			
-			memory[(xpixel + y * width) * 3 + 0] = (uint8)r;
-			memory[(xpixel + y * width) * 3 + 1] = (uint8)g;
-			memory[(xpixel + y * width) * 3 + 2] = (uint8)b;
+			memory[3 * index + 0] = (uint8)r;
+			memory[3 * index + 1] = (uint8)g;
+			memory[3 * index + 2] = (uint8)b;
+			index++;
 		}
-		// printf("THREAD: %d-%d | Progress: %.2f%%\n", renderData->startY, renderData->endY, (float32)y / deltaY);
 	}
 
-	// printf("Finished rendering from y=%d to y=%d\n", renderData->startY, renderData->endY);
+	printf("Finished: x = %d-%d, y = %d-%d\n", startX, endX, startY, endY);
 	ExitThread(0);
 }
 

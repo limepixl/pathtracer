@@ -8,6 +8,7 @@ struct RenderData
 	uint32 memorySize;
 
 	// Virtual grid dimensions
+	uint32 startX, endX;
 	uint32 startY, endY;
 	uint32 width, height;
 
