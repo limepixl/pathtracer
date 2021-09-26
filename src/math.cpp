@@ -86,6 +86,11 @@ uint32 Min(uint32 a, uint32 b)
 	return a < b ? a : b;
 }
 
+uint16 Min(uint16 a, uint16 b)
+{
+	return a < b ? a : b;
+}
+
 Vec3f MinComponentWise(Vec3f a, Vec3f b)
 {
 	return { Min(a.x, b.x), Min(a.y, b.y), Min(a.z, b.z) };

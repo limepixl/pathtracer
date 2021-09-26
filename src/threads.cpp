@@ -111,7 +111,7 @@ void WaitForThreadWin32(void *threadHandle)
 	WaitForSingleObject(threadHandle, INFINITE);
 }
 
-bool CanRelaunchThread(void *handle)
+bool CanThreadStart(void *handle)
 {
 	DWORD exitCode = {};
 	BOOL res = GetExitCodeThread(handle, &exitCode);

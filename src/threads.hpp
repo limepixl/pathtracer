@@ -17,9 +17,12 @@ struct RenderData
 
 	// Scene data
 	Scene scene;
+
+	// Flag to check if initialized
+	bool initialized;
 };
 
 void *CreateThreadWin32(void *param);
 void WaitForThreadWin32(void *threadHandle);
 void CloseThreadWin32(void *threadHandle);
-bool CanRelaunchThread(void *handle);
+bool CanThreadStart(void *handle);
