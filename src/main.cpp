@@ -7,11 +7,12 @@
 #include "material.hpp"
 #include "loader.hpp"
 #include "threads.hpp"
+#include "math.hpp"
 
 int main()
 {
-	uint32 width = 500;
-	uint32 height = 500;
+	uint32 width = 1920;
+	uint32 height = 1080;
 	float32 aspectRatio = (float32)width / (float32)height;
 	
 	// Memory allocation for bitmap buffer
@@ -124,64 +125,142 @@ int main()
 	RenderData *dataForThreads[NUM_THREADS];
 
 	// y keeps track of what row is next to be rendered
+	uint32 x = 0;
 	uint32 y = 0;
-	
-	uint32 threadMemorySize = sizeof(uint8) * 3 * width;
+	uint32 pixelStep = 64;
+
+	uint32 pixelSize = 3 * sizeof(uint8);
+	uint32 rowSizeInBytes = pixelSize * width;
+
+	uint32 numChunkColumns = (uint32)Ceil((float32)width / pixelStep);
+	uint32 numChunkRows = (uint32)Ceil((float32)height / pixelStep);
+	uint32 rowIndex = 0, colIndex = 0;
+
+	uint8 runningThreads = NUM_THREADS;
 	for(uint8 i = 0; i < NUM_THREADS; i++)
 	{
+		// If we're at the end of the row, go down to the next row
+		if(colIndex == numChunkColumns)
+		{
+			colIndex = 0;
+			rowIndex++;
+		}
+
+		if(rowIndex == numChunkRows)
+		{
+			runningThreads = i;
+			break;
+		}
+
+		// X
+		uint32 startX = colIndex * pixelStep;
+		uint32 endX = (colIndex + 1) * pixelStep;
+		endX = Min(endX, width);
+
+		int32 deltaX = endX - startX;
+
+		// Y
+		uint32 startY = rowIndex * pixelStep;
+		uint32 endY = (rowIndex + 1) * pixelStep;
+		endY = Min(endY, height);
+
+		int32 deltaY = endY - startY;
+
+		if(deltaX <= 0 || deltaY <= 0)
+		{
+			printf("Oh no we gotta go\n");
+		}
+
+		uint32 chunkRowSizeInBytes = pixelSize * deltaX;
+		uint32 threadMemorySize = pixelStep * pixelStep * pixelSize;
+
 		uint8 *threadMemory = (uint8 *)malloc(threadMemorySize);
+		
+		// Go to next column in row
+		colIndex++;
 
 		// Allocate and initialize memory for each thread's data
 		dataForThreads[i] = (RenderData *)malloc(sizeof(RenderData));
 		*dataForThreads[i] = {(void *)threadMemory, 
-							 threadMemorySize, 
-							 y, 
-							 y+1, 
+							 threadMemorySize,
+							 startX, endX, 
+							 startY, endY, 
 							 width, height,
 							 gridOrigin, gridX, gridY, eye,
 							 cornellBox};
 
 		// Create and start up each thread
 		threadHandles[i] = CreateThreadWin32(dataForThreads[i]);
-
-		y++;
 	}
 
-	// Start a thread with the next row to be rendered, if it has finished
-	for(uint8 i = 0; i <= NUM_THREADS; i++)
+	// Start a thread with the next chunk to be rendered
+	for(uint8 i = 0; i <= runningThreads; i++)
 	{
-		if(y == height)
+		// If we're at the end of the row, go down to the next row
+		if(colIndex == numChunkColumns)
+		{
+			colIndex = 0;
+			rowIndex++;
+		}
+
+		// We rendered all rows
+		if(rowIndex == numChunkRows)
 			break;
 
-		if(i == NUM_THREADS)
+		// Cycle threads
+		if(i == runningThreads)
 			i = 0;
 
 		// If we can relaunch the thread, launch it to render the next row
 		if(CanRelaunchThread(threadHandles[i]))
 		{
 			RenderData *data = dataForThreads[i];
-			uint8 *offsetBitmapBuffer = bitmapBuffer + (data->startY * data->memorySize);
+			
+			// X
+			uint32 startX = data->startX;
+			uint32 endX = data->endX;
+			endX = Min(endX, width);
+
+			int32 deltaX = endX - startX;
+
+			// Y
+			uint32 startY = data->startY;
+			uint32 endY = data->endY;
+			endY = Min(endY, height);
+
+			int32 deltaY = endY - startY;
+
+			uint32 chunkRowSizeInBytes = pixelSize * deltaX;
+
+			if(deltaX <= 0 || deltaY <= 0)
+			{
+				printf("Oh no we gotta go\n");
+			}
 
 			// Write the rendered region into the bitmap memory
-			memcpy(offsetBitmapBuffer, data->threadMemoryChunk, data->memorySize);
+			for(uint32 ymem = data->startY; ymem < endY; ymem++)
+			{
+				uint8 *offsetBitmapBuffer = bitmapBuffer + (ymem * rowSizeInBytes) + data->startX * pixelSize;
+				memcpy(offsetBitmapBuffer, (uint8 *)data->threadMemoryChunk + (ymem - data->startY) * chunkRowSizeInBytes, chunkRowSizeInBytes);
+			}
 
-			// Make sure the next run of this thread is from the 
-			// correct y position (the next row to be rendered)
-			data->startY = y;
-			data->endY = y+1;
+			data->startX = colIndex * pixelStep;
+			data->endX = Min(width, (colIndex + 1) * pixelStep);
+			data->startY = rowIndex * pixelStep;
+			data->endY = Min(height, (rowIndex + 1) * pixelStep);
+
+			// Increment column index
+			colIndex++;
 			
 			// Close the finished thread and create a new one with
 			// the new data to be executed
 			CloseThreadWin32(threadHandles[i]);
 			threadHandles[i] = CreateThreadWin32(dataForThreads[i]);
-
-			// We have a thread on the current row, increment y
-			y++;
 		}
 	}
 
-	// After we finish rendering all rows
-	for(uint8 i = 0; i < NUM_THREADS; i++)
+	// After we finish rendering all chunks
+	for(uint8 i = 0; i < runningThreads; i++)
 	{
 		// If the thread is currently running, wait for it (join it to main thread)
 		if(!CanRelaunchThread(threadHandles[i]))
@@ -192,8 +271,14 @@ int main()
 		
 		// Thread just finished, so we need to write the changes
 		RenderData *data = dataForThreads[i];
-		uint8 *offsetBitmapBuffer = bitmapBuffer + (data->startY * data->memorySize);
-		memcpy(offsetBitmapBuffer, data->threadMemoryChunk, data->memorySize);
+		
+		uint32 chunkRowSizeInBytes = pixelSize * (data->endX - data->startX);
+
+		for(uint32 ymem = data->startY; ymem < data->endY; ymem++)
+		{
+			uint8 *offsetBitmapBuffer = bitmapBuffer + (ymem * rowSizeInBytes) + data->startX * pixelSize;
+			memcpy(offsetBitmapBuffer, (uint8 *)data->threadMemoryChunk + (ymem - data->startY) * chunkRowSizeInBytes, chunkRowSizeInBytes);
+		}
 
 		// Free the allocated thread's memory, and the thread's data struct
 		free(data->threadMemoryChunk);
