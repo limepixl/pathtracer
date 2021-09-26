@@ -27,6 +27,7 @@ Vec3f MaxComponentWise(Vec3f a, Vec3f b);
 
 float32 Min(float32 a, float32 b);
 uint32 Min(uint32 a, uint32 b);
+uint16 Min(uint16 a, uint16 b);
 
 Vec3f MinComponentWise(Vec3f a, Vec3f b);
 
