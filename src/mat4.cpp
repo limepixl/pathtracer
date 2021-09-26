@@ -33,7 +33,7 @@ Mat4f ScaleMat4f(Vec3f scaleVec, Mat4f mat)
 	return mat;
 }
 
-Vec4f operator*(Mat4f lhs, Vec4f rhs)
+Vec4f operator*(Mat4f lhs, const Vec4f &rhs)
 {
 	return CreateVec4f(lhs.r0.x*rhs.x + lhs.r0.y*rhs.y + lhs.r0.z*rhs.z + lhs.r0.w*rhs.w,
 					   lhs.r1.x*rhs.x + lhs.r1.y*rhs.y + lhs.r1.z*rhs.z + lhs.r1.w*rhs.w,
@@ -41,7 +41,7 @@ Vec4f operator*(Mat4f lhs, Vec4f rhs)
 					   lhs.r3.x*rhs.x + lhs.r3.y*rhs.y + lhs.r3.z*rhs.z + lhs.r3.w*rhs.w);
 }
 
-Vec3f operator*(Mat4f lhs, Vec3f rhs)
+Vec3f operator*(Mat4f lhs, const Vec3f &rhs)
 {
 	Vec4f tmpVec = CreateVec4f(rhs.x, rhs.y, rhs.z, 1.0f);
 	tmpVec = lhs * tmpVec;

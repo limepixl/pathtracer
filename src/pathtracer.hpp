@@ -24,8 +24,6 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 	// ( BRDF * dot(Nx, psi) ) / PDF(psi)
 	Vec3f throughputTerm {1.0f, 1.0f, 1.0f};
 
-	Vec3f oldNormal = CreateVec3f(0.0f);
-
 	// Vignette effect (basically undoing We=1/cos^3(theta) )
 	// float32 theta = acosf(-ray.direction.z);
 	// throughputTerm = throughputTerm * powf(cosf(theta), 3);
@@ -65,8 +63,6 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 
 		Vec3f point = data.point;
 		ray = {point + EPSILON * data.normal, dir};
-
-		oldNormal = data.normal;
 	}
 
 	return color;

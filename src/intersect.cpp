@@ -391,7 +391,7 @@ bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data)
 		}
 
 		*data = resultData;
-		return true;
+		return hitAnyTri;
 	}
 
 	return false;

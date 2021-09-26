@@ -31,8 +31,6 @@ int main()
 	gridOrigin.z = -2.0f;
 
 	// CONSTRUCTING CORNELL BOX
-	Scene cornellBox = {};
-	
 	Material cbMats[]
 	{
 		// light source
@@ -112,7 +110,7 @@ int main()
 	};
 	int32 numTriModels = (int32)ARRAYCOUNT(triModels);
 
-	cornellBox = ConstructScene(NULL, 0, 
+	Scene cornellBox = ConstructScene(NULL, 0, 
 							    cbQuads, cbNumQuads,
 								triModels, numTriModels,
 								cbLights, cbNumLights,
@@ -125,8 +123,6 @@ int main()
 	RenderData *dataForThreads[NUM_THREADS];
 
 	// Variables that keep track of the chunk data
-	uint32 x = 0;
-	uint32 y = 0;
 	uint32 pixelStep = 64;
 	uint32 rowIndex = 0, colIndex = 0;
 

@@ -25,47 +25,47 @@ Vec3f CreateVec3f(float32 v)
 	return result;
 }
 
-Vec3f operator+(const Vec3f lhs, const Vec3f rhs)
+Vec3f operator+(const Vec3f &lhs, const Vec3f &rhs)
 {
 	return {lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z};
 }
 
-Vec3f operator-(const Vec3f lhs, const Vec3f rhs)
+Vec3f operator-(const Vec3f &lhs, const Vec3f &rhs)
 {
 	return {lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z};
 }
 
-Vec3f operator-(const Vec3f vec)
+Vec3f operator-(const Vec3f &vec)
 {
 	return {-vec.x, -vec.y, -vec.z};
 }
 
-Vec3f operator*(const float32 lhs, const Vec3f rhs)
+Vec3f operator*(const float32 lhs, const Vec3f &rhs)
 {
 	return {rhs.x * lhs, rhs.y * lhs, rhs.z * lhs};
 }
 
-Vec3f operator*(const Vec3f lhs, const float32 rhs)
+Vec3f operator*(const Vec3f &lhs, const float32 rhs)
 {
 	return {lhs.x * rhs, lhs.y * rhs, lhs.z * rhs};
 }
 
-Vec3f operator*(const Vec3f lhs, const Vec3f rhs)
+Vec3f operator*(const Vec3f &lhs, const Vec3f &rhs)
 {
 	return {lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z};
 }
 
-Vec3f operator/(const Vec3f lhs, const float32 rhs)
+Vec3f operator/(const Vec3f &lhs, const float32 rhs)
 {
 	return {lhs.x / rhs, lhs.y / rhs, lhs.z / rhs};
 }
 
-Vec3f operator/(const float32 lhs, const Vec3f rhs)
+Vec3f operator/(const float32 lhs, const Vec3f &rhs)
 {
 	return {lhs / rhs.x, lhs / rhs.y, lhs / rhs.z};
 }
 
-Vec3f operator+=(Vec3f &lhs, const Vec3f rhs)
+Vec3f operator+=(Vec3f &lhs, const Vec3f &rhs)
 {
 	lhs.x += rhs.x;
 	lhs.y += rhs.y;
@@ -89,7 +89,7 @@ Vec3f operator/=(Vec3f &lhs, const float32 rhs)
 	return lhs;
 }
 
-Vec3f operator*=(Vec3f &lhs, const Vec3f rhs)
+Vec3f operator*=(Vec3f &lhs, const Vec3f &rhs)
 {
 	lhs.x *= rhs.x;
 	lhs.y *= rhs.y;
@@ -97,7 +97,7 @@ Vec3f operator*=(Vec3f &lhs, const Vec3f rhs)
 	return lhs;
 }
 
-bool operator<=(Vec3f lhs, Vec3f rhs)
+bool operator<=(const Vec3f &lhs, const Vec3f &rhs)
 {
 	return (lhs.x <= rhs.x && lhs.y <= rhs.y && lhs.z <= rhs.z);
 }
@@ -112,7 +112,7 @@ Vec2f CreateVec2f(float32 v)
 	return {v, v};
 }
 
-Vec2f operator-(const Vec2f lhs, const Vec2f rhs)
+Vec2f operator-(const Vec2f &lhs, const Vec2f &rhs)
 {
 	return {lhs.x - rhs.x, lhs.y - rhs.y};
 }

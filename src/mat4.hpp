@@ -20,5 +20,5 @@ Mat4f CreateIdentityMat4f();
 Mat4f TranslationMat4f(Vec3f translationVec, Mat4f mat);
 Mat4f ScaleMat4f(Vec3f scaleVec, Mat4f mat);
 
-Vec4f operator*(Mat4f lhs, Vec4f rhs);
-Vec3f operator*(Mat4f lhs, Vec3f rhs);
+Vec4f operator*(Mat4f lhs, const Vec4f &rhs);
+Vec3f operator*(Mat4f lhs, const Vec3f &rhs);

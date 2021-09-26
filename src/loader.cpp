@@ -103,6 +103,11 @@ bool LoadModelFromObj(const char *path, Triangle **outTris, int32 *numOutTris)
 					normalv2[component] = attrib.normals[3 * n2 + component];
 				}
 			}
+			else
+			{
+				printf("ERROR: Unsupported model without normals!\n");
+				// TODO: fix this
+			}
 			
 			// Average out all vertex normals for each face
 			Vec3f n0 = CreateVec3f(normalv0[0], normalv0[1], normalv0[2]);
