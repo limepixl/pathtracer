@@ -27,7 +27,7 @@ struct Sphere
 };
 
 Sphere CreateSphere(Vec3f origin, float32 radius, int16 materialIndex);
-bool SphereIntersect(Ray ray, Sphere sphere, HitData *data);
+bool SphereIntersect(Ray ray, Sphere sphere, HitData *data, float32 &tmax);
 
 struct Quad
 {
@@ -40,7 +40,7 @@ struct Quad
 };
 
 Quad CreateQuad(Vec3f origin, Vec3f end, Vec3f normal, int8 component, int16 materialIndex);
-bool QuadIntersect(Ray ray, Quad quad, HitData *data);
+bool QuadIntersect(Ray ray, Quad quad, HitData *data, float32 &tmax);
 
 struct Box
 {
@@ -59,7 +59,7 @@ struct Box
 
 Box CreateBoxFromEndpoints(Vec3f origin, Vec3f end, int16 materialIndex);
 Box CreateBox(Vec3f origin, Vec3f dimensions, int16 materialIndex);
-bool BoxIntersect(Ray ray, Box box, HitData *data);
+bool BoxIntersect(Ray ray, Box box, HitData *data, float32 &tmax);
 
 struct Triangle
 {
@@ -72,7 +72,7 @@ struct Triangle
 
 Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2);
 Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal);
-bool TriangleIntersect(Ray ray, Triangle *tri, HitData *data);
+bool TriangleIntersect(Ray ray, Triangle *tri, HitData *data, float32 &tmax);
 void ApplyScaleToTriangle(Triangle *tri, Vec3f scaleVec);
 void ApplyTranslationToTriangle(Triangle *tri, Vec3f translationVec);
 
@@ -97,7 +97,7 @@ struct TriangleModel
 };
 
 TriangleModel CreateTriangleModel(Triangle *tris, int32 numTris, Mat4f modelMatrix, int16 materialIndex);
-bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data);
+bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data, float32 &tmax);
 
 enum LightSourceType
 {

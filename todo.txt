@@ -2,6 +2,7 @@
 - MIS
 - Stratified sampling
 - More BRDFs / BSDFs
+- Russian Roulette
 - BVH
 - Materials from model data
 - Timing

@@ -15,7 +15,7 @@ Sphere CreateSphere(Vec3f origin, float32 radius, int16 materialIndex)
 	return result;
 }
 
-bool SphereIntersect(Ray ray, Sphere sphere, HitData *data)
+bool SphereIntersect(Ray ray, Sphere sphere, HitData *data, float32 &tmax)
 {
 	Vec3f oc = ray.origin - sphere.origin;
 	float32 a = Dot(ray.direction, ray.direction);
@@ -28,8 +28,9 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data)
 		if(discriminant == 0) // 2 equal real solutions
 		{
 			float32 t = -b / (2.0f * a);
-			if(t > TMIN && t < TMAX)
+			if(t > TMIN && t < tmax)
 			{
+				tmax = t;
 				data->t = t;
 				data->point = ray.origin + ray.direction * t;
 				data->normal = data->point - sphere.origin;
@@ -48,16 +49,18 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data)
 				t2 = tmp;
 			}
 
-			if(t1 > TMIN && t1 < TMAX)
+			if(t1 > TMIN && t1 < tmax)
 			{
+				tmax = t1;
 				data->t = t1;
 				data->point = ray.origin + ray.direction * t1;
 				data->normal = (data->point - sphere.origin) / sphere.radius;
 				data->materialIndex = sphere.materialIndex;
 				return true;
 			}
-			else if(t2 > TMIN && t2 < TMAX)
+			else if(t2 > TMIN && t2 < tmax)
 			{
+				tmax = t2;
 				data->t = t2;
 				data->point = ray.origin + ray.direction * t2;
 				data->normal = (data->point - sphere.origin) / sphere.radius;
@@ -76,7 +79,7 @@ Quad CreateQuad(Vec3f origin, Vec3f end, Vec3f normal, int8 component, int16 mat
 	return result;
 }
 
-bool QuadIntersect(Ray ray, Quad quad, HitData *data)
+bool QuadIntersect(Ray ray, Quad quad, HitData *data, float32 &tmax)
 {
 	uint8 c = quad.component;
 	float32 componentValue = quad.origin.values[c];
@@ -86,7 +89,7 @@ bool QuadIntersect(Ray ray, Quad quad, HitData *data)
 	float32 t = (componentValue - ray.origin.values[c]) / ray.direction.values[c];
 	
 	// t is either self intersecting, negative or too far away
-	if(t < TMIN || t > TMAX)
+	if(t < TMIN || t > tmax)
 		return false;
 
 	// Now we check if the point on that xy plane is within
@@ -110,6 +113,7 @@ bool QuadIntersect(Ray ray, Quad quad, HitData *data)
 	data->normal = quad.normal;
 	data->point = pointOnPlane;
 	data->t = t;
+	tmax = t;
 	return true;
 }
 
@@ -164,7 +168,7 @@ Box CreateBox(Vec3f origin, Vec3f dimensions, int16 materialIndex)
 	return CreateBoxFromEndpoints(origin, end, materialIndex);
 }
 
-bool BoxIntersect(Ray ray, Box box, HitData *data)
+bool BoxIntersect(Ray ray, Box box, HitData *data, float32 &tmax)
 {
 	bool hitAnyQuad = false;
 	HitData resultData = {TMAX};
@@ -173,7 +177,7 @@ bool BoxIntersect(Ray ray, Box box, HitData *data)
 	{
 		Quad currentQuad = box.quads[i];
 		HitData quadData = {};
-		if(QuadIntersect(ray, currentQuad, &quadData))
+		if(QuadIntersect(ray, currentQuad, &quadData, tmax))
 		{
 			if(quadData.t < resultData.t)
 			{
@@ -204,7 +208,7 @@ Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal)
 }
 
 // Moller–Trumbore ray-triangle intersection algorithm
-bool TriangleIntersect(Ray ray, Triangle *tri, HitData *data)
+bool TriangleIntersect(Ray ray, Triangle *tri, HitData *data, float32 &tmax)
 {
 	const float32 TRI_EPSILON = 0.00001f;
 
@@ -228,8 +232,9 @@ bool TriangleIntersect(Ray ray, Triangle *tri, HitData *data)
 
 	// Computing t
     float32 t = f * Dot(tri->edge2, q);
-    if(t > TMIN && t < TMAX)
+    if(t > TMIN && t < tmax)
     {
+		tmax = t;
 		data->t = t;
         data->point = ray.origin + ray.direction * t;
 		data->normal = tri->normal;
@@ -367,7 +372,7 @@ TriangleModel CreateTriangleModel(Triangle *tris, int32 numTris, Mat4f modelMatr
 	return {tris, numTris, aabb, modelMatrix, materialIndex};
 }
 
-bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data)
+bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data, float32 &tmax)
 {
 	// Check if ray intersects AABB at all before checking
 	// intersections with any of the model's triangles
@@ -375,14 +380,14 @@ bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data)
 	if(intersectsAABB)
 	{
 		bool hitAnyTri = false;
-		HitData resultData = {TMAX};
+		HitData resultData = {tmax};
 		
 		for(int32 tri = 0; tri < triModel.numTrianges; tri++)
 		{
 			HitData currentData = {};
 			Triangle *current = &triModel.triangles[tri];
-			bool intersectTri = TriangleIntersect(ray, current, &currentData);
-			if(intersectTri && currentData.t < resultData.t)
+			bool intersectTri = TriangleIntersect(ray, current, &currentData, tmax);
+			if(intersectTri)
 			{
 				hitAnyTri = true;
 				resultData = currentData;
@@ -421,19 +426,18 @@ bool Intersect(Ray ray, Scene scene, HitData *data)
 	bool hitAnything = false;
 	HitData resultData = {TMAX};
 
+	float32 tmax = TMAX;
+
 	for(int32 i = 0; i < scene.numSpheres; i++)
 	{
 		HitData currentData = {};
 		Sphere current = scene.spheres[i];
-		bool intersect = SphereIntersect(ray, current, &currentData);
+		bool intersect = SphereIntersect(ray, current, &currentData, tmax);
 		if(intersect)
 		{
-			if(currentData.t < resultData.t)
-			{
-				// Found closer hit, store it.
-				hitAnything = true;
-				resultData = currentData;
-			}
+			// Found closer hit, store it.
+			hitAnything = true;
+			resultData = currentData;
 		}
 	}
 
@@ -441,15 +445,12 @@ bool Intersect(Ray ray, Scene scene, HitData *data)
 	{
 		HitData currentData = {};
 		Quad current = scene.quads[i];
-		bool intersect = QuadIntersect(ray, current, &currentData);
+		bool intersect = QuadIntersect(ray, current, &currentData, tmax);
 		if(intersect)
 		{
-			if(currentData.t < resultData.t)
-			{
-				// Found closer hit, store it.
-				hitAnything = true;
-				resultData = currentData;
-			}
+			// Found closer hit, store it.
+			hitAnything = true;
+			resultData = currentData;
 		}
 	}
 
@@ -457,15 +458,12 @@ bool Intersect(Ray ray, Scene scene, HitData *data)
 	{
 		HitData currentData = {};
 		TriangleModel current = scene.triModels[i];
-		bool intersect = TriangleModelIntersect(ray, current, &currentData);
+		bool intersect = TriangleModelIntersect(ray, current, &currentData, tmax);
 		if(intersect)
 		{
-			if(currentData.t < resultData.t)
-			{
-				// Found closer hit, store it.
-				hitAnything = true;
-				resultData = currentData;
-			}
+			// Found closer hit, store it.
+			hitAnything = true;
+			resultData = currentData;
 		}
 	}
 
