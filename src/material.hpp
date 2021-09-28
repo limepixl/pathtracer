@@ -4,6 +4,7 @@
 enum MaterialType
 {
 	MATERIAL_LAMBERTIAN = 0,
+	MATERIAL_IDEAL_REFLECTIVE = 1,
 };
 
 struct Material

@@ -11,8 +11,8 @@
 
 int main()
 {
-	uint32 width = 500;
-	uint32 height = 500;
+	uint32 width = 1280;
+	uint32 height = 720;
 	float32 aspectRatio = (float32)width / (float32)height;
 	
 	// Memory allocation for bitmap buffer
@@ -37,14 +37,12 @@ int main()
 		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.0f), CreateVec3f(20.0f)),
 			
 		// walls
-		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(1.0f, 0.1f, 0.1f), CreateVec3f(0.0f)),
-		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.1f, 1.0f, 0.1f), CreateVec3f(0.0f)),
-		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(1.0f, 1.0f, 1.0f), CreateVec3f(0.0f)),
-
-		// alternative walls
 		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.98f, 0.52f, 0.1f), CreateVec3f(0.0f)),
 		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.1f, 0.62f, 0.98f), CreateVec3f(0.0f)),
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(1.0f, 1.0f, 1.0f), CreateVec3f(0.0f)),
 
+		// ideal reflective
+		CreateMaterial(MATERIAL_IDEAL_REFLECTIVE, CreateVec3f(1.0f), CreateVec3f(0.0f)),
 	};
 	int32 cbNumMats = (int32)ARRAYCOUNT(cbMats);
 
@@ -58,12 +56,12 @@ int main()
 		CreateQuad(CreateVec3f(-1.0f, -1.0f, -4.0f+cbOffset), 
 				   CreateVec3f(-1.0f, 1.0f, -2.0f+cbOffset), 
 				   CreateVec3f(1.0f, 0.0f, 0.0f), 
-				   0, 4),
+				   0, 1),
 		// right
 		CreateQuad(CreateVec3f(1.0f, -1.0f, -4.0f+cbOffset), 
 				   CreateVec3f(1.0f, 1.0f, -2.0f+cbOffset), 
 				   CreateVec3f(-1.0f, 0.0f, 0.0f), 
-				   0, 5),
+				   0, 2),
 		// bottom
 		CreateQuad(CreateVec3f(-1.0f, -1.0f, -4.0f+cbOffset), 
 				   CreateVec3f(1.0f, -1.0f, -2.0f+cbOffset), 
@@ -78,7 +76,7 @@ int main()
 		CreateQuad(CreateVec3f(-1.0f, -1.0f, -4.0f+cbOffset), 
 				   CreateVec3f(1.0f, 1.0f, -4.0f+cbOffset), 
 				   CreateVec3f(0.0f, 0.0f, 1.0f), 
-				   2, 3),
+				   2, 4),
 		
 		// light
 		CreateQuad(CreateVec3f(-0.5f*lightWidth, 1.0f+lightYOffset, (-3.0f-0.5f*lightWidth)+cbOffset), 
@@ -102,7 +100,7 @@ int main()
 	// Model transformation matrix
 	Mat4f modelMatrix = CreateIdentityMat4f();
 	modelMatrix = ScaleMat4f(CreateVec3f(0.3f, 0.3f, 0.3f), modelMatrix);
-	modelMatrix = TranslationMat4f(CreateVec3f(0.0f, 0.0f, -3.0f), modelMatrix);
+	modelMatrix = TranslationMat4f(CreateVec3f(-0.3f, -0.6f, -3.0f+cbOffset), modelMatrix);
 
 	TriangleModel triModels[]
 	{
@@ -110,11 +108,17 @@ int main()
 	};
 	int32 numTriModels = (int32)ARRAYCOUNT(triModels);
 
-	Scene cornellBox = ConstructScene(NULL, 0, 
-							    cbQuads, cbNumQuads,
-								triModels, numTriModels,
-								cbLights, cbNumLights,
-								cbMats, cbNumMats);
+	Sphere cbSpheres[]
+	{
+		CreateSphere(CreateVec3f(0.3f, -0.7f, -3.0f+cbOffset), 0.3f, 3)
+	};
+	int32 numSpheres = (int32)ARRAYCOUNT(cbSpheres);
+
+	Scene cornellBox = ConstructScene(cbSpheres, numSpheres, 
+							    	  cbQuads, cbNumQuads,
+								      triModels, numTriModels,
+									  cbLights, cbNumLights,
+								      cbMats, cbNumMats);
 
 	// END CORNELL BOX
 
@@ -187,15 +191,10 @@ int main()
 			// to initialize and start the thread for the first time
 			if(data->initialized)
 			{
-				// X
-				uint32 startX = data->startX;
-				uint32 endX = data->endX;
-				int32 deltaX = endX - startX;
-
-				// Y
-				uint32 startY = data->startY;
-				uint32 endY = data->endY;
-				int32 deltaY = endY - startY;
+				printf("Rendered region: x = %u-%u, y = %u-%u\n", data->startX, data->endX, data->startY, data->endY);
+	
+				int32 deltaX = data->endX - data->startX;
+				int32 deltaY = data->endY - data->startY;
 
 				// Read only this many bytes at a time from the thread's memory
 				// and write it to the bitmap buffer. If we exceed this number 
@@ -208,7 +207,7 @@ int main()
 				}
 
 				// Write the rendered region into the bitmap memory
-				for(uint32 ymem = data->startY; ymem < endY; ymem++)
+				for(uint32 ymem = data->startY; ymem < data->endY; ymem++)
 				{
 					uint8 *offsetBitmapBuffer = bitmapBuffer + (ymem * rowSizeInBytes) + data->startX * pixelSize;
 					memcpy(offsetBitmapBuffer, (uint8 *)data->threadMemoryChunk + (ymem - data->startY) * chunkRowSizeInBytes, chunkRowSizeInBytes);
@@ -244,10 +243,12 @@ int main()
 
 		// Close the thread, we won't be needing it anymore
 		CloseThreadWin32(threadHandles[i]);
-		
+
 		// Thread just finished, so we need to write the changes
 		RenderData *data = dataForThreads[i];
 		
+		printf("Rendered region: x = %u-%u, y = %u-%u\n", data->startX, data->endX, data->startY, data->endY);
+
 		uint32 chunkRowSizeInBytes = pixelSize * (data->endX - data->startX);
 
 		for(uint32 ymem = data->startY; ymem < data->endY; ymem++)
