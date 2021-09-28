@@ -81,7 +81,6 @@ DWORD WINAPI render_function(LPVOID param)
 		}
 	}
 
-	printf("Finished: x = %u-%u, y = %u-%u\n", startX, endX, startY, endY);
 	ExitThread(0);
 }
 

@@ -42,27 +42,50 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 
 		Material *mat = &scene.materials[data.materialIndex];
 
-		float32 cosTheta = Dot(ray.direction, NormalizeVec3f(data.normal));
-
 		// add the light that the material emits
 		if(BOUNCE_MIN <= b && b <= NUM_BOUNCES)
 			color += throughputTerm * mat->Le;
 
-		// update throughput
-		// The PI is here because we are sampling w.r.t the pdf
-		// p(psi) = cos(theta) / PI.
-		// This cosine term cancels out with the dot product in
-		// the throughput term and all that is left is the BRDF
-		// along with PI.
-		throughputTerm *= PI * mat->color;
+		float32 cosTheta = Dot(ray.direction, data.normal);
+		
+		if(mat->type == MaterialType::MATERIAL_LAMBERTIAN)
+		{
+			Vec3f BRDF = PI * mat->color;
 
-		Vec2f randomVec2f = RandomVec2f();
+			// update throughput
+			// The PI is here because we are sampling w.r.t the pdf
+			// p(psi) = cos(theta) / PI       (cosine weighted sampling)
+			// This cosine term cancels out with the dot product in
+			// the throughput term and all that is left is the BRDF
+			throughputTerm *= BRDF;
+			
+			// pdf(psi) = cos(theta) / PI
+			Vec2f randomVec2f = RandomVec2f();
+			Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, data.normal);
+	
+			// Intersection point and new ray
+			Vec3f point = data.point;
+			ray = {point + EPSILON * data.normal, dir};
+		}
+		else if(mat->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
+		{
+			Vec3f reflectedDir = Reflect(-ray.direction, data.normal);
 
-		// pdf(psi) = cos(theta) / PI
-		Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, data.normal);
+			// Intersection point and new ray
+			Vec3f point = data.point;
+			ray = {point + EPSILON * data.normal, reflectedDir};
 
-		Vec3f point = data.point;
-		ray = {point + EPSILON * data.normal, dir};
+			// If we sample uniformly or with cosine weighted sampling, then
+			// we would need to calculate the BRDF every single direction in the
+			// hemisphere. If the direction is the reflected direction, then
+			// the BRDF is 1, otherwise it is 0. But that is wasteful. Instead,
+			// we *only* pick the reflected direction (not the case for glossy or
+			// otherwise un-ideal reflective materials) so the pdf is 1, and the 
+			// BRDF is 1. Because of this, we have an instant solution without
+			// having to sample the hemisphere at all. The throughput term is then
+			// BRDF*(Nx dot wi) = (Nx dot wi) = cosThetaX
+			throughputTerm *= Abs(cosTheta);
+		}		
 	}
 
 	return color;
@@ -72,6 +95,8 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 {
 	Vec3f color = CreateVec3f(0.0f);
 	Vec3f throughputTerm = CreateVec3f(1.0f);
+
+	Material *oldMat = NULL;
 
 	for(int16 bounce = 0; bounce < NUM_BOUNCES; bounce++)
 	{
@@ -86,17 +111,21 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 
 		Vec3f &BRDF = scene.materials[data.materialIndex].color; // convenience
 		Material *mat = &scene.materials[data.materialIndex];
+
+		// (x->y dot Nx)
 		float32 cosTheta = Dot(data.normal, ray.direction);
 		float32 pdfCosineWeightedHemisphere = cosTheta / PI;
 
-		// add light that is emitted from surface (but bounce right afterwards)
-		bool hitLight = false;
+		// add light that is emitted from surface (but stop right afterwards)
 		if(BOUNCE_MIN <= bounce && bounce <= NUM_BOUNCES && mat->Le.x >= 0.5f)
 		{
-			hitLight = true;
-			if(bounce == 0)
-				color = throughputTerm * mat->Le;
-			break;
+			// TODO: only add if the ray was added by a single lonely bounce from
+			// the mirror instead of just the last bounce being the mirror?
+			bool lastBounceWasReflected = (oldMat != NULL && oldMat->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE);
+			if(bounce == 0 || lastBounceWasReflected)
+				color = mat->Le;
+
+			return color;
 		}
 		// If there is at least 1 light source in the scene and the material
 		// of the surface we hit is diffuse, we can use NEE.
@@ -212,18 +241,39 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 			// Because we are calculating for a non-emissive point, we can safely
 			// add the direct illumination to this point.
 			color += throughputTerm * directIllumination;
+
+			// Update the throughput term
+			throughputTerm *= BRDF * cosTheta / pdfCosineWeightedHemisphere;
+			// throughputTerm *= PI * BRDF;
+
+			// Pick a new direction
+			Vec2f randomVec2f = RandomVec2f();
+			Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, data.normal);
+
+			Vec3f point = data.point;
+			ray = {point + EPSILON * data.normal, dir};
+		}
+		else if(mat->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
+		{
+			Vec3f reflectedDir = Reflect(-ray.direction, data.normal);
+
+			// Intersection point and new ray
+			Vec3f point = data.point;
+			ray = {point + EPSILON * data.normal, reflectedDir};
+
+			// If we sample uniformly or with cosine weighted sampling, then
+			// we would need to calculate the BRDF every single direction in the
+			// hemisphere. If the direction is the reflected direction, then
+			// the BRDF is 1, otherwise it is 0. But that is wasteful. Instead,
+			// we *only* pick the reflected direction (not the case for glossy or
+			// otherwise un-ideal reflective materials) so the pdf is 1, and the 
+			// BRDF is 1. Because of this, we have an instant solution without
+			// having to sample the hemisphere at all. The throughput term is then
+			// BRDF*(Nx dot wi) = (Nx dot wi) = cosThetaX
+			throughputTerm *= Abs(cosTheta);
 		}
 
-		// Update the throughput term
-		throughputTerm *= BRDF * cosTheta / pdfCosineWeightedHemisphere;
-		// throughputTerm *= PI * BRDF;
-
-		// Pick a new direction
-		Vec2f randomVec2f = RandomVec2f();
-		Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, data.normal);
-
-		Vec3f point = data.point;
-		ray = {point + EPSILON * data.normal, dir};
+		oldMat = mat;
 	}
 
 	return color;

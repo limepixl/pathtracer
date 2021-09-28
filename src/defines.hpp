@@ -5,7 +5,7 @@
 #define BOUNCE_MIN 0
 #define BOUNCE_COUNT 5
 #define NUM_BOUNCES BOUNCE_MIN + BOUNCE_COUNT
-#define NUM_SAMPLES 100
+#define NUM_SAMPLES 500
 #define NUM_SHADOW_RAYS 1
 
 #define TMIN 0.001f

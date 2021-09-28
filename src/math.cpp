@@ -172,6 +172,11 @@ Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal)
 	return p+normal;
 }
 
+Vec3f Reflect(Vec3f dir, Vec3f normal)
+{
+	return 2.0f * Dot(normal, dir) * normal - dir;
+}
+
 /*
 	Operators that use the utility functions above
 */
