@@ -219,11 +219,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 
 					// We can sample the light from both sides, it doesn't have to
 					// be a one-sided light source.
-				#if TWOSIDED_LIGHT_QUADS
 					float32 cosThetaY = Abs(Dot(shadowData.normal, shadowRayDir));
-				#else
-					float32 cosThetaY = Max(0.0f, Dot(shadowData.normal, -shadowRayDir));
-				#endif
 
 					float32 G = cosThetaX * cosThetaY / squaredDist;
 
@@ -274,6 +270,204 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 		}
 
 		oldMat = mat;
+	}
+
+	return color;
+}
+
+Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
+{
+	Vec3f color = CreateVec3f(0.0f);
+	Vec3f throughputTerm = CreateVec3f(1.0f);
+
+	HitData data = {};
+	bool intersect = Intersect(ray, scene, &data);
+	if(!intersect)
+	{
+		// No intersection with scene, add env map contribution
+		color += throughputTerm * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
+		return color;
+	}
+
+	Vec3f y = ray.origin + ray.direction * data.t + EPSILON * data.normal;
+	Vec3f normalY = data.normal;
+	Material *matY = &scene.materials[data.materialIndex];
+
+	// Add light contribution from first bounce if it hit a light source
+	color += throughputTerm * matY->Le;
+
+	int8 numBounces = NUM_BOUNCES;
+	for(uint8 b = 1; b < numBounces; b++)
+	{
+		Vec3f x = y;
+		Vec3f normalX = normalY;
+		Material *matX = matY;
+
+		// If there is at least 1 light source in the scene, and the material of the
+		// surface is diffuse, we can calculate the direct light contribution (NEE)
+		if(scene.numLightSources > 0 && matX->type == MaterialType::MATERIAL_LAMBERTIAN && matX->Le.x < 0.1f)
+		{
+			// sample light sources for direct illumination
+			for(int8 shadowRayIndex = 0; shadowRayIndex < NUM_SHADOW_RAYS; shadowRayIndex++)
+			{
+				// pick a light source
+				float32 pdfPickLight = 1.0f / scene.numLightSources;
+
+				int32 pickedLightSource = (int32)(rand() % scene.numLightSources);
+				LightSource lightSource = scene.lightSources[pickedLightSource];
+				
+				Material *lightSourceMat = NULL;
+				Vec3f y_nee = CreateVec3f(0.0f);
+				float32 lightArea = 0.0f;
+				if(lightSource.type == LightSourceType::QUAD)
+				{
+					Quad *quadLight = (Quad *)(lightSource.obj);
+					lightSourceMat = &scene.materials[quadLight->materialIndex];
+
+					lightArea = Area(quadLight);
+
+					Vec3f v0 = quadLight->origin;
+					Vec3f v2 = quadLight->end;
+					Vec3f dims = v2 - v0;
+
+					// Pick y on the light
+					Vec2f uv = RandomVec2f();
+					Vec3f pointOnLight = quadLight->origin;
+					if(quadLight->component == 0) // x
+					{
+						pointOnLight.y += uv.x * dims.y;
+						pointOnLight.z += uv.y * dims.z;
+					}
+					else if(quadLight->component == 1) // y
+					{
+						pointOnLight.x += uv.x * dims.x;
+						pointOnLight.z += uv.y * dims.z;
+					}
+					else // z
+					{
+						pointOnLight.x += uv.x * dims.x;
+						pointOnLight.y += uv.y * dims.y;
+					}
+					y_nee = pointOnLight;
+				}
+
+				// Just for clarity
+				Vec3f x_nee = x;
+
+				// Send out a shadow ray in direction x->y
+				Vec3f distVec = y_nee - x_nee;
+				Vec3f shadowRayDir = NormalizeVec3f(distVec);
+				Ray shadowRay = {x_nee, shadowRayDir};
+
+				float32 squaredDist = Dot(distVec, distVec);
+
+				// We want to only add light contribution from lights within 
+				// the hemisphere solid angle above X, and not from lights behind it.
+				float32 cosThetaX = Dot(normalX, shadowRayDir);
+
+				// Check if ray hits anything before hitting the light source
+				HitData shadowData = {};
+				bool hitAnything = Intersect(shadowRay, scene, &shadowData);
+				if(!hitAnything)
+				{
+					// It shouldn't be possible to send a ray towards the light
+					// source and not hit anything in the scene, even the light
+					printf("ERROR: Shadow ray didn't hit anything!\n");
+					break;
+				}
+
+				// Visibility check means we have a clear line of sight!
+				if(y_nee == shadowData.point)
+				{
+					// We can sample the light from both sides, it doesn't have to
+					// be a one-sided light source.
+					float32 cosThetaY = Abs(Dot(shadowData.normal, shadowRayDir));
+
+					float32 G = cosThetaX * cosThetaY / squaredDist;
+
+					float32 pdfPickPointOnLight = 1.0f / lightArea;
+
+					// PDF in terms of area, for picking point on light source k
+					float32 pdfLight_area = pdfPickLight * pdfPickPointOnLight;
+
+					// PDF in terms of solid angle, for picking point on light source k
+					float32 pdfLight_sa = pdfLight_area * squaredDist / cosThetaY;
+
+					// PDF in terms of solid angle, for picking ray from cos. weighted hemisphere
+					float32 pdfBSDFsolidAngle = cosThetaX / PI;
+
+					// weight for NEE 
+					float32 wNEE = BalanceHeuristic(pdfLight_sa, pdfBSDFsolidAngle) / pdfLight_sa;
+					// float32 wNEE = 1.0f / (pdfLight_sa + pdfBSDFsolidAngle);
+
+					color += lightSourceMat->Le * matX->color * cosThetaX * throughputTerm * wNEE;
+				}
+			}
+		}
+
+		// Pick a new direction
+		Vec2f randomVec2f = RandomVec2f();
+		Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, normalX);
+
+		ray = {x + EPSILON * normalX, dir};
+
+		float32 cosThetaX = Dot(normalX, ray.direction);
+
+		intersect = Intersect(ray, scene, &data);
+		if(!intersect)
+		{
+			// No intersection with scene, add env map contribution
+			if(BOUNCE_MIN <= b && b <= BOUNCE_COUNT)
+				color += throughputTerm * PI * matX->color * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
+			break;
+		}
+
+		normalY = data.normal;
+		y = ray.origin + ray.direction * data.t + EPSILON * normalY;
+
+		// PDF for sampling the BRDF through cosine weighted hemisphere sampling
+        float32 cosThetaY = Dot(data.normal, -ray.direction);
+		float32 pdfBSDFsolidAngle = cosThetaY / PI;
+		
+		matY = &scene.materials[data.materialIndex];
+
+		// If we can use NEE on the hit surface
+		if(matX->type == MaterialType::MATERIAL_LAMBERTIAN && matX->Le.x < 0.1f)
+		{
+			float32 wBSDF = 1.0f;
+			float32 pdfNEE_area = 0.0f;
+			float32 pdfNEE_solidAngle = 0.0f;
+
+			// If the hit surface is a light source, we need to calculate
+			// the pdf for NEE
+			if(matY->Le.x >= 0.1f && scene.numLightSources > 0)
+			{
+				switch(data.objectType)
+				{
+				case QUAD:
+					pdfNEE_area = 1.0f / Area(&scene.quads[data.objectIndex]);
+					break;
+				case SPHERE:
+					pdfNEE_area = 1.0f / Area(&scene.spheres[data.objectIndex]);
+					break;
+				default:
+					printf("Light source type unsupported for sampling!\n");
+					break;
+				};
+
+				pdfNEE_area /= (float32)(scene.numLightSources);
+				pdfNEE_solidAngle = pdfNEE_area * data.t * data.t / cosThetaY;
+				wBSDF = BalanceHeuristic(pdfBSDFsolidAngle, pdfNEE_solidAngle);
+			}
+
+			if(BOUNCE_MIN <= b && b <= NUM_BOUNCES)
+				color += throughputTerm * matX->color * matY->Le * PI * wBSDF;
+		}
+
+		throughputTerm *= PI * matX->color;
+
+		if(throughputTerm == CreateVec3f(0.0f))
+			break;
 	}
 
 	return color;

@@ -11,8 +11,8 @@
 
 int main()
 {
-	uint32 width = 1280;
-	uint32 height = 720;
+	uint32 width = 500;
+	uint32 height = 500;
 	float32 aspectRatio = (float32)width / (float32)height;
 	
 	// Memory allocation for bitmap buffer
@@ -76,8 +76,7 @@ int main()
 		CreateQuad(CreateVec3f(-1.0f, -1.0f, -4.0f+cbOffset), 
 				   CreateVec3f(1.0f, 1.0f, -4.0f+cbOffset), 
 				   CreateVec3f(0.0f, 0.0f, 1.0f), 
-				   2, 4),
-		
+				   2, 3),
 		// light
 		CreateQuad(CreateVec3f(-0.5f*lightWidth, 1.0f+lightYOffset, (-3.0f-0.5f*lightWidth)+cbOffset), 
 			       CreateVec3f(0.5f*lightWidth, 1.0f+lightYOffset, (-3.0f+0.5f*lightWidth)+cbOffset), 
@@ -116,7 +115,7 @@ int main()
 
 	Scene cornellBox = ConstructScene(cbSpheres, numSpheres, 
 							    	  cbQuads, cbNumQuads,
-								      triModels, numTriModels,
+								      triModels, 0,
 									  cbLights, cbNumLights,
 								      cbMats, cbNumMats);
 

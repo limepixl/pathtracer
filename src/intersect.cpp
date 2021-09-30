@@ -392,6 +392,9 @@ bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data, floa
 				hitAnyTri = true;
 				resultData = currentData;
 				resultData.materialIndex = triModel.materialIndex;
+
+				resultData.objectIndex = tri;
+				resultData.objectType = ObjectType::TRIANGLE;
 			}
 		}
 
@@ -438,6 +441,9 @@ bool Intersect(Ray ray, Scene scene, HitData *data)
 			// Found closer hit, store it.
 			hitAnything = true;
 			resultData = currentData;
+			
+			resultData.objectIndex = i;
+			resultData.objectType = ObjectType::SPHERE;
 		}
 	}
 
@@ -451,6 +457,9 @@ bool Intersect(Ray ray, Scene scene, HitData *data)
 			// Found closer hit, store it.
 			hitAnything = true;
 			resultData = currentData;
+						
+			resultData.objectIndex = i;
+			resultData.objectType = ObjectType::QUAD;
 		}
 	}
 
@@ -469,4 +478,32 @@ bool Intersect(Ray ray, Scene scene, HitData *data)
 
 	*data = resultData;
 	return hitAnything;
+}
+
+// Area functions
+float32 Area(Quad *quad)
+{
+	Vec3f v0 = quad->origin;
+	Vec3f v2 = quad->end;
+	Vec3f dims = v2 - v0;
+
+	float32 quadArea = 0.0f;
+	if(quad->component == 0) // yz
+		quadArea = dims.y * dims.z;
+	else if(quad->component == 1) // xz
+		quadArea = dims.x * dims.z;
+	else // xy
+		quadArea = dims.x * dims.y;
+
+	return quadArea;
+}
+
+float32 Area(Sphere *sphere)
+{
+	return 4.0f * PI * sphere->radius * sphere->radius;
+};
+
+float32 Area(Triangle *tri)
+{
+	return Dot(tri->edge1, tri->edge1) * Dot(tri->edge2, tri->edge2) / 4.0f;
 }
