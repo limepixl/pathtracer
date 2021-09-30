@@ -50,11 +50,8 @@ DWORD WINAPI render_function(LPVOID param)
 				Vec3f rayDirection = NormalizeVec3f(pointOnGrid - eye);
 
 				Ray ray = {eye, rayDirection};
-			#if NEE_ONLY
+				// color += EstimatorPathTracingMIS(ray, scene);
 				color += EstimatorPathTracingLambertianNEE(ray, scene);
-			#else 
-				color += EstimatorPathTracingLambertian(ray, scene);
-			#endif
 			}
 
 			// Divide by the number of sample rays sent through pixel

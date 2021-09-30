@@ -9,6 +9,13 @@ struct Ray
 
 Vec3f PointAlongRay(Ray r, float32 t);
 
+enum ObjectType
+{
+	SPHERE = 0,
+	QUAD,
+	TRIANGLE
+};
+
 struct HitData
 {
 	float32 t;
@@ -16,6 +23,9 @@ struct HitData
 	Vec3f point;
 
 	int16 materialIndex;
+
+	int32 objectIndex;
+	ObjectType objectType;
 };
 
 struct Sphere
@@ -99,7 +109,7 @@ struct TriangleModel
 TriangleModel CreateTriangleModel(Triangle *tris, int32 numTris, Mat4f modelMatrix, int16 materialIndex);
 bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data, float32 &tmax);
 
-enum LightSourceType
+enum class LightSourceType
 {
 	QUAD
 };
@@ -137,3 +147,8 @@ Scene ConstructScene(Sphere *spheres, int32 numSpheres,
 					 struct Material *materials, int32 numMaterials);
 
 bool Intersect(Ray ray, Scene scene, HitData *data);
+
+// Area functions
+float32 Area(Quad *quad);
+float32 Area(Sphere *sphere);
+float32 Area(Triangle *tri);
