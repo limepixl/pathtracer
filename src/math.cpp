@@ -136,6 +136,8 @@ float32 RandomNumberNormalized()
 
 	float64 result = (float64)(val+1000.0) / ((float64)UINT_MAX + 2000.0);
 	return (float32)result;
+
+	// return (float32)(((float64)rand() + 3.0) / ((float64)RAND_MAX + 2.0));
 }
 
 // TODO: create my own random function
@@ -169,7 +171,7 @@ Vec3f MapToUnitSphere(Vec2f vec2)
 Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal)
 {
     Vec3f p = MapToUnitSphere(uv);
-	return p+normal;
+	return NormalizeVec3f(p+normal);
 }
 
 Vec3f Reflect(Vec3f dir, Vec3f normal)

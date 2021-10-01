@@ -111,7 +111,8 @@ bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data, floa
 
 enum class LightSourceType
 {
-	QUAD
+	QUAD,
+	SPHERE
 };
 
 struct LightSource
