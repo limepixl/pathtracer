@@ -28,7 +28,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 	// float32 theta = acosf(-ray.direction.z);
 	// throughputTerm = throughputTerm * powf(cosf(theta), 3);
 
-	int8 numBounces = (int8)Max(5, NUM_BOUNCES);
+	int8 numBounces = NUM_BOUNCES;
 	for(uint8 b = 0; b < numBounces; b++)
 	{
 		HitData data = {};
@@ -379,28 +379,33 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 				// Visibility check means we have a clear line of sight!
 				if(y_nee == shadowData.point)
 				{
-					// We can sample the light from both sides, it doesn't have to
-					// be a one-sided light source.
-					float32 cosThetaY = Abs(Dot(shadowData.normal, shadowRayDir));
+				#if TWO_SIDED_LIGHT
+					float32 cosThetaY = Dot(shadowData.normal, -shadowRay.direction);
+					Vec3f normalY_nee = shadowData.normal * Sign(cosThetaY);
+					cosThetaY = Abs(cosThetaY);
+				#else
+					float32 cosThetaY = Max(0.0f, Dot(shadowData.normal, -shadowRay.direction));
+					Vec3f normalY_nee = shadowData.normal;
+					if(cosThetaY > 0.0f)
+				#endif
+					{
+						float32 pdfPickPointOnLight = 1.0f / lightArea;
 
-					float32 G = cosThetaX * cosThetaY / squaredDist;
+						// PDF in terms of area, for picking point on light source k
+						float32 pdfLight_area = pdfPickLight * pdfPickPointOnLight;
 
-					float32 pdfPickPointOnLight = 1.0f / lightArea;
+						// PDF in terms of solid angle, for picking point on light source k
+						float32 pdfLight_sa = pdfLight_area * squaredDist / cosThetaY;
 
-					// PDF in terms of area, for picking point on light source k
-					float32 pdfLight_area = pdfPickLight * pdfPickPointOnLight;
+						// PDF in terms of solid angle, for picking ray from cos. weighted hemisphere
+						float32 pdfBSDFsolidAngle = cosThetaX / PI;
 
-					// PDF in terms of solid angle, for picking point on light source k
-					float32 pdfLight_sa = pdfLight_area * squaredDist / cosThetaY;
+						// weight for NEE 
+						// float32 wNEE = BalanceHeuristic(pdfLight_sa, pdfBSDFsolidAngle) / pdfLight_sa;
+						float32 wNEE = 1.0f / (pdfLight_sa + pdfBSDFsolidAngle);
 
-					// PDF in terms of solid angle, for picking ray from cos. weighted hemisphere
-					float32 pdfBSDFsolidAngle = cosThetaX / PI;
-
-					// weight for NEE 
-					float32 wNEE = BalanceHeuristic(pdfLight_sa, pdfBSDFsolidAngle) / pdfLight_sa;
-					// float32 wNEE = 1.0f / (pdfLight_sa + pdfBSDFsolidAngle);
-
-					color += lightSourceMat->Le * matX->color * cosThetaX * throughputTerm * wNEE;
+						color += lightSourceMat->Le * matX->color * cosThetaX * throughputTerm * wNEE;
+					}
 				}
 			}
 		}
@@ -422,12 +427,20 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 			break;
 		}
 
-		normalY = data.normal;
-		y = ray.origin + ray.direction * data.t + EPSILON * normalY;
 
 		// PDF for sampling the BRDF through cosine weighted hemisphere sampling
-        float32 cosThetaY = Dot(data.normal, -ray.direction);
+	#if TWO_SIDED_LIGHT
+		float32 cosThetaY = Dot(data.normal, -ray.direction);
+		normalY = data.normal * Sign(cosThetaY);
+		cosThetaY = Abs(cosThetaY);
+	#else
+        float32 cosThetaY = Max(0.0f, Dot(data.normal, ray.direction));
+		normalY = data.normal;
+	#endif
+
 		float32 pdfBSDFsolidAngle = cosThetaY / PI;
+
+		y = ray.origin + ray.direction * data.t + EPSILON * normalY;
 		
 		matY = &scene.materials[data.materialIndex];
 
@@ -465,9 +478,6 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 		}
 
 		throughputTerm *= PI * matX->color;
-
-		if(throughputTerm == CreateVec3f(0.0f))
-			break;
 	}
 
 	return color;

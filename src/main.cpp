@@ -34,7 +34,7 @@ int main()
 	Material cbMats[]
 	{
 		// light source
-		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.0f), CreateVec3f(20.0f)),
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.0f), CreateVec3f(10.0f)),
 			
 		// walls
 		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.98f, 0.52f, 0.1f), CreateVec3f(0.0f)),
@@ -48,7 +48,7 @@ int main()
 
 	float32 cbOffset = -0.05f;
 	float32 lightWidth = 0.5f;
-	float32 lightYOffset = -0.01f;
+	float32 lightYOffset = -0.1f;
 	float32 lightXOffset = 0.3f;
 	Quad cbQuads[]
 	{
