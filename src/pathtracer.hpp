@@ -84,7 +84,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 			// BRDF is 1. Because of this, we have an instant solution without
 			// having to sample the hemisphere at all. The throughput term is then
 			// BRDF*(Nx dot wi) = (Nx dot wi) = cosThetaX
-			throughputTerm *= Abs(cosTheta);
+			// throughputTerm *= Abs(cosTheta);
 		}		
 	}
 
@@ -219,7 +219,11 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 
 					// We can sample the light from both sides, it doesn't have to
 					// be a one-sided light source.
+				#if TWO_SIDED_LIGHT
 					float32 cosThetaY = Abs(Dot(shadowData.normal, shadowRayDir));
+				#else
+					float32 cosThetaY = Max(0.0f, Dot(shadowData.normal, -shadowRayDir));
+				#endif
 
 					float32 G = cosThetaX * cosThetaY / squaredDist;
 
@@ -266,7 +270,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 			// BRDF is 1. Because of this, we have an instant solution without
 			// having to sample the hemisphere at all. The throughput term is then
 			// BRDF*(Nx dot wi) = (Nx dot wi) = cosThetaX
-			throughputTerm *= Abs(cosTheta);
+			// throughputTerm *= Abs(cosTheta);
 		}
 
 		oldMat = mat;
@@ -305,7 +309,11 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 
 		// If there is at least 1 light source in the scene, and the material of the
 		// surface is diffuse, we can calculate the direct light contribution (NEE)
-		if(scene.numLightSources > 0 && matX->type == MaterialType::MATERIAL_LAMBERTIAN && matX->Le.x < 0.1f)
+		bool canUseNEE = scene.numLightSources > 0 && 
+		                 matX->type == MaterialType::MATERIAL_LAMBERTIAN && 
+						 matX->Le.x < 0.1f;
+		
+		if(canUseNEE)
 		{
 			// sample light sources for direct illumination
 			for(int8 shadowRayIndex = 0; shadowRayIndex < NUM_SHADOW_RAYS; shadowRayIndex++)
@@ -410,11 +418,19 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 			}
 		}
 
-		// Pick a new direction
-		Vec2f randomVec2f = RandomVec2f();
-		Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, normalX);
-
-		ray = {x + EPSILON * normalX, dir};
+		if(matX->type == MaterialType::MATERIAL_LAMBERTIAN)
+		{
+			// Pick a new direction
+			Vec2f randomVec2f = RandomVec2f();
+			Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, normalX);
+			ray = {x + EPSILON * normalX, dir};
+		}
+		else if(matX->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
+		{
+			// Pick the reflected direciton
+			Vec3f reflectedDir = Reflect(-ray.direction, normalX);
+			ray = {x + EPSILON * normalX, reflectedDir};
+		}
 
 		float32 cosThetaX = Dot(normalX, ray.direction);
 
@@ -427,34 +443,43 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 			break;
 		}
 
-
 		// PDF for sampling the BRDF through cosine weighted hemisphere sampling
 	#if TWO_SIDED_LIGHT
 		float32 cosThetaY = Dot(data.normal, -ray.direction);
 		normalY = data.normal * Sign(cosThetaY);
 		cosThetaY = Abs(cosThetaY);
 	#else
-        float32 cosThetaY = Max(0.0f, Dot(data.normal, ray.direction));
+        float32 cosThetaY = Max(0.0f, -Dot(data.normal, ray.direction));
 		normalY = data.normal;
 	#endif
 
-		float32 pdfBSDFsolidAngle = cosThetaY / PI;
+		float32 pdfBSDFsolidAngle = 0.0f;
+		if(matX->type == MaterialType::MATERIAL_LAMBERTIAN)
+		{
+			// Because the new ray direction is sampled using cosine weighted hemisphere
+			// sampling, the pdf is cosTheta / PI
+			pdfBSDFsolidAngle = cosThetaY / PI;
+		}
+		else if(matX->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
+		{
+			// We only sample the single direction, so the pdf is 1 for that
+			// reflected direction
+			pdfBSDFsolidAngle = 1.0f;
+		}
 
 		y = ray.origin + ray.direction * data.t + EPSILON * normalY;
-		
 		matY = &scene.materials[data.materialIndex];
 
-		// If we can use NEE on the hit surface
-		if(matX->type == MaterialType::MATERIAL_LAMBERTIAN && matX->Le.x < 0.1f)
-		{
-			float32 wBSDF = 1.0f;
-			float32 pdfNEE_area = 0.0f;
-			float32 pdfNEE_solidAngle = 0.0f;
+		float32 wBSDF = 1.0f;
 
+		// If we can use NEE on the hit surface
+		if(matX->type == MaterialType::MATERIAL_LAMBERTIAN && matX->Le.x < 0.1f && cosThetaY > 0.0f)
+		{
 			// If the hit surface is a light source, we need to calculate
 			// the pdf for NEE
-			if(matY->Le.x >= 0.1f && scene.numLightSources > 0)
+			if(matY->Le.x > 0.1f && scene.numLightSources > 0)
 			{
+				float32 pdfNEE_area = 0.0f;
 				switch(data.objectType)
 				{
 				case QUAD:
@@ -469,15 +494,18 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 				};
 
 				pdfNEE_area /= (float32)(scene.numLightSources);
-				pdfNEE_solidAngle = pdfNEE_area * data.t * data.t / cosThetaY;
+				float32 pdfNEE_solidAngle = pdfNEE_area * data.t * data.t / cosThetaY;
 				wBSDF = BalanceHeuristic(pdfBSDFsolidAngle, pdfNEE_solidAngle);
 			}
 
 			if(BOUNCE_MIN <= b && b <= NUM_BOUNCES)
 				color += throughputTerm * matX->color * matY->Le * PI * wBSDF;
 		}
+		else if(BOUNCE_MIN <= b && b <= NUM_BOUNCES && cosThetaY > 0.0f)
+			color += throughputTerm * matX->color * matY->Le * cosThetaY * wBSDF / pdfBSDFsolidAngle;
 
-		throughputTerm *= PI * matX->color;
+		if(matX->type == MaterialType::MATERIAL_LAMBERTIAN)
+			throughputTerm *= PI * matX->color;
 	}
 
 	return color;
