@@ -371,7 +371,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 
 				// We want to only add light contribution from lights within 
 				// the hemisphere solid angle above X, and not from lights behind it.
-				float32 cosThetaX = Dot(normalX, shadowRayDir);
+				float32 cosThetaX = Max(0.0f, Dot(normalX, shadowRayDir));
 
 				// Check if ray hits anything before hitting the light source
 				HitData shadowData = {};
