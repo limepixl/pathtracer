@@ -190,7 +190,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 				float32 pdfLight_area = pdfPickLight * pdfPickPointOnLight;
 
 				// Just for clarity
-				Vec3f x = data.point;
+				Vec3f x = data.point + EPSILON * data.normal;
 
 				// Send out a shadow ray in direction x->y
 				Vec3f distVec = y - x;
@@ -300,7 +300,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 	// Add light contribution from first bounce if it hit a light source
 	color += throughputTerm * matY->Le;
 
-	int8 numBounces = NUM_BOUNCES;
+	int8 numBounces = NUM_BOUNCES + 1;
 	for(uint8 b = 1; b < numBounces; b++)
 	{
 		Vec3f x = y;
@@ -439,8 +439,14 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 		{
 			// No intersection with scene, add env map contribution
 			if(BOUNCE_MIN <= b && b <= BOUNCE_COUNT)
-				color += throughputTerm * PI * matX->color * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
-			break;
+			{
+				if(matX->type == MATERIAL_LAMBERTIAN)
+					color += throughputTerm * PI * matX->color * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
+				else if(matX->type == MATERIAL_IDEAL_REFLECTIVE)
+					color += throughputTerm * matX->color * SkyColor(ray.direction) * cosThetaX * ENVIRONMENT_MAP_LE;
+				
+				break;
+			}
 		}
 
 		// PDF for sampling the BRDF through cosine weighted hemisphere sampling
@@ -506,6 +512,8 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 
 		if(matX->type == MaterialType::MATERIAL_LAMBERTIAN)
 			throughputTerm *= PI * matX->color;
+		else if(matX->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
+			throughputTerm *= IDEAL_SPECULAR_TINT;
 	}
 
 	return color;

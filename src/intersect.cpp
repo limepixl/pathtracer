@@ -210,13 +210,11 @@ Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal)
 // Moller–Trumbore ray-triangle intersection algorithm
 bool TriangleIntersect(Ray ray, Triangle *tri, HitData *data, float32 &tmax)
 {
-	const float32 TRI_EPSILON = 0.00001f;
-
 	Vec3f h = Cross(ray.direction, tri->edge2);
 	float32 a = Dot(tri->edge1, h);
 
 	// Ray direction parallel to the triangle plane
-    if(a < TRI_EPSILON)
+    if(a < EPSILON)
         return false;    
 
     float32 f = 1.0f / a;
@@ -236,7 +234,7 @@ bool TriangleIntersect(Ray ray, Triangle *tri, HitData *data, float32 &tmax)
     {
 		tmax = t;
 		data->t = t;
-        data->point = ray.origin + ray.direction * t;
+        data->point = ray.origin + ray.direction * t + EPSILON * tri->normal;
 		data->normal = tri->normal;
         return true;
     }
@@ -284,6 +282,11 @@ void ApplyTranslationToTriangle(Triangle *tri, Vec3f translationVec)
 
 bool AABBIntersect(Ray ray, AABB aabb)
 {
+	// First check if ray origin is within AABB
+	Vec3f &ro = ray.origin;
+	if(ro >= aabb.bmin && ro <= aabb.bmax)
+		return true;
+
 	float32 t0x, t1x, t0y, t1y, t0z, t1z;
 	Vec3f inverseDir = 1.0f / ray.direction;
 	
@@ -335,7 +338,7 @@ bool AABBIntersect(Ray ray, AABB aabb)
 	tmin = Max(tmin, t0z);
 	tmax = Min(tmax, t1z);
 
-	if(tmin <= TMIN || tmax >= TMAX)
+	if(tmin <= TMIN || tmin >= TMAX)
 		return false;
 
 	return true;
@@ -379,14 +382,16 @@ bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data, floa
 	bool intersectsAABB = AABBIntersect(ray, triModel.aabb);
 	if(intersectsAABB)
 	{
+		float32 localtmax = tmax;
+
 		bool hitAnyTri = false;
-		HitData resultData = {tmax};
+		HitData resultData = {localtmax};
 		
 		for(int32 tri = 0; tri < triModel.numTrianges; tri++)
 		{
 			HitData currentData = {};
 			Triangle *current = &triModel.triangles[tri];
-			bool intersectTri = TriangleIntersect(ray, current, &currentData, tmax);
+			bool intersectTri = TriangleIntersect(ray, current, &currentData, localtmax);
 			if(intersectTri)
 			{
 				hitAnyTri = true;
@@ -398,7 +403,12 @@ bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data, floa
 			}
 		}
 
-		*data = resultData;
+		if(hitAnyTri)
+		{
+			*data = resultData;
+			tmax = localtmax;
+		}
+	
 		return hitAnyTri;
 	}
 
