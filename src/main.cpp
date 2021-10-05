@@ -34,7 +34,7 @@ int main()
 	Material cbMats[]
 	{
 		// light source
-		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.0f), CreateVec3f(20.0f)),
+		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.0f), CreateVec3f(2.0f)),
 			
 		// walls
 		CreateMaterial(MATERIAL_LAMBERTIAN, CreateVec3f(0.98f, 0.52f, 0.1f), CreateVec3f(0.0f)),
@@ -56,12 +56,12 @@ int main()
 		CreateQuad(CreateVec3f(-1.0f, -1.0f, -4.0f+cbOffset), 
 				   CreateVec3f(-1.0f, 1.0f, -2.0f+cbOffset), 
 				   CreateVec3f(1.0f, 0.0f, 0.0f), 
-				   0, 1),
+				   0, 2),
 		// right
 		CreateQuad(CreateVec3f(1.0f, -1.0f, -4.0f+cbOffset), 
 				   CreateVec3f(1.0f, 1.0f, -2.0f+cbOffset), 
 				   CreateVec3f(-1.0f, 0.0f, 0.0f), 
-				   0, 2),
+				   0, 1),
 		// bottom
 		CreateQuad(CreateVec3f(-1.0f, -1.0f, -4.0f+cbOffset), 
 				   CreateVec3f(1.0f, -1.0f, -2.0f+cbOffset), 
@@ -76,7 +76,7 @@ int main()
 		CreateQuad(CreateVec3f(-1.0f, -1.0f, -4.0f+cbOffset), 
 				   CreateVec3f(1.0f, 1.0f, -4.0f+cbOffset), 
 				   CreateVec3f(0.0f, 0.0f, 1.0f), 
-				   2, 3),
+				   2, 4),
 		// light
 		CreateQuad(CreateVec3f(-0.5f*lightWidth, 1.0f+lightYOffset, (-3.0f-0.5f*lightWidth)+cbOffset), 
 			       CreateVec3f(0.5f*lightWidth, 1.0f+lightYOffset, (-3.0f+0.5f*lightWidth)+cbOffset), 
@@ -91,31 +91,35 @@ int main()
 	};
 	int32 cbNumLights = (int32)ARRAYCOUNT(cbLights);
 
-	// Load OBJ model
-	Triangle *modelTris;
-	int32 numTris;
-	bool loadedOBJ = LoadModelFromObj("../res/suzanne.obj", &modelTris, &numTris);
+	// Load Suzanne OBJ model
+	Triangle *suzanneTris;
+	int32 numSuzanneTris;
+	bool loadedOBJ = LoadModelFromObj("../res/suzanne.obj", &suzanneTris, &numSuzanneTris);
 
 	// Model transformation matrix
-	Mat4f modelMatrix = CreateIdentityMat4f();
-	modelMatrix = ScaleMat4f(CreateVec3f(0.3f, 0.3f, 0.3f), modelMatrix);
-	modelMatrix = TranslationMat4f(CreateVec3f(-0.3f, -0.6f, -3.0f+cbOffset), modelMatrix);
+	Mat4f suzanneModelMatrix = CreateIdentityMat4f();
+	suzanneModelMatrix = ScaleMat4f(CreateVec3f(0.4f, 0.4f, 0.4f), suzanneModelMatrix);
+	suzanneModelMatrix = TranslationMat4f(CreateVec3f(-0.3f, 0.2f, -3.0f+cbOffset), suzanneModelMatrix);
+
+	// Load sphere obj model
+	Triangle *sphereTris;
+	int32 numSphereTris;
+	bool loadedSphereOBJ = LoadModelFromObj("../res/sphere.obj", &sphereTris, &numSphereTris);
+
+	Mat4f sphereModelMatrix = CreateIdentityMat4f();
+	sphereModelMatrix = ScaleMat4f(CreateVec3f(0.4f, 0.4f, 0.4f), sphereModelMatrix);
+	sphereModelMatrix = TranslationMat4f(CreateVec3f(0.35f, -0.6f, -3.0f+cbOffset), sphereModelMatrix);
 
 	TriangleModel triModels[]
 	{
-		CreateTriangleModel(modelTris, numTris, modelMatrix, 3)
+		CreateTriangleModel(suzanneTris, numSuzanneTris, suzanneModelMatrix, 3),
+		CreateTriangleModel(sphereTris, numSphereTris, sphereModelMatrix, 3)
 	};
 	int32 numTriModels = (int32)ARRAYCOUNT(triModels);
 
-	Sphere cbSpheres[]
-	{
-		CreateSphere(CreateVec3f(0.3f, -0.7f, -3.0f+cbOffset), 0.3f, 4)
-	};
-	int32 numSpheres = (int32)ARRAYCOUNT(cbSpheres);
-
-	Scene cornellBox = ConstructScene(cbSpheres, numSpheres, 
+	Scene cornellBox = ConstructScene(NULL, 0, 
 							    	  cbQuads, cbNumQuads,
-								      triModels, 0,
+								      triModels, numTriModels,
 									  cbLights, cbNumLights,
 								      cbMats, cbNumMats);
 
