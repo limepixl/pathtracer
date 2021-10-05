@@ -46,6 +46,7 @@ int main()
 	};
 	int32 cbNumMats = (int32)ARRAYCOUNT(cbMats);
 
+	/*
 	float32 cbOffset = -0.05f;
 	float32 lightWidth = 0.5f;
 	float32 lightYOffset = -0.01f;
@@ -124,6 +125,24 @@ int main()
 								      cbMats, cbNumMats);
 
 	// END CORNELL BOX
+
+	*/
+
+	Triangle *cbTris = NULL;
+	int32 numCbTris = 0;
+	bool loadedCornellBox = LoadModelFromObj("../res/CornellBox/CornellBox-Empty-White.obj", &cbTris, &numCbTris);
+
+	TriangleModel triModels[]
+	{
+		CreateTriangleModel(cbTris, numCbTris, CreateIdentityMat4f(), 3)
+	};
+	uint32 numTriModels = (uint32)ARRAYCOUNT(triModels);
+
+	Scene cornellBox = ConstructScene(NULL, 0,
+									  NULL, 0,
+									  triModels, numTriModels,
+									  NULL, 0,
+									  cbMats, cbNumMats);
 
 	// Each thread's handle and data to be used by it
 	void *threadHandles[NUM_THREADS];

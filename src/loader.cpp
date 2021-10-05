@@ -120,9 +120,6 @@ bool LoadModelFromObj(const char *path, Triangle **outTris, int32 *numOutTris)
 			Vec3f v1 = CreateVec3f(vertex1[0], vertex1[1], vertex1[2]);
 			Vec3f v2 = CreateVec3f(vertex2[0], vertex2[1], vertex2[2]);
 			Triangle tri = CreateTriangle(v0, v1, v2, normal);
-
-			// ApplyScaleToTriangle(&tri, CreateVec3f(0.3f, 0.3f, 0.3f));
-			// ApplyTranslationToTriangle(&tri, CreateVec3f(0.0f, 0.0f, -3.0f));
 			
 			tris.push_back(tri);
 		}
