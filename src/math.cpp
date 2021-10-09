@@ -1,6 +1,7 @@
 #define _CRT_RAND_S
 #include "math.hpp"
 #include <math.h>
+#include "intersect.hpp"
 
 /*
 	Functions
@@ -174,6 +175,24 @@ Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal)
 {
     Vec3f p = MapToUnitSphere(uv);
 	return NormalizeVec3f(p+normal);
+}
+
+Vec3f MapToTriangle(Vec2f vec2, Triangle tri)
+{
+	float32 u = vec2.x;
+	float32 v = vec2.y;
+	
+	if(u + v > 1.0f)
+	{
+		// The generated point is outside triangle but
+		// within the parallelogram defined by the 2 edges
+		// of the triangle (v1-v0 and v2-v0)
+		u = 1.0f - u;
+		v = 1.0f - v;
+	}
+	
+	Vec3f p = u * tri.edge1 + v * tri.edge2;
+	return p + tri.v0;
 }
 
 Vec3f Reflect(Vec3f dir, Vec3f normal)

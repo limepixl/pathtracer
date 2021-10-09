@@ -31,6 +31,7 @@ int main()
 	gridOrigin.z = -2.0f;
 
 	// CONSTRUCTING CORNELL BOX
+	/*
 	Material cbMats[]
 	{
 		// light source
@@ -45,8 +46,7 @@ int main()
 		CreateMaterial(MATERIAL_IDEAL_REFLECTIVE, CreateVec3f(1.0f), CreateVec3f(0.0f)),
 	};
 	int32 cbNumMats = (int32)ARRAYCOUNT(cbMats);
-
-	/*
+	
 	float32 cbOffset = -0.05f;
 	float32 lightWidth = 0.5f;
 	float32 lightYOffset = -0.01f;
@@ -128,21 +128,34 @@ int main()
 
 	*/
 
+	uint32 *cbEmissiveTris = NULL;
+	uint32 numCbEmissiveTris = 0;
+
 	Triangle *cbTris = NULL;
-	int32 numCbTris = 0;
-	bool loadedCornellBox = LoadModelFromObj("../res/CornellBox/CornellBox-Empty-White.obj", &cbTris, &numCbTris);
+	uint32 numCbTris = 0;
+
+	Material *materials = NULL;
+	uint32 numMaterials = 0;
+
+	bool loadedCornellBox = LoadModelFromObj("../res/CornellBox-Original.obj",
+											 "../res/", 
+											 &cbTris, &numCbTris,
+											 &cbEmissiveTris, &numCbEmissiveTris,
+											 &materials, &numMaterials);
+
+	Mat4f modelMatrix = CreateIdentityMat4f();
+	modelMatrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), modelMatrix);
 
 	TriangleModel triModels[]
 	{
-		CreateTriangleModel(cbTris, numCbTris, CreateIdentityMat4f(), 3)
+		CreateTriangleModel(cbTris, numCbTris, modelMatrix)
 	};
 	uint32 numTriModels = (uint32)ARRAYCOUNT(triModels);
 
 	Scene cornellBox = ConstructScene(NULL, 0,
 									  NULL, 0,
 									  triModels, numTriModels,
-									  NULL, 0,
-									  cbMats, cbNumMats);
+									  cbEmissiveTris, numCbEmissiveTris);
 
 	// Each thread's handle and data to be used by it
 	void *threadHandles[NUM_THREADS];
@@ -300,6 +313,8 @@ int main()
 	printf("Finished rendering to image!\n");
 
 	free(bitmapBuffer);
+	free(cbTris);
+	free(materials);
 
 	return 0;
 }

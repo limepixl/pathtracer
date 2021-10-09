@@ -46,6 +46,7 @@ Vec2f RandomVec2f();
 
 Vec3f MapToUnitSphere(Vec2f vec2);
 Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal);
+Vec3f MapToTriangle(Vec2f vec2, struct Triangle tri);
 
 Vec3f Reflect(Vec3f dir, Vec3f normal);
 

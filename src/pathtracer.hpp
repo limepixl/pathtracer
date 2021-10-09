@@ -40,7 +40,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 			break;
 		}
 
-		Material *mat = &scene.materials[data.materialIndex];
+		Material *mat = data.mat;
 
 		// add the light that the material emits
 		if(BOUNCE_MIN <= b && b <= NUM_BOUNCES)
@@ -109,8 +109,8 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 			break;
 		}
 
-		Vec3f &BRDF = scene.materials[data.materialIndex].color; // convenience
-		Material *mat = &scene.materials[data.materialIndex];
+		Vec3f &BRDF = data.mat->color; // convenience
+		Material *mat = data.mat;
 
 		// (x->y dot Nx)
 		float32 cosTheta = Dot(data.normal, ray.direction);
@@ -129,62 +129,23 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 		}
 		// If there is at least 1 light source in the scene and the material
 		// of the surface we hit is diffuse, we can use NEE.
-		else if(scene.numLightSources > 0 && mat->type == MaterialType::MATERIAL_LAMBERTIAN)
+		else if(scene.numLightTris > 0 && mat->type == MaterialType::MATERIAL_LAMBERTIAN)
 		{
 			// sample light sources for direct illumination
 			Vec3f directIllumination = CreateVec3f(0.0f);
 			for(int8 shadowRayIndex = 0; shadowRayIndex < NUM_SHADOW_RAYS; shadowRayIndex++)
 			{
 				// pick a light source
-				float32 pdfPickLight = 1.0f / scene.numLightSources;
+				float32 pdfPickLight = 1.0f / scene.numLightTris;
 
-				int32 pickedLightSource = (int32)(rand() % scene.numLightSources);
-				LightSource lightSource = scene.lightSources[pickedLightSource];
+				int32 pickedLightSource = (int32)(rand() % scene.numLightTris);
+				// TODO: FIX THIS
+				Triangle lightSource = scene.triModels[0].triangles[scene.lightTris[pickedLightSource]];
 				
-				Material *lightSourceMat = NULL;
-				Vec3f y = CreateVec3f(0.0f);
-				float32 lightArea = 0.0f;
-				if(lightSource.type == LightSourceType::QUAD)
-				{
-					Quad *quadLight = (Quad *)(lightSource.obj);
-					lightSourceMat = &scene.materials[quadLight->materialIndex];
-
-					Vec3f v0 = quadLight->origin;
-					Vec3f v2 = quadLight->end;
-					Vec3f dims = v2 - v0;
-
-					// Get the area of the light source
-					float32 quadArea = 0.0f;
-					if(quadLight->component == 0) // yz
-						quadArea = dims.y * dims.z;
-					else if(quadLight->component == 1) // xz
-						quadArea = dims.x * dims.z;
-					else // xy
-						quadArea = dims.x * dims.y;
-
-					lightArea = quadArea;
-
-					// Pick y on the light
-					Vec2f uv = RandomVec2f();
-					Vec3f pointOnLight = quadLight->origin;
-					if(quadLight->component == 0) // x
-					{
-						pointOnLight.y += uv.x * dims.y;
-						pointOnLight.z += uv.y * dims.z;
-					}
-					else if(quadLight->component == 1) // y
-					{
-						pointOnLight.x += uv.x * dims.x;
-						pointOnLight.z += uv.y * dims.z;
-					}
-					else // z
-					{
-						pointOnLight.x += uv.x * dims.x;
-						pointOnLight.y += uv.y * dims.y;
-					}
-					y = pointOnLight;
-				}
+				Material *lightSourceMat = lightSource.mat;
+				float32 lightArea = Area(&lightSource);
 				float32 pdfPickPointOnLight = 1.0f / lightArea;
+				Vec3f y = MapToTriangle(RandomVec2f(), lightSource);
 
 				// PDF in terms of area, for picking point on light source k
 				float32 pdfLight_area = pdfPickLight * pdfPickPointOnLight;
@@ -295,7 +256,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 
 	Vec3f y = ray.origin + ray.direction * data.t + EPSILON * data.normal;
 	Vec3f normalY = data.normal;
-	Material *matY = &scene.materials[data.materialIndex];
+	Material *matY = data.mat;
 
 	// Add light contribution from first bounce if it hit a light source
 	color += throughputTerm * matY->Le;
@@ -309,7 +270,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 
 		// If there is at least 1 light source in the scene, and the material of the
 		// surface is diffuse, we can calculate the direct light contribution (NEE)
-		bool canUseNEE = scene.numLightSources > 0 && 
+		bool canUseNEE = scene.numLightTris > 0 && 
 		                 matX->type == MaterialType::MATERIAL_LAMBERTIAN && 
 						 matX->Le.x < 0.1f;
 		
@@ -319,45 +280,14 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 			for(int8 shadowRayIndex = 0; shadowRayIndex < NUM_SHADOW_RAYS; shadowRayIndex++)
 			{
 				// pick a light source
-				float32 pdfPickLight = 1.0f / scene.numLightSources;
+				float32 pdfPickLight = 1.0f / scene.numLightTris;
 
-				int32 pickedLightSource = (int32)(rand() % scene.numLightSources);
-				LightSource lightSource = scene.lightSources[pickedLightSource];
+				int32 pickedLightSource = (int32)(rand() % scene.numLightTris);
+				Triangle lightSource = scene.triModels[0].triangles[scene.lightTris[pickedLightSource]];
 				
-				Material *lightSourceMat = NULL;
-				Vec3f y_nee = CreateVec3f(0.0f);
-				float32 lightArea = 0.0f;
-				if(lightSource.type == LightSourceType::QUAD)
-				{
-					Quad *quadLight = (Quad *)(lightSource.obj);
-					lightSourceMat = &scene.materials[quadLight->materialIndex];
-
-					lightArea = Area(quadLight);
-
-					Vec3f v0 = quadLight->origin;
-					Vec3f v2 = quadLight->end;
-					Vec3f dims = v2 - v0;
-
-					// Pick y on the light
-					Vec2f uv = RandomVec2f();
-					Vec3f pointOnLight = quadLight->origin;
-					if(quadLight->component == 0) // x
-					{
-						pointOnLight.y += uv.x * dims.y;
-						pointOnLight.z += uv.y * dims.z;
-					}
-					else if(quadLight->component == 1) // y
-					{
-						pointOnLight.x += uv.x * dims.x;
-						pointOnLight.z += uv.y * dims.z;
-					}
-					else // z
-					{
-						pointOnLight.x += uv.x * dims.x;
-						pointOnLight.y += uv.y * dims.y;
-					}
-					y_nee = pointOnLight;
-				}
+				Material *lightSourceMat = lightSource.mat;
+				Vec3f y_nee = MapToTriangle(RandomVec2f(), lightSource);
+				float32 lightArea = Area(&lightSource);
 
 				// Just for clarity
 				Vec3f x_nee = x;
@@ -381,7 +311,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 					// It shouldn't be possible to send a ray towards the light
 					// source and not hit anything in the scene, even the light
 					printf("ERROR: Shadow ray didn't hit anything!\n");
-					break;
+					continue;
 				}
 
 				// Visibility check means we have a clear line of sight!
@@ -474,7 +404,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 		}
 
 		y = ray.origin + ray.direction * data.t + EPSILON * normalY;
-		matY = &scene.materials[data.materialIndex];
+		matY = data.mat;
 
 		float32 wBSDF = 1.0f;
 
@@ -483,23 +413,26 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 		{
 			// If the hit surface is a light source, we need to calculate
 			// the pdf for NEE
-			if(matY->Le.x > 0.1f && scene.numLightSources > 0)
+			if(matY->Le.x > 0.1f && scene.numLightTris > 0)
 			{
 				float32 pdfNEE_area = 0.0f;
 				switch(data.objectType)
 				{
-				case QUAD:
+				case ObjectType::QUAD:
 					pdfNEE_area = 1.0f / Area(&scene.quads[data.objectIndex]);
 					break;
-				case SPHERE:
+				case ObjectType::SPHERE:
 					pdfNEE_area = 1.0f / Area(&scene.spheres[data.objectIndex]);
+					break;
+				case ObjectType::TRIANGLE:
+					pdfNEE_area = 1.0f / Area(&scene.triModels[0].triangles[data.objectIndex]);
 					break;
 				default:
 					printf("Light source type unsupported for sampling!\n");
 					break;
 				};
 
-				pdfNEE_area /= (float32)(scene.numLightSources);
+				pdfNEE_area /= (float32)(scene.numLightTris);
 				float32 pdfNEE_solidAngle = pdfNEE_area * data.t * data.t / cosThetaY;
 				wBSDF = BalanceHeuristic(pdfBSDFsolidAngle, pdfNEE_solidAngle);
 			}
