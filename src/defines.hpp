@@ -1,18 +1,18 @@
 #pragma once
 
-#define NUM_THREADS 11
+#define NUM_THREADS 1
 
 #define BOUNCE_MIN 0
 #define BOUNCE_COUNT 5
 #define NUM_BOUNCES BOUNCE_MIN + BOUNCE_COUNT
-#define NUM_SAMPLES 32
+#define NUM_SAMPLES 10
 #define NUM_SHADOW_RAYS 1
 
 #define TMIN 0.001f
 #define TMAX 10000.0f
 #define PI 3.14159265f
 #define EPSILON 0.0001f
-#define ENVIRONMENT_MAP_LE 1.0f
+#define ENVIRONMENT_MAP_LE 0.0f
 
 #define TWO_SIDED_LIGHT 0
 

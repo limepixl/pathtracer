@@ -9,9 +9,9 @@ Vec3f PointAlongRay(Ray r, float32 t)
 	return r.origin + r.direction * t;
 }
 
-Sphere CreateSphere(Vec3f origin, float32 radius, int16 materialIndex)
+Sphere CreateSphere(Vec3f origin, float32 radius, Material *mat)
 {
-	Sphere result = {origin, radius, materialIndex};
+	Sphere result = {origin, radius, mat};
 	return result;
 }
 
@@ -34,7 +34,7 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data, float32 &tmax)
 				data->t = t;
 				data->point = ray.origin + ray.direction * t;
 				data->normal = data->point - sphere.origin;
-				data->materialIndex = sphere.materialIndex;
+				data->mat = sphere.mat;
 				return true;
 			}
 		}
@@ -55,7 +55,7 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data, float32 &tmax)
 				data->t = t1;
 				data->point = ray.origin + ray.direction * t1;
 				data->normal = (data->point - sphere.origin) / sphere.radius;
-				data->materialIndex = sphere.materialIndex;
+				data->mat = sphere.mat;
 				return true;
 			}
 			else if(t2 > TMIN && t2 < tmax)
@@ -64,7 +64,7 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data, float32 &tmax)
 				data->t = t2;
 				data->point = ray.origin + ray.direction * t2;
 				data->normal = (data->point - sphere.origin) / sphere.radius;
-				data->materialIndex = sphere.materialIndex;
+				data->mat = sphere.mat;
 				return true;
 			}
 		}
@@ -73,9 +73,9 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data, float32 &tmax)
 	return false;
 }
 
-Quad CreateQuad(Vec3f origin, Vec3f end, Vec3f normal, int8 component, int16 materialIndex)
+Quad CreateQuad(Vec3f origin, Vec3f end, Vec3f normal, int8 component, Material *mat)
 {
-	Quad result = {origin, end, normal, component, materialIndex};
+	Quad result = {origin, end, normal, component, mat};
 	return result;
 }
 
@@ -109,7 +109,7 @@ bool QuadIntersect(Ray ray, Quad quad, HitData *data, float32 &tmax)
 		return false;
 
 	// Within quad!
-	data->materialIndex = quad.materialIndex;
+	data->mat = quad.mat;
 	data->normal = quad.normal;
 	data->point = pointOnPlane;
 	data->t = t;
@@ -117,7 +117,7 @@ bool QuadIntersect(Ray ray, Quad quad, HitData *data, float32 &tmax)
 	return true;
 }
 
-Box CreateBoxFromEndpoints(Vec3f origin, Vec3f end, int16 materialIndex)
+Box CreateBoxFromEndpoints(Vec3f origin, Vec3f end, Material *mat)
 {
 	// Each _min or _max quad has component equal
 	// to its name. Ex.: xmin is a yz quad
@@ -126,46 +126,46 @@ Box CreateBoxFromEndpoints(Vec3f origin, Vec3f end, int16 materialIndex)
 	Vec3f v0 = origin;
 	Vec3f v1 = CreateVec3f(origin.x, end.y, end.z);
 	Vec3f n = CreateVec3f(-1.0f, 0.0f, 0.0f);
-	Quad xmin = CreateQuad(v0, v1, n, 0, materialIndex);
+	Quad xmin = CreateQuad(v0, v1, n, 0, mat);
 
 	// xmax
 	v0.x = end.x;
 	v1.x = end.x;
 	n.x = 1.0f;
-	Quad xmax = CreateQuad(v0, v1, n, 0, materialIndex);
+	Quad xmax = CreateQuad(v0, v1, n, 0, mat);
 
 	// ymin
 	v0 = origin;
 	v1 = CreateVec3f(end.x, origin.y, end.z);
 	n = CreateVec3f(0.0f, -1.0f, 0.0f);
-	Quad ymin = CreateQuad(v0, v1, n, 1, materialIndex);
+	Quad ymin = CreateQuad(v0, v1, n, 1, mat);
 
 	// ymax
 	v0.y = end.y;
 	v1.y = end.y;
 	n.y = 1.0f;
-	Quad ymax = CreateQuad(v0, v1, n, 1, materialIndex);
+	Quad ymax = CreateQuad(v0, v1, n, 1, mat);
 
 	// zmin
 	v0 = origin;
 	v1 = CreateVec3f(end.x, end.y, origin.z);
 	n = CreateVec3f(0.0f, 0.0f, -1.0f);
-	Quad zmin = CreateQuad(v0, v1, n, 2, materialIndex);
+	Quad zmin = CreateQuad(v0, v1, n, 2, mat);
 
 	// zmax
 	v0.z = end.z;
 	v1.z = end.z;
 	n.z = 1.0f;
-	Quad zmax = CreateQuad(v0, v1, n, 2, materialIndex);
+	Quad zmax = CreateQuad(v0, v1, n, 2, mat);
 
 	return { origin, end, xmin, xmax, ymin, ymax, zmin, zmax };
 }
 
 // Just a convenience function
-Box CreateBox(Vec3f origin, Vec3f dimensions, int16 materialIndex)
+Box CreateBox(Vec3f origin, Vec3f dimensions, Material *mat)
 {
 	Vec3f end = origin + dimensions;
-	return CreateBoxFromEndpoints(origin, end, materialIndex);
+	return CreateBoxFromEndpoints(origin, end, mat);
 }
 
 bool BoxIntersect(Ray ray, Box box, HitData *data, float32 &tmax)
@@ -192,54 +192,114 @@ bool BoxIntersect(Ray ray, Box box, HitData *data, float32 &tmax)
 }
 
 // NOTE: expects CCW winding order
-Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2)
+Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Material *mat)
 {
 	Vec3f A = v1 - v0;
 	Vec3f B = v2 - v0;
 	Vec3f normal = NormalizeVec3f(Cross(A, B));
-	return {v0, v1, v2, normal, A, B};
+	return {v0, v1, v2, normal, A, B, mat};
 }
 
-Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal)
+Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal, Material *mat)
 {
 	Vec3f A = v1 - v0;
 	Vec3f B = v2 - v0;
-	return {v0, v1, v2, normal, A, B};
+	return {v0, v1, v2, normal, A, B, mat};
 }
 
 // Moller–Trumbore ray-triangle intersection algorithm
 bool TriangleIntersect(Ray ray, Triangle *tri, HitData *data, float32 &tmax)
 {
-	Vec3f h = Cross(ray.direction, tri->edge2);
-	float32 a = Dot(tri->edge1, h);
+#if 0
+	Vec3f pvec = Cross(ray.direction, tri->edge2);
+	float32 determinant = Dot(tri->edge1, pvec);
 
 	// Ray direction parallel to the triangle plane
-    if(a < EPSILON)
+    if(determinant < EPSILON)
         return false;    
 
-    float32 f = 1.0f / a;
-    Vec3f s = ray.origin - tri->v0;
-    float32 u = f * Dot(s, h);
+    float32 inv_determinant = 1.0f / determinant;
+    Vec3f tvec = ray.origin - tri->v0;
+    float32 u = Dot(tvec, pvec) * inv_determinant;
     if((u < 0.0f) || (u > 1.0f))
         return false;
 
-    Vec3f q = Cross(s, tri->edge1);
-    float32 v = f * Dot(ray.direction, q);
+    Vec3f qvec = Cross(tvec, tri->edge1);
+    float32 v = inv_determinant * Dot(ray.direction, qvec);
     if((v < 0.0f) || (u + v > 1.0f))
         return false;
 
 	// Computing t
-    float32 t = f * Dot(tri->edge2, q);
+    float32 t = inv_determinant * Dot(tri->edge2, qvec);
     if(t > TMIN && t < tmax)
     {
 		tmax = t;
 		data->t = t;
         data->point = ray.origin + ray.direction * t + EPSILON * tri->normal;
 		data->normal = tri->normal;
+		data->mat = tri->mat;
         return true;
     }
     
 	return false;
+#endif
+
+	// compute plane's normal
+    Vec3f v0v1 = tri->v1 - tri->v0; 
+    Vec3f v0v2 = tri->v2 - tri->v0; 
+    // no need to normalize
+    Vec3f N = Cross(v0v1, v0v2); // N 
+    float32 denom = Dot(N, N); 
+ 
+    // Step 1: finding P
+ 
+    // check if ray and plane are parallel ?
+    float32 NdotRayDirection = Dot(N, ray.direction); 
+    if (Abs(NdotRayDirection) < EPSILON) // almost 0 
+        return false; // they are parallel so they don't intersect ! 
+ 
+    // compute d parameter using equation 2
+    float32 d = Dot(N, tri->v0); 
+ 
+    // compute t (equation 3)
+    float32 t = (Dot(N, ray.origin) + d) / NdotRayDirection; 
+    // check if the triangle is in behind the ray
+    if (t < 0) return false; // the triangle is behind 
+ 
+    // compute the intersection point using equation 1
+    Vec3f P = ray.origin + t * ray.direction; 
+ 
+    // Step 2: inside-outside test
+    Vec3f C; // vector perpendicular to triangle's plane 
+ 
+    // edge 0
+    Vec3f edge0 = tri->v1 - tri->v0; 
+    Vec3f vp0 = P - tri->v0; 
+    C = Cross(edge0, vp0); 
+    if (Dot(N, C) < 0) return false; // P is on the right side 
+ 
+    // edge 1
+	float32 u, v;
+    Vec3f edge1 = tri->v2 - tri->v1; 
+    Vec3f vp1 = P - tri->v1; 
+    C = Cross(edge1, vp1); 
+    if ((u = Dot(N, C)) < 0)  return false; // P is on the right side 
+ 
+    // edge 2
+    Vec3f edge2 = tri->v0 - tri->v2; 
+    Vec3f vp2 = P - tri->v2; 
+    C = Cross(edge2, vp2); 
+    if ((v = Dot(N, C)) < 0) return false; // P is on the right side; 
+ 
+    u /= denom; 
+    v /= denom; 
+
+	data->t = t;
+	data->normal = N;
+	data->mat = tri->mat;
+	data->point = ray.origin + ray.direction * t;
+ 
+    return true; // this ray hits the triangle 
 }
 
 // TODO: replace with actual transformation matrices
@@ -344,7 +404,7 @@ bool AABBIntersect(Ray ray, AABB aabb)
 	return true;
 }
 
-TriangleModel CreateTriangleModel(Triangle *tris, int32 numTris, Mat4f modelMatrix, int16 materialIndex)
+TriangleModel CreateTriangleModel(Triangle *tris, int32 numTris, Mat4f modelMatrix)
 {
 	Vec3f maxVec = CreateVec3f(INFINITY);
 	Vec3f minVec = CreateVec3f(-INFINITY);
@@ -372,7 +432,7 @@ TriangleModel CreateTriangleModel(Triangle *tris, int32 numTris, Mat4f modelMatr
 		aabb.bmax = MaxComponentWise(aabb.bmax, v2);
 	}
 
-	return {tris, numTris, aabb, modelMatrix, materialIndex};
+	return {tris, numTris, aabb, modelMatrix};
 }
 
 bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data, float32 &tmax)
@@ -390,13 +450,12 @@ bool TriangleModelIntersect(Ray ray, TriangleModel triModel, HitData *data, floa
 		for(int32 tri = 0; tri < triModel.numTrianges; tri++)
 		{
 			HitData currentData = {};
-			Triangle *current = &triModel.triangles[tri];
+			Triangle *current = &(triModel.triangles[tri]);
 			bool intersectTri = TriangleIntersect(ray, current, &currentData, localtmax);
 			if(intersectTri)
 			{
 				hitAnyTri = true;
 				resultData = currentData;
-				resultData.materialIndex = triModel.materialIndex;
 
 				resultData.objectIndex = tri;
 				resultData.objectType = ObjectType::TRIANGLE;
@@ -423,14 +482,12 @@ LightSource CreateLightSource(void *obj, LightSourceType type)
 Scene ConstructScene(Sphere *spheres, int32 numSpheres, 
 					 Quad *quads, int32 numQuads,
 					 TriangleModel *triModels, int32 numTriModels,
-					 LightSource *lights, int32 numLights,
-					 struct Material *materials, int32 numMaterials)
+					 uint32 *lightTris, int32 numLightTris)
 {
 	return {spheres, numSpheres, 
 			quads, numQuads, 
 			triModels, numTriModels,
-			lights, numLights, 
-			materials, numMaterials};
+			lightTris, numLightTris};
 }
 
 // TODO: clean this up
@@ -515,5 +572,5 @@ float32 Area(Sphere *sphere)
 
 float32 Area(Triangle *tri)
 {
-	return Dot(tri->edge1, tri->edge1) * Dot(tri->edge2, tri->edge2) / 4.0f;
+	return sqrtf(Dot(tri->edge1, tri->edge1) * Dot(tri->edge2, tri->edge2)) / 2.0f;
 }
