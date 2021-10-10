@@ -1,6 +1,6 @@
 #pragma once
 
-#define NUM_THREADS 1
+#define NUM_THREADS 11
 
 #define BOUNCE_MIN 0
 #define BOUNCE_COUNT 5

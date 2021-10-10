@@ -201,7 +201,7 @@ bool LoadModelFromObj(const char *path, const char *mtlPath,
 		(*outTris)[i] = tris[i];
 
 	*numOutEmissiveTris = (uint32)emissiveTris.size();
-	*outEmissiveTris = (uint32 *)malloc(*numOutEmissiveTris * sizeof(Triangle));
+	*outEmissiveTris = (uint32 *)malloc(*numOutEmissiveTris * sizeof(uint32));
 	for(uint32 i = 0; i < *numOutEmissiveTris; i++)
 		(*outEmissiveTris)[i] = emissiveTris[i];
 
