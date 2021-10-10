@@ -165,12 +165,14 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 				{
 					// It shouldn't be possible to send a ray towards the light
 					// source and not hit anything in the scene, even the light
-					printf("ERROR: Shadow ray didn't hit anything!\n");
-					break;
+					// printf("ERROR: Shadow ray didn't hit anything!\n");
+					// break;
+
+					return CreateVec3f(5.0f, 0.0f, 5.0f);
 				}
 
 				// Visibility check means we have a clear line of sight!
-				if(y == shadowData.point)
+				if(hitAnything && y == shadowData.point)
 				{
 					float32 squaredDist = Dot(distVec, distVec);
 
@@ -308,14 +310,11 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 				bool hitAnything = Intersect(shadowRay, scene, &shadowData);
 				if(!hitAnything)
 				{
-					// It shouldn't be possible to send a ray towards the light
-					// source and not hit anything in the scene, even the light
-					printf("ERROR: Shadow ray didn't hit anything!\n");
-					continue;
+					// return CreateVec3f(5.0f, 0.0f, 5.0f);
 				}
 
 				// Visibility check means we have a clear line of sight!
-				if(y_nee == shadowData.point)
+				if(hitAnything && y_nee == shadowData.point)
 				{
 				#if TWO_SIDED_LIGHT
 					float32 cosThetaY = Dot(shadowData.normal, -shadowRay.direction);
