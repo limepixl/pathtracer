@@ -50,7 +50,7 @@ Vec3f MapToTriangle(Vec2f vec2, struct Triangle tri);
 
 Vec3f Reflect(Vec3f dir, Vec3f normal);
 
-float32 BalanceHeuristic(float32 pdf_a, float32 pdf_b, uint32 n_a = 1, uint32 n_b = 1);
+float32 BalanceHeuristic(float32 pdf_a, float32 pdf_b);
 
 /*
 	Operators that use the utility functions above
