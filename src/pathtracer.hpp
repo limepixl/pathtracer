@@ -50,7 +50,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 		
 		if(mat->type == MaterialType::MATERIAL_LAMBERTIAN)
 		{
-			Vec3f BRDF = PI * mat->color;
+			Vec3f BRDF = PI * mat->diffuse;
 
 			// update throughput
 			// The PI is here because we are sampling w.r.t the pdf
@@ -109,7 +109,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 			break;
 		}
 
-		Vec3f &BRDF = data.mat->color; // convenience
+		Vec3f &BRDF = data.mat->diffuse; // convenience
 		Material *mat = data.mat;
 
 		// (x->y dot Nx)
@@ -341,7 +341,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 						// float32 wNEE = BalanceHeuristic(pdfLight_sa, pdfBSDFsolidAngle) / pdfLight_sa;
 						float32 wNEE = 1.0f / (pdfLight_sa + pdfBSDFsolidAngle);
 
-						color += lightSourceMat->Le * matX->color * cosThetaX * throughputTerm * wNEE;
+						color += lightSourceMat->Le * matX->diffuse * cosThetaX * throughputTerm * wNEE;
 					}
 				}
 			}
@@ -370,9 +370,9 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 			if(BOUNCE_MIN <= b && b <= BOUNCE_COUNT)
 			{
 				if(matX->type == MATERIAL_LAMBERTIAN)
-					color += throughputTerm * PI * matX->color * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
+					color += throughputTerm * PI * matX->diffuse * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
 				else if(matX->type == MATERIAL_IDEAL_REFLECTIVE)
-					color += throughputTerm * matX->color * SkyColor(ray.direction) * cosThetaX * ENVIRONMENT_MAP_LE;
+					color += throughputTerm * matX->specular * SkyColor(ray.direction) * cosThetaX * ENVIRONMENT_MAP_LE;
 				
 				break;
 			}
@@ -437,15 +437,15 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 			}
 
 			if(BOUNCE_MIN <= b && b <= NUM_BOUNCES)
-				color += throughputTerm * matX->color * matY->Le * PI * wBSDF;
+				color += throughputTerm * matX->diffuse * matY->Le * PI * wBSDF;
 		}
 		else if(BOUNCE_MIN <= b && b <= NUM_BOUNCES && cosThetaY > 0.0f)
-			color += throughputTerm * matX->color * matY->Le * cosThetaY * wBSDF / pdfBSDFsolidAngle;
+			color += throughputTerm * matX->diffuse * matY->Le * cosThetaY * wBSDF / pdfBSDFsolidAngle;
 
 		if(matX->type == MaterialType::MATERIAL_LAMBERTIAN)
-			throughputTerm *= PI * matX->color;
+			throughputTerm *= PI * matX->diffuse;
 		else if(matX->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
-			throughputTerm *= IDEAL_SPECULAR_TINT;
+			throughputTerm *= matX->specular;
 	}
 
 	return color;

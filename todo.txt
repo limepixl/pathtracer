@@ -1,5 +1,4 @@
 - Progressive rendering of frames so scene is interactable (CPU first before shader)
-- MIS
 - Stratified sampling
 - More BRDFs / BSDFs
 - Russian Roulette
@@ -7,8 +6,3 @@
 - Materials from model data
 - Timing
 - Reduce dependency on CRT
-
-NOTE: The below tests ran with 12 threads.
-Naive threading 512spp 1920x1080: 42min
-Row threading 512spp 1920x1080: 29min
-64x64 chunk threading 512spp 1920x1080: 28.5min

@@ -200,7 +200,7 @@ Vec3f Reflect(Vec3f dir, Vec3f normal)
 	return 2.0f * Dot(normal, dir) * normal - dir;
 }
 
-float32 BalanceHeuristic(float32 pdf_a, float32 pdf_b, uint32 n_a, uint32 n_b)
+float32 BalanceHeuristic(float32 pdf_a, float32 pdf_b)
 {
 	return pdf_a / (pdf_a + pdf_b);
 }

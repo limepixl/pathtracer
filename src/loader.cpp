@@ -159,21 +159,34 @@ bool LoadModelFromObj(const char *path, const char *mtlPath,
 
 			if(unique)
 			{
-				// Lambertian or Blinn-Phong shading intended
-				
+				Vec3f ambient = CreateVec3f(mat.ambient[0], mat.ambient[1], mat.ambient[2]);
+				Vec3f diffuse = CreateVec3f(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]);
+				Vec3f specular = CreateVec3f(mat.specular[0], mat.specular[1], mat.specular[2]);
+				Vec3f emission = CreateVec3f(mat.emission[0], mat.emission[1], mat.emission[2]);
+
+				// Purely diffuse (Lambertian) material
+				if(mat.illum == 1 || (mat.illum == 2 && specular == CreateVec3f(0.0f)))
 				{
-					// TODO: actually support Blinn-Phong!
-
-					Vec3f ambient = CreateVec3f(mat.ambient[0], mat.ambient[1], mat.ambient[2]);
-					Vec3f diffuse = CreateVec3f(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]);
-					Vec3f specular = CreateVec3f(mat.specular[0], mat.specular[1], mat.specular[2]);
-					Vec3f emission = CreateVec3f(mat.emission[0], mat.emission[1], mat.emission[2]);
-
 					Material *tmp_mat = (Material *)malloc(sizeof(Material));
 					*tmp_mat = CreateMaterial(MaterialType::MATERIAL_LAMBERTIAN,
 											diffuse,
+											specular,
 											emission,
 											mat.name.c_str());
+
+					outMaterials[numLoadedMaterials++] = tmp_mat;
+					triangle_mat = tmp_mat;
+				}
+
+				// Reflection
+				else if(mat.illum == 5)
+				{
+					Material *tmp_mat = (Material *)malloc(sizeof(Material));
+					*tmp_mat = CreateMaterial(MaterialType::MATERIAL_IDEAL_REFLECTIVE,
+											  diffuse,
+											  specular,
+											  emission,
+											  mat.name.c_str());
 
 					outMaterials[numLoadedMaterials++] = tmp_mat;
 					triangle_mat = tmp_mat;
