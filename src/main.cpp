@@ -137,8 +137,8 @@ int main()
 	Material *materials = NULL;
 	uint32 numMaterials = 0;
 
-	bool loadedCornellBox = LoadModelFromObj("../res/CornellBox/CornellBox-Mirror.obj",
-											 "../res/CornellBox", 
+	bool loadedCornellBox = LoadModelFromObj("../res/CornellBox-Suzanne.obj",
+											 "../res", 
 											 &cbTris, &numCbTris,
 											 &cbEmissiveTris, &numCbEmissiveTris,
 											 &materials, &numMaterials);
