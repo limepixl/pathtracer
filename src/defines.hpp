@@ -12,7 +12,7 @@
 #define TMAX 10000.0f
 #define PI 3.14159265f
 #define EPSILON 0.0001f
-#define ENVIRONMENT_MAP_LE 0.0f
+#define ENVIRONMENT_MAP_LE 1.0f
 
 #define TWO_SIDED_LIGHT 0
 
