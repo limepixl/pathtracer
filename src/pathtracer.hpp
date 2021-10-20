@@ -46,8 +46,6 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 		if(BOUNCE_MIN <= b && b <= NUM_BOUNCES)
 			color += throughputTerm * mat->Le;
 
-		float32 cosTheta = Dot(ray.direction, data.normal);
-		
 		if(mat->type == MaterialType::MATERIAL_LAMBERTIAN)
 		{
 			Vec3f BRDF = PI * mat->diffuse;
@@ -84,8 +82,56 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 			// BRDF is 1. Because of this, we have an instant solution without
 			// having to sample the hemisphere at all. The throughput term is then
 			// BRDF*(Nx dot wi) = (Nx dot wi) = cosThetaX
-			// throughputTerm *= Abs(cosTheta);
-		}		
+			throughputTerm *= mat->specular;
+		}
+		else if(mat->type == MaterialType::MATERIAL_PHONG)
+		{
+			// TODO
+			// TODO
+			// TODO
+			// BROKEN
+
+			
+			float32 u = RandomNumberNormalized();
+			Vec3f uvec = CreateVec3f(u);
+			if(uvec <= mat->diffuse * PI)
+			{
+				throughputTerm *= PI * mat->diffuse;
+
+				// pdf(psi) = cos(theta) / PI
+				Vec2f randomVec2f = RandomVec2f();
+				Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, data.normal);
+
+				ray = {data.point + EPSILON * data.normal, dir};
+			}
+			else if(uvec <= mat->diffuse * PI + mat->specular)
+			{
+				Vec3f Nx = data.normal;
+				Vec3f x = data.point + EPSILON * data.normal;
+
+				Vec3f reflectedDir = NormalizeVec3f(Reflect(-ray.direction, Nx));
+				float32 theta_reflected = acosf(reflectedDir.y);
+				float32 phi_reflected = atanf(reflectedDir.z / reflectedDir.x);
+				if(reflectedDir.x < 0.0f)
+					phi_reflected += PI;
+
+				float32 inv = 1.0f / (mat->n_spec+1.0f);
+
+				Vec2f randomVec2f = RandomVec2f();
+				float32 alpha = acosf(powf(randomVec2f.x, inv));
+				float32 theta = alpha + theta_reflected;
+
+				float32 phi = 2.0f * PI * randomVec2f.y + phi_reflected;
+
+				Vec3f dir = {sinf(theta) * cosf(phi), cosf(theta), sinf(theta) * sinf(phi)};
+				dir = NormalizeVec3f(dir);
+				ray = {x, dir};
+
+				float32 cosThetaX = Max(0.0f, Dot(dir, Nx));
+				float32 pdf = ((mat->n_spec + 1.0f) / (2.0f * PI)) * powf(cosf(alpha), mat->n_spec);
+				throughputTerm *= mat->specular * cosThetaX * powf(cosf(alpha), mat->n_spec) * ((mat->n_spec + 2.0f) / (2.0f * PI)) / pdf;
+			}
+		}
 	}
 
 	return color;
@@ -168,7 +214,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 					// printf("ERROR: Shadow ray didn't hit anything!\n");
 					// break;
 
-					return CreateVec3f(5.0f, 0.0f, 5.0f);
+					// return CreateVec3f(5.0f, 0.0f, 5.0f);
 				}
 
 				// Visibility check means we have a clear line of sight!

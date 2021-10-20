@@ -67,6 +67,11 @@ int32 Max(int32 a, int32 b)
 	return a > b ? a : b;
 }
 
+int16 Max(int16 a, int16 b)
+{
+	return a > b ? a : b;
+}
+
 uint32 Max(uint32 a, uint32 b)
 {
 	return a > b ? a : b;
