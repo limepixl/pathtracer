@@ -21,6 +21,7 @@ Vec3f Cross(Vec3f a, Vec3f b);
 
 float32 Max(float32 a, float32 b);
 int32 Max(int32 a, int32 b);
+int16 Max(int16 a, int16 b);
 uint32 Max(uint32 a, uint32 b);
 
 Vec3f MaxComponentWise(Vec3f a, Vec3f b);

@@ -4,7 +4,9 @@
 enum MaterialType
 {
 	MATERIAL_LAMBERTIAN = 0,
-	MATERIAL_IDEAL_REFLECTIVE = 1,
+	MATERIAL_IDEAL_REFLECTIVE,
+	MATERIAL_BLINN_PHONG,
+	MATERIAL_PHONG
 };
 
 struct Material
@@ -12,10 +14,11 @@ struct Material
 	MaterialType type;
 	Vec3f diffuse;
 	Vec3f specular;
+	float32 n_spec;
 	Vec3f Le; // emmision of light
 
 	// Optional
 	char name[32];
 };
 
-Material CreateMaterial(MaterialType type, Vec3f diffuse, Vec3f specular, Vec3f Le, const char *name = "");
+Material CreateMaterial(MaterialType type, Vec3f diffuse, Vec3f specular, float32 n_spec = 0.0f, Vec3f Le = CreateVec3f(0.0f), const char *name = "");
