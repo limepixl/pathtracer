@@ -179,6 +179,21 @@ bool LoadModelFromObj(const char *path, const char *mtlPath,
 					triangle_mat = tmp_mat;
 				}
 
+				// Blinn-Phong BRDF with Lambertian diffuse
+				else if(mat.illum == 2)
+				{
+					Material *tmp_mat = (Material *)malloc(sizeof(Material));
+					*tmp_mat = CreateMaterial(MaterialType::MATERIAL_PHONG,
+											  diffuse,
+											  specular,
+											  mat.shininess,
+											  emission,
+											  mat.name.c_str());
+
+					outMaterials[numLoadedMaterials++] = tmp_mat;
+					triangle_mat = tmp_mat;
+				}	
+
 				// Reflection
 				// TODO: fix hack
 				else if(mat.illum == 5 || (mat.illum == 2 && specular == CreateVec3f(1.0f)))
@@ -194,21 +209,6 @@ bool LoadModelFromObj(const char *path, const char *mtlPath,
 					outMaterials[numLoadedMaterials++] = tmp_mat;
 					triangle_mat = tmp_mat;
 				}
-
-				// Blinn-Phong BRDF with Lambertian diffuse
-				else if(mat.illum == 2)
-				{
-					Material *tmp_mat = (Material *)malloc(sizeof(Material));
-					*tmp_mat = CreateMaterial(MaterialType::MATERIAL_PHONG,
-											  diffuse,
-											  specular,
-											  mat.shininess,
-											  emission,
-											  mat.name.c_str());
-
-					outMaterials[numLoadedMaterials++] = tmp_mat;
-					triangle_mat = tmp_mat;
-				}				
 			}
 
 			// Create triangle

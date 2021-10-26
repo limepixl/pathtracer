@@ -210,6 +210,25 @@ float32 BalanceHeuristic(float32 pdf_a, float32 pdf_b)
 	return pdf_a / (pdf_a + pdf_b);
 }
 
+// https://jcgt.org/published/0006/01/01/
+void OrthonormalBasis(Vec3f &n, Vec3f &t, Vec3f &bt)
+{
+	float32 sign = copysignf(1.0f, n.z);
+	float32 a = -1.0f / (sign + n.z);
+	float32 b = n.x * n.y * a;
+
+	t = CreateVec3f(1.0f + sign * n.x * n.x * a, sign * b, -sign * n.x);
+	bt = CreateVec3f(b, sign + n.y * n.y * a, -n.y);
+}
+
+Mat3f ConstructTNB(Vec3f &n)
+{
+	Vec3f t = {}, bt = {};
+	OrthonormalBasis(n, t, bt);
+	Mat3f res = CreateMat3f(t, n, bt);
+	return TransposeMat3f(res);
+}
+
 /*
 	Operators that use the utility functions above
 */
