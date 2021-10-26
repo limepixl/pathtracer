@@ -86,12 +86,6 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 		}
 		else if(mat->type == MaterialType::MATERIAL_PHONG)
 		{
-			// TODO
-			// TODO
-			// TODO
-			// BROKEN
-
-			
 			float32 u = RandomNumberNormalized();
 			Vec3f uvec = CreateVec3f(u);
 			if(uvec <= mat->diffuse * PI)
@@ -110,26 +104,29 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 				Vec3f x = data.point + EPSILON * data.normal;
 
 				Vec3f reflectedDir = NormalizeVec3f(Reflect(-ray.direction, Nx));
-				float32 theta_reflected = acosf(reflectedDir.y);
-				float32 phi_reflected = atanf(reflectedDir.z / reflectedDir.x);
-				if(reflectedDir.x < 0.0f)
-					phi_reflected += PI;
+				Mat3f tnb = ConstructTNB(reflectedDir);
 
 				float32 inv = 1.0f / (mat->n_spec+1.0f);
 
 				Vec2f randomVec2f = RandomVec2f();
-				float32 alpha = acosf(powf(randomVec2f.x, inv));
-				float32 theta = alpha + theta_reflected;
 
-				float32 phi = 2.0f * PI * randomVec2f.y + phi_reflected;
+				float32 cosAlpha = powf(randomVec2f.x, inv);
+				float32 sinAlpha = sqrtf(1.0f - cosAlpha * cosAlpha);
+				float32 phi = 2.0f * PI * randomVec2f.y;
 
-				Vec3f dir = {sinf(theta) * cosf(phi), cosf(theta), sinf(theta) * sinf(phi)};
-				dir = NormalizeVec3f(dir);
+				Vec3f dir = {sinAlpha * cosf(phi), cosAlpha, sinAlpha * sinf(phi)};
+
+				dir = tnb * dir;
 				ray = {x, dir};
 
 				float32 cosThetaX = Max(0.0f, Dot(dir, Nx));
-				float32 pdf = ((mat->n_spec + 1.0f) / (2.0f * PI)) * powf(cosf(alpha), mat->n_spec);
-				throughputTerm *= mat->specular * cosThetaX * powf(cosf(alpha), mat->n_spec) * ((mat->n_spec + 2.0f) / (2.0f * PI)) / pdf;
+
+				float32 pdfTheta = ((mat->n_spec + 1.0f) / (2.0f * PI)) * powf(cosAlpha, mat->n_spec);
+				float32 thetaTerm = powf(cosAlpha, mat->n_spec) * ((mat->n_spec + 2.0f) / (2.0f * PI)) / pdfTheta;
+				
+				ASSERT(pdfTheta != 0.0f);
+
+				throughputTerm *= mat->specular * cosThetaX * thetaTerm;
 			}
 		}
 	}

@@ -75,7 +75,7 @@ newmtl tallBox
    Kd 0.01 0.01 0.01
    Ks 0.950 0.95 0.95
    Ns 1000
-   illum 5
+   illum 2
 
 newmtl light
   Ns 10.0000

@@ -1,6 +1,7 @@
 #pragma once
 #include "defines.hpp"
 #include "mat4.hpp"
+#include "mat3.hpp"
 #include <cstdlib>
 
 /*
@@ -52,6 +53,9 @@ Vec3f MapToTriangle(Vec2f vec2, struct Triangle tri);
 Vec3f Reflect(Vec3f dir, Vec3f normal);
 
 float32 BalanceHeuristic(float32 pdf_a, float32 pdf_b);
+
+void OrthonormalBasis(Vec3f &n, Vec3f &t, Vec3f &bt);
+Mat3f ConstructTNB(Vec3f &n);
 
 /*
 	Operators that use the utility functions above
