@@ -86,6 +86,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 		}
 		else if(mat->type == MaterialType::MATERIAL_PHONG)
 		{
+			// TODO: fix the diffuse part
 			float32 u = RandomNumberNormalized();
 			Vec3f uvec = CreateVec3f(u);
 			if(uvec <= mat->diffuse * PI)
@@ -172,7 +173,8 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 		}
 		// If there is at least 1 light source in the scene and the material
 		// of the surface we hit is diffuse, we can use NEE.
-		else if(scene.numLightTris > 0 && mat->type == MaterialType::MATERIAL_LAMBERTIAN)
+		else if(scene.numLightTris > 0 && 
+			(mat->type == MaterialType::MATERIAL_LAMBERTIAN || (mat->type == MaterialType::MATERIAL_PHONG && mat->specular == CreateVec3f(0.0f))))
 		{
 			// sample light sources for direct illumination
 			Vec3f directIllumination = CreateVec3f(0.0f);
@@ -278,6 +280,35 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 			// BRDF*(Nx dot wi) = (Nx dot wi) = cosThetaX
 			// throughputTerm *= Abs(cosTheta);
 		}
+		else if(mat->type == MaterialType::MATERIAL_PHONG)
+		{
+			// TODO: support the diffuse part
+
+			Vec3f Nx = data.normal;
+			Vec3f x = data.point + EPSILON * data.normal;
+
+			Vec3f reflectedDir = NormalizeVec3f(Reflect(-ray.direction, Nx));
+			Mat3f tnb = ConstructTNB(reflectedDir);
+
+			float32 inv = 1.0f / (mat->n_spec+1.0f);
+
+			Vec2f randomVec2f = RandomVec2f();
+
+			float32 cosAlpha = powf(randomVec2f.x, inv);
+			float32 sinAlpha = sqrtf(1.0f - cosAlpha * cosAlpha);
+			float32 phi = 2.0f * PI * randomVec2f.y;
+
+			Vec3f dir = {sinAlpha * cosf(phi), cosAlpha, sinAlpha * sinf(phi)};
+
+			dir = tnb * dir;
+			ray = {x, dir};
+
+			float32 cosThetaX = Max(0.0f, Dot(dir, Nx));
+
+			float32 pdfTheta = ((mat->n_spec + 1.0f) / (2.0f * PI)) * powf(cosAlpha, mat->n_spec);
+			float32 thetaTerm = powf(cosAlpha, mat->n_spec) * ((mat->n_spec + 2.0f) / (2.0f * PI)) / pdfTheta;
+			throughputTerm *= mat->specular * cosThetaX * thetaTerm;
+		}
 
 		oldMat = mat;
 	}
@@ -316,7 +347,8 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 		// If there is at least 1 light source in the scene, and the material of the
 		// surface is diffuse, we can calculate the direct light contribution (NEE)
 		bool canUseNEE = scene.numLightTris > 0 && 
-		                 matX->type == MaterialType::MATERIAL_LAMBERTIAN && 
+		                 (matX->type == MaterialType::MATERIAL_LAMBERTIAN || 
+						  matX->type == MaterialType::MATERIAL_PHONG && matX->specular == CreateVec3f(0.0f)) && 
 						 matX->Le.x < 0.1f;
 		
 		if(canUseNEE)
@@ -403,8 +435,25 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 			Vec3f reflectedDir = Reflect(-ray.direction, normalX);
 			ray = {x + EPSILON * normalX, reflectedDir};
 		}
+		else if(matX->type == MaterialType::MATERIAL_PHONG)
+		{
+			// Pick direction in the cosine lobe around reflected dir
+			Vec3f reflectedDir = Reflect(-ray.direction, normalX);
+			Mat3f tnb = ConstructTNB(reflectedDir);
 
-		float32 cosThetaX = Dot(normalX, ray.direction);
+			float32 inv = 1.0f / (matX->n_spec+1.0f);
+
+			Vec2f randomVec2f = RandomVec2f();
+			float32 cosAlpha = powf(randomVec2f.x, inv);
+			float32 sinAlpha = sqrtf(1.0f - cosAlpha * cosAlpha);
+			float32 phi = 2.0f * PI * randomVec2f.y;
+
+			Vec3f dir = {sinAlpha * cosf(phi), cosAlpha, sinAlpha * sinf(phi)};
+			dir = tnb * dir;
+			ray = {x, dir};
+		}
+
+		float32 cosThetaX = Max(0.0f, Dot(normalX, ray.direction));
 
 		intersect = Intersect(ray, scene, &data);
 		if(!intersect)
@@ -416,12 +465,16 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 					color += throughputTerm * PI * matX->diffuse * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
 				else if(matX->type == MATERIAL_IDEAL_REFLECTIVE)
 					color += throughputTerm * matX->specular * SkyColor(ray.direction) * cosThetaX * ENVIRONMENT_MAP_LE;
+				else if(matX->type == MATERIAL_PHONG)
+				{
+					float32 thetaTerm = 1.0f + 1.0f / (matX->n_spec + 1.0f);
+					color += throughputTerm * matX->specular * SkyColor(ray.direction) * cosThetaX * thetaTerm * ENVIRONMENT_MAP_LE;
+				}
 				
 				break;
 			}
 		}
 
-		// PDF for sampling the BRDF through cosine weighted hemisphere sampling
 	#if TWO_SIDED_LIGHT
 		float32 cosThetaY = Dot(data.normal, -ray.direction);
 		normalY = data.normal * Sign(cosThetaY);
@@ -442,6 +495,13 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 		{
 			// We only sample the single direction, so the pdf is 1 for that
 			// reflected direction
+			pdfBSDFsolidAngle = 1.0f;
+		}
+		else if(matX->type == MaterialType::MATERIAL_PHONG)
+		{
+			// NOTE: it's this value because I assume the terms present in the pdf
+			// cancel out with the terms present in the specular term of the BRDF
+			// because I importance sample the specular term 
 			pdfBSDFsolidAngle = 1.0f;
 		}
 
@@ -489,6 +549,11 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 			throughputTerm *= PI * matX->diffuse;
 		else if(matX->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
 			throughputTerm *= matX->specular;
+		else if(matX->type == MaterialType::MATERIAL_PHONG)
+		{
+			float32 thetaTerm = 1.0f + 1.0f / (matX->n_spec + 1.0f);
+			throughputTerm *= matX->specular * cosThetaX * thetaTerm;
+		}
 	}
 
 	return color;
