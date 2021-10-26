@@ -1,8 +1,9 @@
-- Progressive rendering of frames so scene is interactable (CPU first before shader)
-- Stratified sampling
+- BVH
 - More BRDFs / BSDFs
 - Russian Roulette
-- BVH
+- Try out fastmath to see if it gives a good performance improvement
+- Stratified sampling
 - Materials from model data
 - Timing
 - Reduce dependency on CRT
+- Progressive rendering of frames so scene is interactable (CPU first before shader)

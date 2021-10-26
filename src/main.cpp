@@ -11,8 +11,8 @@
 
 int main()
 {
-	uint32 width = 500;
-	uint32 height = 500;
+	uint32 width = 1920;
+	uint32 height = 1080;
 	float32 aspectRatio = (float32)width / (float32)height;
 	
 	// Memory allocation for bitmap buffer
@@ -39,8 +39,8 @@ int main()
 	Material *materials = NULL;
 	uint32 numMaterials = 0;
 
-	bool loadedCornellBox = LoadModelFromObj("../res/CornellBox/CornellBox-Mirror.obj",
-											 "../res/CornellBox", 
+	bool loadedCornellBox = LoadModelFromObj("../res/CornellBox-Suzanne.obj",
+											 "../res/", 
 											 &cbTris, &numCbTris,
 											 &cbEmissiveTris, &numCbEmissiveTris,
 											 &materials, &numMaterials);
