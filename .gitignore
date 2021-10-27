@@ -3,3 +3,4 @@
 *.exe
 .vs
 build
+.vscode/c_cpp_properties.json
