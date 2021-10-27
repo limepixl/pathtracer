@@ -28,14 +28,14 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 	// float32 theta = acosf(-ray.direction.z);
 	// throughputTerm = throughputTerm * powf(cosf(theta), 3);
 
-	int8 numBounces = NUM_BOUNCES;
+	int8 numBounces = BOUNCE_COUNT;
 	for(uint8 b = 0; b < numBounces; b++)
 	{
 		HitData data = {};
 		bool intersect = Intersect(ray, scene, &data);
 		if(!intersect) // ray goes off into infinity
 		{
-			if(BOUNCE_MIN <= b && b <= NUM_BOUNCES)
+			if(b <= BOUNCE_COUNT)
 				color += throughputTerm * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
 			break;
 		}
@@ -43,7 +43,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 		Material *mat = data.mat;
 
 		// add the light that the material emits
-		if(BOUNCE_MIN <= b && b <= NUM_BOUNCES)
+		if(b <= BOUNCE_COUNT)
 			color += throughputTerm * mat->Le;
 
 		if(mat->type == MaterialType::MATERIAL_LAMBERTIAN)
@@ -142,7 +142,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 
 	Material *oldMat = NULL;
 
-	for(int16 bounce = 0; bounce < NUM_BOUNCES; bounce++)
+	for(int16 bounce = 0; bounce < BOUNCE_COUNT; bounce++)
 	{
 		HitData data = {};
 		bool intersect = Intersect(ray, scene, &data);
@@ -161,7 +161,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 		float32 pdfCosineWeightedHemisphere = cosTheta / PI;
 
 		// add light that is emitted from surface (but stop right afterwards)
-		if(BOUNCE_MIN <= bounce && bounce <= NUM_BOUNCES && mat->Le.x >= 0.5f)
+		if(bounce <= BOUNCE_COUNT && mat->Le.x >= 0.5f)
 		{
 			// TODO: only add if the ray was added by a single lonely bounce from
 			// the mirror instead of just the last bounce being the mirror?
@@ -337,7 +337,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 	// Add light contribution from first bounce if it hit a light source
 	color += throughputTerm * matY->Le;
 
-	int8 numBounces = NUM_BOUNCES + 1;
+	int8 numBounces = BOUNCE_COUNT + 1;
 	for(uint8 b = 1; b < numBounces; b++)
 	{
 		Vec3f x = y;
@@ -459,7 +459,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 		if(!intersect)
 		{
 			// No intersection with scene, add env map contribution
-			if(BOUNCE_MIN <= b && b <= BOUNCE_COUNT)
+			if(b <= BOUNCE_COUNT)
 			{
 				if(matX->type == MATERIAL_LAMBERTIAN)
 					color += throughputTerm * PI * matX->diffuse * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
@@ -539,11 +539,23 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 				wBSDF = BalanceHeuristic(pdfBSDFsolidAngle, pdfNEE_solidAngle);
 			}
 
-			if(BOUNCE_MIN <= b && b <= NUM_BOUNCES)
+			if(b <= BOUNCE_COUNT)
 				color += throughputTerm * matX->diffuse * matY->Le * PI * wBSDF;
 		}
-		else if(BOUNCE_MIN <= b && b <= NUM_BOUNCES && cosThetaY > 0.0f)
-			color += throughputTerm * matX->diffuse * matY->Le * cosThetaY * wBSDF / pdfBSDFsolidAngle;
+		else if(b <= BOUNCE_COUNT && cosThetaY > 0.0f)
+		{
+			if(matX->type == MATERIAL_PHONG)
+			{
+				// Sampled w.r.t the cosine term 
+				Vec3f diffusePart = PI * matX->diffuse;
+
+				// Sampled w.r.t the BRDF
+				float32 thetaTerm = 1.0f + 1.0f / (matX->n_spec + 1.0f);
+				Vec3f specularPart = matX->specular * thetaTerm * cosThetaX;
+
+				color += throughputTerm * (diffusePart + specularPart) * matY->Le * cosThetaY;
+			}
+		}
 
 		if(matX->type == MaterialType::MATERIAL_LAMBERTIAN)
 			throughputTerm *= PI * matX->diffuse;
