@@ -1,5 +1,7 @@
 - BVH
 - More BRDFs / BSDFs
+- Replace tinyobjloader with tinyobjloader-c or another C model loading lib
+--- Long compile times
 - Russian Roulette
 - Try out fastmath to see if it gives a good performance improvement
 - Stratified sampling

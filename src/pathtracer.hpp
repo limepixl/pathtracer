@@ -125,8 +125,6 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 				float32 pdfTheta = ((mat->n_spec + 1.0f) / (2.0f * PI)) * powf(cosAlpha, mat->n_spec);
 				float32 thetaTerm = powf(cosAlpha, mat->n_spec) * ((mat->n_spec + 2.0f) / (2.0f * PI)) / pdfTheta;
 				
-				ASSERT(pdfTheta != 0.0f);
-
 				throughputTerm *= mat->specular * cosThetaX * thetaTerm;
 			}
 		}
@@ -348,7 +346,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 		// surface is diffuse, we can calculate the direct light contribution (NEE)
 		bool canUseNEE = scene.numLightTris > 0 && 
 		                 (matX->type == MaterialType::MATERIAL_LAMBERTIAN || 
-						  matX->type == MaterialType::MATERIAL_PHONG && matX->specular == CreateVec3f(0.0f)) && 
+						 (matX->type == MaterialType::MATERIAL_PHONG && matX->specular == CreateVec3f(0.0f))) && 
 						 matX->Le.x < 0.1f;
 		
 		if(canUseNEE)
