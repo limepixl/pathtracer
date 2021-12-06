@@ -357,7 +357,9 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 				// pick a light source
 				float32 pdfPickLight = 1.0f / scene.numLightTris;
 
-				int32 pickedLightSource = (int32)(rand() % scene.numLightTris);
+				unsigned int r = 0;
+				rand_s(&r);
+				int32 pickedLightSource = (int32)(r % scene.numLightTris);
 				Triangle lightSource = scene.triModels[0].triangles[scene.lightTris[pickedLightSource]];
 				
 				Material *lightSourceMat = lightSource.mat;

@@ -11,8 +11,8 @@
 
 int main()
 {
-	uint32 width = 1920;
-	uint32 height = 1080;
+	uint32 width = 720;
+	uint32 height = 720;
 	float32 aspectRatio = (float32)width / (float32)height;
 	
 	// Memory allocation for bitmap buffer
@@ -60,8 +60,8 @@ int main()
 									  cbEmissiveTris, numCbEmissiveTris);
 
 	// Each thread's handle and data to be used by it
-	void *threadHandles[NUM_THREADS];
-	RenderData *dataForThreads[NUM_THREADS];
+	void* threadHandles[NUM_THREADS];
+	RenderData* dataForThreads[NUM_THREADS];
 
 	// Variables that keep track of the chunk data
 	uint32 pixelStep = 64;
@@ -118,11 +118,11 @@ int main()
 			break;
 		}
 
-		// If we can start the thread, launch it to render the next row
-		if(CanThreadStart(threadHandles[i]))
+		// We can start a thread if it has never been started, OR
+		// if the thread has started and finished its execution
+		RenderData *data = dataForThreads[i];
+		if(!data->initialized || CanThreadStart(threadHandles[i]))
 		{
-			RenderData *data = dataForThreads[i];
-
 			// If initialized, this means that there was a previous run
 			// that we can save to the bitmap buffer. If not, we need 
 			// to initialize and start the thread for the first time

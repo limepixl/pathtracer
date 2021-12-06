@@ -1,3 +1,4 @@
+#define _CRT_RAND_S
 #include "threads.hpp"
 #include <Windows.h>
 #include <stdio.h>
@@ -79,7 +80,7 @@ DWORD WINAPI render_function(LPVOID param)
 		}
 	}
 
-	ExitThread(0);
+	return 1;
 }
 
 void *CreateThreadWin32(void *param)
