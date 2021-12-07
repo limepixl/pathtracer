@@ -9,19 +9,20 @@
 #include <vector>
 #include <string>
 
-bool LoadModelFromObj(const char *path, const char *mtlPath, 
+bool LoadModelFromObj(const char *fileName, const char *path, 
 					  Triangle **outTris, uint32 *numOutTris,
 					  uint32 **outEmissiveTris, uint32 *numOutEmissiveTris,
 					  Material **outMaterials, uint32 *numOutMaterials)
 {
-	printf("Loading .obj model from path: %s\n", path);
+	printf("Loading %s model from path: %s\n", fileName, path);
 
 	tinyobj::attrib_t attrib = {};
 	std::vector<tinyobj::shape_t> shapes;
 	std::vector<tinyobj::material_t> materials;
 	std::string warning, error;
 
-	bool res = tinyobj::LoadObj(&attrib, &shapes, &materials, &warning, &error, path, mtlPath);
+	std::string finalPath = std::string(path) + std::string(fileName);
+	bool res = tinyobj::LoadObj(&attrib, &shapes, &materials, &warning, &error, finalPath.c_str(), path);
 
 	// Print out any warnings or errors that tinyobjloader returned
 	if(!warning.empty())
@@ -32,7 +33,7 @@ bool LoadModelFromObj(const char *path, const char *mtlPath,
 
 	if(!res)
 	{
-		printf("Failed to load obj file at path: %s\n", path);
+		printf("Failed to load obj file at path: %s\n", finalPath.c_str());
 		return false;
 	}
 

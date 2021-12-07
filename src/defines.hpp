@@ -3,7 +3,7 @@
 #define NUM_THREADS 11
 
 #define BOUNCE_COUNT 5
-#define NUM_SAMPLES 256
+#define NUM_SAMPLES 100
 #define NUM_SHADOW_RAYS 1
 
 #define TMIN 0.001f
