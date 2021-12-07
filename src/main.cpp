@@ -11,8 +11,8 @@
 
 int main()
 {
-	uint32 width = 720;
-	uint32 height = 720;
+	uint32 width = 400;
+	uint32 height = 400;
 	float32 aspectRatio = (float32)width / (float32)height;
 	
 	// Memory allocation for bitmap buffer
@@ -39,11 +39,14 @@ int main()
 	Material *materials = NULL;
 	uint32 numMaterials = 0;
 
-	bool loadedCornellBox = LoadModelFromObj("../res/CornellBox-Mirror-Modified.obj",
+	bool loadedCornellBox = LoadModelFromObj("CornellBox-Mirror-Modified.obj",
 											 "../res/", 
 											 &cbTris, &numCbTris,
 											 &cbEmissiveTris, &numCbEmissiveTris,
 											 &materials, &numMaterials);
+
+	if(!loadedCornellBox)
+		return -1;
 
 	Mat4f modelMatrix = CreateIdentityMat4f();
 	modelMatrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), modelMatrix);

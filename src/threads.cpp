@@ -92,7 +92,7 @@ void *CreateThreadWin32(void *param)
 		OutputDebugStringA("Failed to create thread!\n");
 	}
 
-	// printf("Successfully created thread with ID: %d\n", (int)threadID);
+	printf("Successfully created thread with ID: %d\n", (int)threadID);
 	return threadHandle;
 }
 
