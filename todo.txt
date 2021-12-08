@@ -7,5 +7,6 @@
 - Stratified sampling
 - Materials from model data
 - Timing
+- Low discrepancy sequences
 - Reduce dependency on CRT
 - Progressive rendering of frames so scene is interactable (CPU first before shader)

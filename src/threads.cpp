@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include <stdio.h>
 #include "pathtracer.hpp"
+#include <time.h>
 
 DWORD WINAPI render_function(LPVOID param)
 {
@@ -26,6 +27,10 @@ DWORD WINAPI render_function(LPVOID param)
 
 	uint32 startY = renderData->startY;
 	uint32 endY = renderData->endY;
+
+	// Initialize a PCG context for each thread
+	pcg32_random_t rng {};
+	pcg32_srandom_r(&rng, time(NULL), (intptr_t)&rng);
 
 	// Index for memory buffer
 	uint32 index = 0;
@@ -51,9 +56,9 @@ DWORD WINAPI render_function(LPVOID param)
 				Vec3f rayDirection = NormalizeVec3f(pointOnGrid - eye);
 
 				Ray ray = {eye, rayDirection};
-				// color += EstimatorPathTracingLambertian(ray, scene);
-				// color += EstimatorPathTracingLambertianNEE(ray, scene);
-				color += EstimatorPathTracingMIS(ray, scene);
+				// color += EstimatorPathTracingLambertian(ray, scene, &rng);
+				// color += EstimatorPathTracingLambertianNEE(ray, scene, &rng);
+				color += EstimatorPathTracingMIS(ray, scene, &rng);
 			}
 
 			// Divide by the number of sample rays sent through pixel

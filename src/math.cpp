@@ -134,27 +134,41 @@ Vec3f NormalizeVec3f(Vec3f vec)
 
 #include <stdio.h>
 
+#include "../pcg-c-basic-0.9/pcg_basic.h"
+
 // Returns a number in (0, 1)
 float32 RandomNumberNormalized()
 {
-#if PREDICTABLE_RAND
-	return (float32)(((float64)rand() + 3.0) / ((float64)RAND_MAX + 2.0));
-#else
 	unsigned int val = 0;
 	rand_s(&val);
 
 	float64 result = (float64)(val+1000.0) / ((float64)UINT_MAX + 2000.0);
 	return (float32)result;
-#endif
 }
 
-// TODO: create my own random function
 Vec2f RandomVec2f()
 {
 	return { RandomNumberNormalized(), RandomNumberNormalized() };
 }
 
-// TODO: understand the below functions
+// PCG variants of the above functions
+float32 RandomNumberNormalizedPCG(pcg32_random_t *rngptr)
+{
+	/*
+	uint32 val = pcg32_random_r(rngptr);
+
+	float64 result = (float64)(val+1000.0) / ((float64)UINT_MAX + 2000.0);
+	*/
+	
+	float64 d = ldexp(pcg32_random_r(rngptr), -32);
+	return (float32)d;
+}
+
+Vec2f RandomVec2fPCG(pcg32_random_t *rngptr)
+{
+	return { RandomNumberNormalizedPCG(rngptr), RandomNumberNormalizedPCG(rngptr) };
+}
+
 Vec3f MapToUnitSphere(Vec2f vec2)
 {
 	// First we map [0,1] to [0,2] and subtract one to map

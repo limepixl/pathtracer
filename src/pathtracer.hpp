@@ -17,7 +17,7 @@ Vec3f SkyColor(Vec3f dir)
 // Cast ray into the scene, have the ray bounce around
 // a predetermined number of times accumulating radiance
 // along the way, and return the color for the given pixel
-Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
+Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngptr)
 {
 	Vec3f color {0.0f, 0.0f, 0.0f};
 
@@ -58,7 +58,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 			throughputTerm *= BRDF;
 			
 			// pdf(psi) = cos(theta) / PI
-			Vec2f randomVec2f = RandomVec2f();
+			Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 			Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, data.normal);
 	
 			// Intersection point and new ray
@@ -94,7 +94,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 				throughputTerm *= PI * mat->diffuse;
 
 				// pdf(psi) = cos(theta) / PI
-				Vec2f randomVec2f = RandomVec2f();
+				Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 				Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, data.normal);
 
 				ray = {data.point + EPSILON * data.normal, dir};
@@ -109,7 +109,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 
 				float32 inv = 1.0f / (mat->n_spec+1.0f);
 
-				Vec2f randomVec2f = RandomVec2f();
+				Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 
 				float32 cosAlpha = powf(randomVec2f.x, inv);
 				float32 sinAlpha = sqrtf(1.0f - cosAlpha * cosAlpha);
@@ -133,7 +133,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene)
 	return color;
 }
 
-Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
+Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rngptr)
 {
 	Vec3f color = CreateVec3f(0.0f);
 	Vec3f throughputTerm = CreateVec3f(1.0f);
@@ -181,7 +181,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 				// pick a light source
 				float32 pdfPickLight = 1.0f / scene.numLightTris;
 
-				int32 pickedLightSource = (int32)(rand() % scene.numLightTris);
+				int32 pickedLightSource = (int32)(pcg32_random_r(rngptr) % scene.numLightTris);
 				// TODO: FIX THIS
 				Triangle lightSource = scene.triModels[0].triangles[scene.lightTris[pickedLightSource]];
 				
@@ -253,7 +253,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 			// throughputTerm *= PI * BRDF;
 
 			// Pick a new direction
-			Vec2f randomVec2f = RandomVec2f();
+			Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 			Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, data.normal);
 
 			Vec3f point = data.point;
@@ -290,7 +290,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 
 			float32 inv = 1.0f / (mat->n_spec+1.0f);
 
-			Vec2f randomVec2f = RandomVec2f();
+			Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 
 			float32 cosAlpha = powf(randomVec2f.x, inv);
 			float32 sinAlpha = sqrtf(1.0f - cosAlpha * cosAlpha);
@@ -314,7 +314,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene)
 	return color;
 }
 
-Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
+Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 {
 	Vec3f color = CreateVec3f(0.0f);
 	Vec3f throughputTerm = CreateVec3f(1.0f);
@@ -357,8 +357,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 				// pick a light source
 				float32 pdfPickLight = 1.0f / scene.numLightTris;
 
-				unsigned int r = 0;
-				rand_s(&r);
+				uint32 r = pcg32_random_r(rngptr);
 				int32 pickedLightSource = (int32)(r % scene.numLightTris);
 				Triangle lightSource = scene.triModels[0].triangles[scene.lightTris[pickedLightSource]];
 				
@@ -425,7 +424,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 		if(matX->type == MaterialType::MATERIAL_LAMBERTIAN)
 		{
 			// Pick a new direction
-			Vec2f randomVec2f = RandomVec2f();
+			Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 			Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, normalX);
 			ray = {x + EPSILON * normalX, dir};
 		}
@@ -443,7 +442,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene)
 
 			float32 inv = 1.0f / (matX->n_spec+1.0f);
 
-			Vec2f randomVec2f = RandomVec2f();
+			Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 			float32 cosAlpha = powf(randomVec2f.x, inv);
 			float32 sinAlpha = sqrtf(1.0f - cosAlpha * cosAlpha);
 			float32 phi = 2.0f * PI * randomVec2f.y;
