@@ -136,20 +136,20 @@ Vec3f NormalizeVec3f(Vec3f vec)
 
 #include "../pcg-c-basic-0.9/pcg_basic.h"
 
-// Returns a number in (0, 1)
-float32 RandomNumberNormalized()
-{
-	unsigned int val = 0;
-	rand_s(&val);
+// // Returns a number in (0, 1)
+// float32 RandomNumberNormalized()
+// {
+// 	unsigned int val = 0;
+// 	rand_s(&val);
 
-	float64 result = (float64)(val+1000.0) / ((float64)UINT_MAX + 2000.0);
-	return (float32)result;
-}
+// 	float64 result = (float64)(val+1000.0) / ((float64)UINT_MAX + 2000.0);
+// 	return (float32)result;
+// }
 
-Vec2f RandomVec2f()
-{
-	return { RandomNumberNormalized(), RandomNumberNormalized() };
-}
+// Vec2f RandomVec2f()
+// {
+// 	return { RandomNumberNormalized(), RandomNumberNormalized() };
+// }
 
 // PCG variants of the above functions
 float32 RandomNumberNormalizedPCG(pcg32_random_t *rngptr)
@@ -166,7 +166,15 @@ float32 RandomNumberNormalizedPCG(pcg32_random_t *rngptr)
 
 Vec2f RandomVec2fPCG(pcg32_random_t *rngptr)
 {
-	return { RandomNumberNormalizedPCG(rngptr), RandomNumberNormalizedPCG(rngptr) };
+	float32 r1 = RandomNumberNormalizedPCG(rngptr);
+	while(r1 < 0.0001f || r1 > 0.9999f)
+		r1 = RandomNumberNormalizedPCG(rngptr);
+
+	float32 r2 = RandomNumberNormalizedPCG(rngptr);
+	while(r2 < 0.0001f || r2 > 0.9999f)
+		r2 = RandomNumberNormalizedPCG(rngptr);
+
+	return { r1, r2 };
 }
 
 Vec3f MapToUnitSphere(Vec2f vec2)

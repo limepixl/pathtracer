@@ -43,8 +43,8 @@ void Swap(float32 *v1, float32 *v2);
 
 Vec3f NormalizeVec3f(Vec3f vec);
 
-float32 RandomNumberNormalized();
-Vec2f RandomVec2f();
+// float32 RandomNumberNormalized();
+// Vec2f RandomVec2f();
 
 float32 RandomNumberNormalizedPCG(pcg32_random_t *rngptr);
 Vec2f RandomVec2fPCG(pcg32_random_t *rngptr);
