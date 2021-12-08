@@ -1,7 +1,5 @@
-#define _CRT_RAND_S
 #include "threads.hpp"
 #include <Windows.h>
-#include <stdio.h>
 #include "pathtracer.hpp"
 #include <time.h>
 
@@ -47,7 +45,7 @@ DWORD WINAPI render_function(LPVOID param)
 			for(int16 sample = 0; sample < NUM_SAMPLES; sample++)
 			{
 				Vec2f offsetToPixelCenter = {0.5f, 0.5f};
-				Vec2f uvOffset = RandomVec2f() - offsetToPixelCenter;
+				Vec2f uvOffset = RandomVec2fPCG(&rng) - offsetToPixelCenter;
 
 				float u = ((float)xpixel + uvOffset.x) / (float)width;
 				float v = ((float)ypixel + uvOffset.y) / (float)height;
@@ -97,7 +95,7 @@ void *CreateThreadWin32(void *param)
 		OutputDebugStringA("Failed to create thread!\n");
 	}
 
-	printf("Successfully created thread with ID: %d\n", (int)threadID);
+	// printf("Successfully created thread with ID: %d\n", (int)threadID);
 	return threadHandle;
 }
 

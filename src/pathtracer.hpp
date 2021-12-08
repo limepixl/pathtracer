@@ -87,7 +87,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngpt
 		else if(mat->type == MaterialType::MATERIAL_PHONG)
 		{
 			// TODO: fix the diffuse part
-			float32 u = RandomNumberNormalized();
+			float32 u = RandomNumberNormalizedPCG(rngptr);
 			Vec3f uvec = CreateVec3f(u);
 			if(uvec <= mat->diffuse * PI)
 			{
@@ -188,7 +188,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 				Material *lightSourceMat = lightSource.mat;
 				float32 lightArea = Area(&lightSource);
 				float32 pdfPickPointOnLight = 1.0f / lightArea;
-				Vec3f y = MapToTriangle(RandomVec2f(), lightSource);
+				Vec3f y = MapToTriangle(RandomVec2fPCG(rngptr), lightSource);
 
 				// PDF in terms of area, for picking point on light source k
 				float32 pdfLight_area = pdfPickLight * pdfPickPointOnLight;
@@ -238,7 +238,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 					   directIllumination.y != directIllumination.y ||
 					   directIllumination.z != directIllumination.z)
 					{
-						printf("NaN!\n");
+						// printf("NaN!\n");
 					}
 				}
 			}
@@ -362,7 +362,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 				Triangle lightSource = scene.triModels[0].triangles[scene.lightTris[pickedLightSource]];
 				
 				Material *lightSourceMat = lightSource.mat;
-				Vec3f y_nee = MapToTriangle(RandomVec2f(), lightSource);
+				Vec3f y_nee = MapToTriangle(RandomVec2fPCG(rngptr), lightSource);
 				float32 lightArea = Area(&lightSource);
 
 				// Just for clarity
@@ -529,7 +529,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 					pdfNEE_area = 1.0f / Area(&scene.triModels[0].triangles[data.objectIndex]);
 					break;
 				default:
-					printf("Light source type unsupported for sampling!\n");
+					// printf("Light source type unsupported for sampling!\n");
 					break;
 				};
 
