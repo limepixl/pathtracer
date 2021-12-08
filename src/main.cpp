@@ -11,8 +11,8 @@
 
 int main()
 {
-	uint32 width = 400;
-	uint32 height = 400;
+	uint32 width = (uint32) WIDTH;
+	uint32 height = (uint32) HEIGHT;
 	float32 aspectRatio = (float32)width / (float32)height;
 	
 	// Memory allocation for bitmap buffer
