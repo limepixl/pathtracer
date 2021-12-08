@@ -3,6 +3,7 @@
 #include "mat4.hpp"
 #include "mat3.hpp"
 #include <cstdlib>
+#include "../pcg-c-basic-0.9/pcg_basic.h"
 
 /*
 	Functions
@@ -42,9 +43,11 @@ void Swap(float32 *v1, float32 *v2);
 
 Vec3f NormalizeVec3f(Vec3f vec);
 
-// TODO: create my own random function
 float32 RandomNumberNormalized();
 Vec2f RandomVec2f();
+
+float32 RandomNumberNormalizedPCG(pcg32_random_t *rngptr);
+Vec2f RandomVec2fPCG(pcg32_random_t *rngptr);
 
 Vec3f MapToUnitSphere(Vec2f vec2);
 Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal);
