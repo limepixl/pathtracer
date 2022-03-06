@@ -6,7 +6,7 @@
 #define HEIGHT 1000
 
 #define BOUNCE_COUNT 5
-#define NUM_SAMPLES 50
+#define NUM_SAMPLES 200
 #define NUM_SHADOW_RAYS 1
 
 #define TMIN 0.001f

@@ -44,6 +44,7 @@ DWORD WINAPI render_function(LPVOID param)
 
 			for(int16 sample = 0; sample < NUM_SAMPLES; sample++)
 			{
+				// TODO: verify that this math checks out
 				Vec2f offsetToPixelCenter = {0.5f, 0.5f};
 				Vec2f uvOffset = RandomVec2fPCG(&rng) - offsetToPixelCenter;
 
