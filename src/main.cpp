@@ -51,6 +51,9 @@ int main()
 	Mat4f modelMatrix = CreateIdentityMat4f();
 	modelMatrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), modelMatrix);
 
+	BVH_Node *rootNode = NULL;
+	bool bvhConstructed = ConstructBVH(cbTris, numCbTris, &rootNode);
+
 	TriangleModel triModels[]
 	{
 		CreateTriangleModel(cbTris, numCbTris, modelMatrix)

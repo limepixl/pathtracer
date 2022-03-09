@@ -2,12 +2,14 @@
 
 #define NUM_THREADS 11
 
-#define WIDTH 1000
-#define HEIGHT 1000
+#define WIDTH 500
+#define HEIGHT 500
 
 #define BOUNCE_COUNT 5
-#define NUM_SAMPLES 200
+#define NUM_SAMPLES 10
 #define NUM_SHADOW_RAYS 1
+
+#define BVH_NUM_LEAF_TRIS 4
 
 #define TMIN 0.001f
 #define TMAX 10000.0f

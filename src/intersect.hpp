@@ -1,5 +1,6 @@
 #pragma once
 #include "mat4.hpp"
+#include "bvh.hpp"
 
 struct Ray
 {
@@ -87,12 +88,6 @@ Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal, struct Mater
 bool TriangleIntersect(Ray ray, Triangle *tri, HitData *data, float32 &tmax);
 void ApplyScaleToTriangle(Triangle *tri, Vec3f scaleVec);
 void ApplyTranslationToTriangle(Triangle *tri, Vec3f translationVec);
-
-struct AABB
-{
-	Vec3f bmin;
-	Vec3f bmax;
-};
 
 bool AABBIntersect(Ray ray, AABB aabb);
 
