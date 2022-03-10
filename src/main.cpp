@@ -30,40 +30,61 @@ int main()
 	Vec3f gridOrigin = eye - (gridX / 2.0f) - (gridY / 2.0f);
 	gridOrigin.z = -2.0f;
 
-	uint32 *cbEmissiveTris = NULL;
-	uint32 numCbEmissiveTris = 0;
-
 	Triangle *cbTris = NULL;
 	uint32 numCbTris = 0;
 
 	Material *materials = NULL;
 	uint32 numMaterials = 0;
 
-	bool loadedCornellBox = LoadModelFromObj("CornellBox-Mirror-Modified.obj",
+	bool loadedCornellBox = LoadModelFromObj("CornellBox-Suzanne.obj",
 											 "../res/", 
 											 &cbTris, &numCbTris,
-											 &cbEmissiveTris, &numCbEmissiveTris,
 											 &materials, &numMaterials);
 
 	if(!loadedCornellBox)
 		return -1;
-
+	
+	// Apply model matrix to tris
 	Mat4f modelMatrix = CreateIdentityMat4f();
 	modelMatrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), modelMatrix);
 
+	// Apply the model matrix transformation to tri vertices
+	for(uint32 i = 0; i < (uint32)numCbTris; i++)
+	{
+		cbTris[i].v0 = modelMatrix * cbTris[i].v0;
+		cbTris[i].v1 = modelMatrix * cbTris[i].v1;
+		cbTris[i].v2 = modelMatrix * cbTris[i].v2;
+		cbTris[i].edge1 = cbTris[i].v1 - cbTris[i].v0;
+		cbTris[i].edge2 = cbTris[i].v2 - cbTris[i].v0;
+	}
+
+	// Construct BVH tree and sort triangle list according to it
 	BVH_Node *rootNode = NULL;
 	bool bvhConstructed = ConstructBVH(cbTris, numCbTris, &rootNode);
-
-	TriangleModel triModels[]
+	if(!bvhConstructed)
 	{
-		CreateTriangleModel(cbTris, numCbTris, modelMatrix)
-	};
-	uint32 numTriModels = (uint32)ARRAYCOUNT(triModels);
+		printf("Error in BVH construction!\n");
+		return 0;
+	}
+
+	// Find all emissive triangles in scene
+	uint32 *cbEmissiveTris = new uint32[numCbTris];
+	uint32 numCbEmissiveTris = 0;
+	for(uint32 i = 0; i < (uint32)numCbTris; i++)
+	{
+		if(cbTris[i].mat->Le.x >= 0.01f ||
+		   cbTris[i].mat->Le.y >= 0.01f ||
+		   cbTris[i].mat->Le.z >= 0.01f)
+		{
+			cbEmissiveTris[numCbEmissiveTris++] = i;
+		}
+	}
 
 	Scene cornellBox = ConstructScene(NULL, 0,
 									  NULL, 0,
-									  triModels, numTriModels,
-									  cbEmissiveTris, numCbEmissiveTris);
+									  cbTris, numCbTris,
+									  cbEmissiveTris, numCbEmissiveTris,
+									  rootNode);
 
 	// Each thread's handle and data to be used by it
 	void* threadHandles[NUM_THREADS];

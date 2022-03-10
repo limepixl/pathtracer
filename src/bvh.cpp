@@ -3,6 +3,11 @@
 #include <vector>
 #include <cstdlib>
 
+bool operator==(const AABB &lhs, const AABB &rhs)
+{
+	return lhs.bmin == rhs.bmin && lhs.bmax == rhs.bmax;
+}
+
 AABB ConstructAABBFromTris(Triangle *tris, int32 numTris)
 {
 	Vec3f maxVec = CreateVec3f(INFINITY);
@@ -15,13 +20,6 @@ AABB ConstructAABBFromTris(Triangle *tris, int32 numTris)
 		Vec3f &v1 = tris[tIndex].v1;
 		Vec3f &v2 = tris[tIndex].v2;
 
-		// Apply model's transformation matrix to vertices
-		// v0 = modelMatrix * v0;
-		// v1 = modelMatrix * v1;
-		// v2 = modelMatrix * v2;
-		tris[tIndex].edge1 = v1 - v0;
-		tris[tIndex].edge2 = v2 - v0;
-
 		aabb.bmin = MinComponentWise(aabb.bmin, v0);
 		aabb.bmin = MinComponentWise(aabb.bmin, v1);
 		aabb.bmin = MinComponentWise(aabb.bmin, v2);
@@ -31,6 +29,8 @@ AABB ConstructAABBFromTris(Triangle *tris, int32 numTris)
 		aabb.bmax = MaxComponentWise(aabb.bmax, v2);
 	}
 
+	aabb.bmin.x -= 0.05f; aabb.bmin.y -= 0.05f; aabb.bmin.z -= 0.05f;
+	aabb.bmax.x += 0.05f; aabb.bmax.y += 0.05f; aabb.bmax.z += 0.05f;
 	return aabb;
 }
 
@@ -49,7 +49,7 @@ int compare_tris(const void* a, const void* b)
 		float32 xCentroid2 = (arg2.v0.x + arg2.v1.x + arg2.v2.x) / 3.0f;
 		if(xCentroid1 < xCentroid2) 
 			return -1;
-		else if(xCentroid1 > xCentroid2)
+		if(xCentroid1 > xCentroid2)
 			return 1;
 
 		return 0;
@@ -60,7 +60,7 @@ int compare_tris(const void* a, const void* b)
 		float32 yCentroid2 = (arg2.v0.y + arg2.v1.y + arg2.v2.y) / 3.0f;
 		if(yCentroid1 < yCentroid2) 
 			return -1;
-		else if(yCentroid1 > yCentroid2)
+		if(yCentroid1 > yCentroid2)
 			return 1;
 
 		return 0;
@@ -71,22 +71,23 @@ int compare_tris(const void* a, const void* b)
 		float32 zCentroid2 = (arg2.v0.z + arg2.v1.z + arg2.v2.z) / 3.0f;
 		if(zCentroid1 < zCentroid2) 
 			return -1;
-		else if(zCentroid1 > zCentroid2)
+		if(zCentroid1 > zCentroid2)
 			return 1;
 
 		return 0;
 	}
 }
 
-// TODO: remove dependence of model matrix
-bool ConstructBVH(Triangle *tris, int32 numTris, BVH_Node **node)
+bool ConstructBVH(Triangle *tris, uint32 numTris, BVH_Node **node, uint32 index)
 {
-	// Compute root node and its AABB
 	*node = new BVH_Node();
-	(*node)->left = NULL;
-	(*node)->right = NULL;
-	(*node)->numTris = numTris;
-	(*node)->nodeAABB = ConstructAABBFromTris(tris, numTris);
+	BVH_Node *current_node = *node;
+
+	current_node->left = NULL;
+	current_node->right = NULL;
+	current_node->index = index;
+	current_node->numTris = numTris;
+	current_node->nodeAABB = ConstructAABBFromTris(tris, numTris);
 
 	// If the node has more than n_leaf triangles, it needs to be
 	// split into 2 child nodes.
@@ -99,13 +100,23 @@ bool ConstructBVH(Triangle *tris, int32 numTris, BVH_Node **node)
 		axis = (axis + 1) % 3;
 
 		// Recurse with the same function for the left and right children
-		BVH_Node *left = NULL, *right = NULL;
-		ConstructBVH(tris, numTris/2, &left);
-		ConstructBVH(tris + numTris/2, numTris % 2 == 0 ? numTris/2 : numTris/2 + 1, &right);
-
-		(*node)->left = left;
-		(*node)->right = right;
+		uint32 leftChildNumTris = numTris / 2;
+		uint32 rightChildNumTris = numTris % 2 == 0 ? leftChildNumTris : leftChildNumTris + 1;
+		ConstructBVH(tris, leftChildNumTris, &current_node->left, index);
+		ConstructBVH(tris + leftChildNumTris, rightChildNumTris, &current_node->right, index + leftChildNumTris);
 	}
 
 	return true;
+}
+
+void ApplyModelMatrixToBVH(BVH_Node *node, Mat4f model)
+{
+	node->nodeAABB.bmin = model * node->nodeAABB.bmin;
+	node->nodeAABB.bmax = model * node->nodeAABB.bmax;
+	
+	if(node->left != NULL)
+		ApplyModelMatrixToBVH(node->left, model);
+
+	if(node->right != NULL)
+		ApplyModelMatrixToBVH(node->right, model);
 }

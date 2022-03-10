@@ -11,7 +11,6 @@
 
 bool LoadModelFromObj(const char *fileName, const char *path, 
 					  Triangle **outTris, uint32 *numOutTris,
-					  uint32 **outEmissiveTris, uint32 *numOutEmissiveTris,
 					  Material **outMaterials, uint32 *numOutMaterials)
 {
 	printf("Loading %s model from path: %s\n", fileName, path);
@@ -231,11 +230,6 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 	*outTris = (Triangle *)malloc(*numOutTris * sizeof(Triangle));
 	for(uint32 i = 0; i < *numOutTris; i++)
 		(*outTris)[i] = tris[i];
-
-	*numOutEmissiveTris = (uint32)emissiveTris.size();
-	*outEmissiveTris = (uint32 *)malloc(*numOutEmissiveTris * sizeof(uint32));
-	for(uint32 i = 0; i < *numOutEmissiveTris; i++)
-		(*outEmissiveTris)[i] = emissiveTris[i];
 
 	*numOutMaterials = numLoadedMaterials;
 
