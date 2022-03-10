@@ -89,7 +89,7 @@ bool TriangleIntersect(Ray ray, Triangle *tri, HitData *data, float32 &tmax);
 void ApplyScaleToTriangle(Triangle *tri, Vec3f scaleVec);
 void ApplyTranslationToTriangle(Triangle *tri, Vec3f translationVec);
 
-bool AABBIntersect(Ray ray, AABB aabb);
+bool AABBIntersect(Ray ray, AABB aabb, float32 tmax);
 
 struct TriangleModel
 {
@@ -127,17 +127,20 @@ struct Scene
 	Quad *quads;
 	int32 numQuads;
 
-	TriangleModel *triModels;
-	int32 numTriModels;
+	Triangle *modelTris;
+	int32 numTris;
 
 	uint32 *lightTris;
 	int32 numLightTris;
+
+	BVH_Node *bvh;
 };
 
 Scene ConstructScene(Sphere *spheres, int32 numSpheres, 
 					 Quad *quads, int32 numQuads,
-					 TriangleModel *triModels, int32 numTriModels,
-					 uint32 *lightTris, int32 numLightTris);
+					 Triangle *modelTris, int32 numTris,
+					 uint32 *lightTris, int32 numLightTris,
+					 BVH_Node *bvh);
 
 bool Intersect(Ray ray, Scene scene, HitData *data);
 
