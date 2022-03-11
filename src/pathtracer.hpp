@@ -1,7 +1,8 @@
 #pragma once
-#include "intersect.hpp"
 #include "material.hpp"
 #include "math.hpp"
+#include "triangle.hpp"
+#include "sphere.hpp"
 
 // A simple lerp between 2 colors
 Vec3f SkyColor(Vec3f dir)
@@ -519,9 +520,6 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 				float32 pdfNEE_area = 0.0f;
 				switch(data.objectType)
 				{
-				case ObjectType::QUAD:
-					pdfNEE_area = 1.0f / Area(&scene.quads[data.objectIndex]);
-					break;
 				case ObjectType::SPHERE:
 					pdfNEE_area = 1.0f / Area(&scene.spheres[data.objectIndex]);
 					break;

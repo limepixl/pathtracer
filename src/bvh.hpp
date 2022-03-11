@@ -1,6 +1,8 @@
 #pragma once
 #include "defines.hpp"
 #include "math.hpp"
+#include "ray.hpp"
+#include "scene.hpp"
 
 /*
 	BVH implementation details
@@ -13,6 +15,8 @@ struct AABB
 };
 
 bool operator==(const AABB &lhs, const AABB &rhs);
+int CloserAABB(AABB first, AABB second, Ray ray);
+bool AABBIntersect(Ray ray, AABB aabb, float32 tmax);
 
 struct BVH_Node
 {
@@ -24,4 +28,4 @@ struct BVH_Node
 
 AABB ConstructAABBFromTris(struct Triangle *tris, int32 numTris);
 bool ConstructBVH(struct Triangle *tris, uint32 numTris, BVH_Node **node, uint32 index = 0);
-void ApplyModelMatrixToBVH(BVH_Node *node, Mat4f model);
+void IntersectBVH(Ray ray, Scene scene, BVH_Node *node, HitData *data, float32 &tmax, bool &hitAnything);

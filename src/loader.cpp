@@ -1,5 +1,5 @@
 #include "loader.hpp"
-#include "intersect.hpp"
+#include "triangle.hpp"
 #include "defines.hpp"
 #include "math.hpp"
 #include "material.hpp"
