@@ -3,11 +3,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "material.hpp"
 #include "loader.hpp"
 #include "threads.hpp"
-#include "triangle.hpp"
-#include "bvh.hpp"
+#include "scene/bvh.hpp"
+#include "scene/material.hpp"
+#include "scene/triangle.hpp"
 
 int main()
 {
@@ -30,60 +30,57 @@ int main()
 	Vec3f gridOrigin = eye - (gridX / 2.0f) - (gridY / 2.0f);
 	gridOrigin.z = -2.0f;
 
-	Triangle *cbTris = NULL;
-	uint32 numCbTris = 0;
+	Triangle *tris = NULL;
+	uint32 numTris = 0;
 
 	Material *materials = NULL;
 	uint32 numMaterials = 0;
 
-	bool loadedCornellBox = LoadModelFromObj("CornellBox-Suzanne.obj",
-											 "../res/", 
-											 &cbTris, &numCbTris,
-											 &materials, &numMaterials);
-
-	if(!loadedCornellBox)
+	if(!LoadModelFromObj("CornellBox-Suzanne.obj",
+						 "../res/", 
+						 &tris, &numTris,
+						 &materials, &numMaterials))
+	{
 		return -1;
+	}
 	
 	// Apply model matrix to tris
 	Mat4f modelMatrix = CreateIdentityMat4f();
 	modelMatrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), modelMatrix);
-
-	// Apply the model matrix transformation to tri vertices
-	for(uint32 i = 0; i < (uint32)numCbTris; i++)
+	for(uint32 i = 0; i < (uint32)numTris; i++)
 	{
-		cbTris[i].v0 = modelMatrix * cbTris[i].v0;
-		cbTris[i].v1 = modelMatrix * cbTris[i].v1;
-		cbTris[i].v2 = modelMatrix * cbTris[i].v2;
-		cbTris[i].edge1 = cbTris[i].v1 - cbTris[i].v0;
-		cbTris[i].edge2 = cbTris[i].v2 - cbTris[i].v0;
+		tris[i].v0 = modelMatrix * tris[i].v0;
+		tris[i].v1 = modelMatrix * tris[i].v1;
+		tris[i].v2 = modelMatrix * tris[i].v2;
+		tris[i].edge1 = tris[i].v1 - tris[i].v0;
+		tris[i].edge2 = tris[i].v2 - tris[i].v0;
 	}
 
 	// Construct BVH tree and sort triangle list according to it
-	BVH_Node *rootNode = NULL;
-	bool bvhConstructed = ConstructBVH(cbTris, numCbTris, &rootNode);
-	if(!bvhConstructed)
+	BVH_Node *rootBVH = NULL;
+	if(!ConstructBVH(tris, numTris, &rootBVH))
 	{
 		printf("Error in BVH construction!\n");
 		return 0;
 	}
 
 	// Find all emissive triangles in scene
-	uint32 *cbEmissiveTris = new uint32[numCbTris];
-	uint32 numCbEmissiveTris = 0;
-	for(uint32 i = 0; i < (uint32)numCbTris; i++)
+	uint32 *emissiveTris = new uint32[numTris];
+	uint32 numEmissiveTris = 0;
+	for(uint32 i = 0; i < (uint32)numTris; i++)
 	{
-		if(cbTris[i].mat->Le.x >= 0.01f ||
-		   cbTris[i].mat->Le.y >= 0.01f ||
-		   cbTris[i].mat->Le.z >= 0.01f)
+		if(tris[i].mat->Le.x >= 0.01f ||
+		   tris[i].mat->Le.y >= 0.01f ||
+		   tris[i].mat->Le.z >= 0.01f)
 		{
-			cbEmissiveTris[numCbEmissiveTris++] = i;
+			emissiveTris[numEmissiveTris++] = i;
 		}
 	}
 
-	Scene cornellBox = ConstructScene(NULL, 0,
-									  cbTris, numCbTris,
-									  cbEmissiveTris, numCbEmissiveTris,
-									  rootNode);
+	Scene scene = ConstructScene(NULL, 0,
+							     tris, numTris,
+								 emissiveTris, numEmissiveTris,
+								 rootBVH);
 
 	// Each thread's handle and data to be used by it
 	void* threadHandles[NUM_THREADS];
@@ -119,7 +116,7 @@ int main()
 			0, 0, 
 			width, height,
 			gridOrigin, gridX, gridY, eye,
-			cornellBox,
+			scene,
 			false
 		};
 	}
@@ -241,7 +238,7 @@ int main()
 	printf("Finished rendering to image!\n");
 
 	free(bitmapBuffer);
-	free(cbTris);
+	free(tris);
 	free(materials);
 
 	return 0;

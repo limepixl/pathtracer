@@ -1,5 +1,5 @@
 #include "sphere.hpp"
-#include "math.hpp"
+#include "../math/math.hpp"
 #include "scene.hpp"
 
 float32 Area(Sphere *sphere)

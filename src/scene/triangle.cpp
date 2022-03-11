@@ -1,5 +1,5 @@
 #include "triangle.hpp"
-#include "math.hpp"
+#include "../math/math.hpp"
 #include "scene.hpp"
 
 float32 Area(Triangle *tri)

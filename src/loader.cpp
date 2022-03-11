@@ -1,11 +1,11 @@
+#include "scene/triangle.hpp"
+#include "scene/material.hpp"
+#include "math/math.hpp"
 #include "loader.hpp"
-#include "triangle.hpp"
 #include "defines.hpp"
-#include "math.hpp"
-#include "material.hpp"
 
 #define TINYOBJLOADER_IMPLEMENTATION
-#include "../tinyobjloader/tiny_obj_loader.h"
+#include "../thirdparty/tinyobjloader/tiny_obj_loader.h"
 #include <vector>
 #include <string>
 
