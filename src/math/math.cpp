@@ -7,7 +7,7 @@
 	Functions
 */
 
-float32 Sign(float32 value)
+float Sign(float value)
 {
 	if(value < 0.0f)
 		return -1.0f;
@@ -23,7 +23,7 @@ Vec3f Sign(Vec3f value)
 	return {Sign(value.x), Sign(value.y), Sign(value.z)};
 }
 
-float32 Abs(float32 value)
+float Abs(float value)
 {
 	if(value < 0.0f)
 		return -value;
@@ -44,20 +44,25 @@ int16 Clamp(int16 value, int16 max)
 	return value;
 }
 
-float32 Dot(Vec3f vec1, Vec3f vec2)
+float Dot(Vec3f vec1, Vec3f vec2)
 {
 	return (vec1.x * vec2.x) + (vec1.y * vec2.y) + (vec1.z * vec2.z);
 }
 
 Vec3f Cross(Vec3f a, Vec3f b)
 {
-	float32 x = a.y*b.z - a.z*b.y;
-	float32 y = a.z*b.x - a.x*b.z;
-	float32 z = a.x*b.y - a.y*b.x;
+	float x = a.y*b.z - a.z*b.y;
+	float y = a.z*b.x - a.x*b.z;
+	float z = a.x*b.y - a.y*b.x;
 	return {x, y, z};
 }
 
-float32 Max(float32 a, float32 b)
+float Max(float a, float b)
+{
+	return a > b ? a : b;
+}
+
+double Max(double a, double b)
 {
 	return a > b ? a : b;
 }
@@ -82,7 +87,12 @@ Vec3f MaxComponentWise(Vec3f a, Vec3f b)
 	return { Max(a.x, b.x), Max(a.y, b.y), Max(a.z, b.z) };
 }
 
-float32 Min(float32 a, float32 b)
+float Min(float a, float b)
+{
+	return a < b ? a : b;
+}
+
+double Min(double a, double b)
 {
 	return a < b ? a : b;
 }
@@ -102,7 +112,7 @@ Vec3f MinComponentWise(Vec3f a, Vec3f b)
 	return { Min(a.x, b.x), Min(a.y, b.y), Min(a.z, b.z) };
 }
 
-float32 Step(float32 edge, float32 x)
+float Step(float edge, float x)
 {
 	return x < edge ? 0.0f : 1.0f;
 }
@@ -112,17 +122,17 @@ Vec3f Step(Vec3f edge, Vec3f x)
 	return {Step(edge.x, x.x), Step(edge.y, x.y), Step(edge.z, x.z)};
 }
 
-float32 Ceil(float32 num)
+float Ceil(float num)
 {
 	if(num - (int32)num > 0.0f)
-		return float32((int32)num + 1);
+		return float((int32)num + 1);
 	
 	return num;
 }
 
-void Swap(float32 *v1, float32 *v2)
+void Swap(float *v1, float *v2)
 {
-	float32 tmp = *v1;
+	float tmp = *v1;
 	*v1 = *v2;
 	*v2 = tmp;
 }
@@ -150,7 +160,7 @@ Vec3f NormalizeVec3f(Vec3f vec)
 // }
 
 // PCG variants of the above functions
-float32 RandomNumberNormalizedPCG(pcg32_random_t *rngptr)
+float RandomNumberNormalizedPCG(pcg32_random_t *rngptr)
 {
 	/*
 	uint32 val = pcg32_random_r(rngptr);
@@ -158,17 +168,17 @@ float32 RandomNumberNormalizedPCG(pcg32_random_t *rngptr)
 	float64 result = (float64)(val+1000.0) / ((float64)UINT_MAX + 2000.0);
 	*/
 	
-	float64 d = ldexp(pcg32_random_r(rngptr), -32);
-	return (float32)d;
+	double d = ldexp(pcg32_random_r(rngptr), -32);
+	return (float)d;
 }
 
 Vec2f RandomVec2fPCG(pcg32_random_t *rngptr)
 {
-	float32 r1 = RandomNumberNormalizedPCG(rngptr);
+	float r1 = RandomNumberNormalizedPCG(rngptr);
 	while(r1 < 0.0001f || r1 > 0.9999f)
 		r1 = RandomNumberNormalizedPCG(rngptr);
 
-	float32 r2 = RandomNumberNormalizedPCG(rngptr);
+	float r2 = RandomNumberNormalizedPCG(rngptr);
 	while(r2 < 0.0001f || r2 > 0.9999f)
 		r2 = RandomNumberNormalizedPCG(rngptr);
 
@@ -179,18 +189,18 @@ Vec3f MapToUnitSphere(Vec2f vec2)
 {
 	// First we map [0,1] to [0,2] and subtract one to map
 	// that to [-1, 1], which is the range of cosine.
-	float32 cosTheta = 2.0f * vec2.x - 1.0f;
+	float cosTheta = 2.0f * vec2.x - 1.0f;
 
 	// We can directly map phi to [0, 2PI] from [0, 1] by just 
 	// multiplying it with 2PI
-    float32 Phi = 2.0f*PI*vec2.y;
+    float Phi = 2.0f*PI*vec2.y;
 
 	// sin^2(x) = 1 - cos^2(x)
 	// sin(x) = sqrt(1 - cos^2(x))
-    float32 sinTheta = sqrtf(1.0f - cosTheta * cosTheta);
+    float sinTheta = sqrtf(1.0f - cosTheta * cosTheta);
 
-    float32 sinPhi = sinf(Phi);
-    float32 cosPhi = cosf(Phi);
+    float sinPhi = sinf(Phi);
+    float cosPhi = cosf(Phi);
     
 	// Just a conversion between spherical and Cartesian coordinates
     return { sinTheta * cosPhi, cosTheta, sinTheta * sinPhi };
@@ -204,8 +214,8 @@ Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal)
 
 Vec3f MapToTriangle(Vec2f vec2, Triangle tri)
 {
-	float32 u = vec2.x;
-	float32 v = vec2.y;
+	float u = vec2.x;
+	float v = vec2.y;
 	
 	if(u + v > 1.0f)
 	{
@@ -225,7 +235,7 @@ Vec3f Reflect(Vec3f dir, Vec3f normal)
 	return 2.0f * Dot(normal, dir) * normal - dir;
 }
 
-float32 BalanceHeuristic(float32 pdf_a, float32 pdf_b)
+float BalanceHeuristic(float pdf_a, float pdf_b)
 {
 	return pdf_a / (pdf_a + pdf_b);
 }
@@ -233,9 +243,9 @@ float32 BalanceHeuristic(float32 pdf_a, float32 pdf_b)
 // https://jcgt.org/published/0006/01/01/
 void OrthonormalBasis(Vec3f &n, Vec3f &t, Vec3f &bt)
 {
-	float32 sign = copysignf(1.0f, n.z);
-	float32 a = -1.0f / (sign + n.z);
-	float32 b = n.x * n.y * a;
+	float sign = copysignf(1.0f, n.z);
+	float a = -1.0f / (sign + n.z);
+	float b = n.x * n.y * a;
 
 	t = CreateVec3f(1.0f + sign * n.x * n.x * a, sign * b, -sign * n.x);
 	bt = CreateVec3f(b, sign + n.y * n.y * a, -n.y);

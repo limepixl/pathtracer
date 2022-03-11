@@ -8,7 +8,7 @@
 Vec3f SkyColor(Vec3f dir)
 {
 	Vec3f normalizedDir = NormalizeVec3f(dir);
-    float32 t = 0.5f*(normalizedDir.y + 1.0f);
+    float t = 0.5f*(normalizedDir.y + 1.0f);
 
 	Vec3f startColor = {1.0f, 1.0f, 1.0f};
 	Vec3f endColor = {0.546f, 0.824f, 0.925f};
@@ -88,7 +88,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngpt
 		else if(mat->type == MaterialType::MATERIAL_PHONG)
 		{
 			// TODO: fix the diffuse part
-			float32 u = RandomNumberNormalizedPCG(rngptr);
+			float u = RandomNumberNormalizedPCG(rngptr);
 			Vec3f uvec = CreateVec3f(u);
 			if(uvec <= mat->diffuse * PI)
 			{
@@ -108,23 +108,23 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngpt
 				Vec3f reflectedDir = NormalizeVec3f(Reflect(-ray.direction, Nx));
 				Mat3f tnb = ConstructTNB(reflectedDir);
 
-				float32 inv = 1.0f / (mat->n_spec+1.0f);
+				float inv = 1.0f / (mat->n_spec+1.0f);
 
 				Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 
-				float32 cosAlpha = powf(randomVec2f.x, inv);
-				float32 sinAlpha = sqrtf(1.0f - cosAlpha * cosAlpha);
-				float32 phi = 2.0f * PI * randomVec2f.y;
+				float cosAlpha = powf(randomVec2f.x, inv);
+				float sinAlpha = sqrtf(1.0f - cosAlpha * cosAlpha);
+				float phi = 2.0f * PI * randomVec2f.y;
 
 				Vec3f dir = {sinAlpha * cosf(phi), cosAlpha, sinAlpha * sinf(phi)};
 
 				dir = tnb * dir;
 				ray = {x, dir};
 
-				float32 cosThetaX = Max(0.0f, Dot(dir, Nx));
+				float cosThetaX = Max(0.0f, Dot(dir, Nx));
 
-				float32 pdfTheta = ((mat->n_spec + 1.0f) / (2.0f * PI)) * powf(cosAlpha, mat->n_spec);
-				float32 thetaTerm = powf(cosAlpha, mat->n_spec) * ((mat->n_spec + 2.0f) / (2.0f * PI)) / pdfTheta;
+				float pdfTheta = ((mat->n_spec + 1.0f) / (2.0f * PI)) * powf(cosAlpha, mat->n_spec);
+				float thetaTerm = powf(cosAlpha, mat->n_spec) * ((mat->n_spec + 2.0f) / (2.0f * PI)) / pdfTheta;
 				
 				throughputTerm *= mat->specular * cosThetaX * thetaTerm;
 			}
@@ -156,8 +156,8 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 		Material *mat = data.mat;
 
 		// (x->y dot Nx)
-		float32 cosTheta = Dot(data.normal, ray.direction);
-		float32 pdfCosineWeightedHemisphere = cosTheta / PI;
+		float cosTheta = Dot(data.normal, ray.direction);
+		float pdfCosineWeightedHemisphere = cosTheta / PI;
 
 		// add light that is emitted from surface (but stop right afterwards)
 		if(bounce <= BOUNCE_COUNT && mat->Le.x >= 0.5f)
@@ -180,19 +180,19 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 			for(int8 shadowRayIndex = 0; shadowRayIndex < NUM_SHADOW_RAYS; shadowRayIndex++)
 			{
 				// pick a light source
-				float32 pdfPickLight = 1.0f / scene.numLightTris;
+				float pdfPickLight = 1.0f / scene.numLightTris;
 
 				int32 pickedLightSource = (int32)(pcg32_random_r(rngptr) % scene.numLightTris);
 				// TODO: FIX THIS
 				Triangle lightSource = scene.modelTris[scene.lightTris[pickedLightSource]];
 				
 				Material *lightSourceMat = lightSource.mat;
-				float32 lightArea = Area(&lightSource);
-				float32 pdfPickPointOnLight = 1.0f / lightArea;
+				float lightArea = Area(&lightSource);
+				float pdfPickPointOnLight = 1.0f / lightArea;
 				Vec3f y = MapToTriangle(RandomVec2fPCG(rngptr), lightSource);
 
 				// PDF in terms of area, for picking point on light source k
-				float32 pdfLight_area = pdfPickLight * pdfPickPointOnLight;
+				float pdfLight_area = pdfPickLight * pdfPickPointOnLight;
 
 				// Just for clarity
 				Vec3f x = data.point + EPSILON * data.normal;
@@ -218,21 +218,21 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 				// Visibility check means we have a clear line of sight!
 				if(hitAnything && y == shadowData.point)
 				{
-					float32 squaredDist = Dot(distVec, distVec);
+					float squaredDist = Dot(distVec, distVec);
 
 					// We want to only add light contribution from lights within 
 					// the hemisphere solid angle above X, and not from lights behind it.
-					float32 cosThetaX = Max(0.0f, Dot(data.normal, shadowRayDir));
+					float cosThetaX = Max(0.0f, Dot(data.normal, shadowRayDir));
 
 					// We can sample the light from both sides, it doesn't have to
 					// be a one-sided light source.
 				#if TWO_SIDED_LIGHT
 					float32 cosThetaY = Abs(Dot(shadowData.normal, shadowRayDir));
 				#else
-					float32 cosThetaY = Max(0.0f, Dot(shadowData.normal, -shadowRayDir));
+					float cosThetaY = Max(0.0f, Dot(shadowData.normal, -shadowRayDir));
 				#endif
 
-					float32 G = cosThetaX * cosThetaY / squaredDist;
+					float G = cosThetaX * cosThetaY / squaredDist;
 
 					directIllumination += lightSourceMat->Le * BRDF * G / pdfLight_area;
 					if(directIllumination.x != directIllumination.x ||
@@ -243,7 +243,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 					}
 				}
 			}
-			directIllumination /= (float32)NUM_SHADOW_RAYS;
+			directIllumination /= (float)NUM_SHADOW_RAYS;
 
 			// Because we are calculating for a non-emissive point, we can safely
 			// add the direct illumination to this point.
@@ -289,23 +289,23 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 			Vec3f reflectedDir = NormalizeVec3f(Reflect(-ray.direction, Nx));
 			Mat3f tnb = ConstructTNB(reflectedDir);
 
-			float32 inv = 1.0f / (mat->n_spec+1.0f);
+			float inv = 1.0f / (mat->n_spec+1.0f);
 
 			Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 
-			float32 cosAlpha = powf(randomVec2f.x, inv);
-			float32 sinAlpha = sqrtf(1.0f - cosAlpha * cosAlpha);
-			float32 phi = 2.0f * PI * randomVec2f.y;
+			float cosAlpha = powf(randomVec2f.x, inv);
+			float sinAlpha = sqrtf(1.0f - cosAlpha * cosAlpha);
+			float phi = 2.0f * PI * randomVec2f.y;
 
 			Vec3f dir = {sinAlpha * cosf(phi), cosAlpha, sinAlpha * sinf(phi)};
 
 			dir = tnb * dir;
 			ray = {x, dir};
 
-			float32 cosThetaX = Max(0.0f, Dot(dir, Nx));
+			float cosThetaX = Max(0.0f, Dot(dir, Nx));
 
-			float32 pdfTheta = ((mat->n_spec + 1.0f) / (2.0f * PI)) * powf(cosAlpha, mat->n_spec);
-			float32 thetaTerm = powf(cosAlpha, mat->n_spec) * ((mat->n_spec + 2.0f) / (2.0f * PI)) / pdfTheta;
+			float pdfTheta = ((mat->n_spec + 1.0f) / (2.0f * PI)) * powf(cosAlpha, mat->n_spec);
+			float thetaTerm = powf(cosAlpha, mat->n_spec) * ((mat->n_spec + 2.0f) / (2.0f * PI)) / pdfTheta;
 			throughputTerm *= mat->specular * cosThetaX * thetaTerm;
 		}
 
@@ -356,7 +356,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 			for(int8 shadowRayIndex = 0; shadowRayIndex < NUM_SHADOW_RAYS; shadowRayIndex++)
 			{
 				// pick a light source
-				float32 pdfPickLight = 1.0f / scene.numLightTris;
+				float pdfPickLight = 1.0f / scene.numLightTris;
 
 				uint32 r = pcg32_random_r(rngptr);
 				int32 pickedLightSource = (int32)(r % scene.numLightTris);
@@ -364,7 +364,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 				
 				Material *lightSourceMat = lightSource.mat;
 				Vec3f y_nee = MapToTriangle(RandomVec2fPCG(rngptr), lightSource);
-				float32 lightArea = Area(&lightSource);
+				float lightArea = Area(&lightSource);
 
 				// Just for clarity
 				Vec3f x_nee = x;
@@ -374,11 +374,11 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 				Vec3f shadowRayDir = NormalizeVec3f(distVec);
 				Ray shadowRay = {x_nee, shadowRayDir};
 
-				float32 squaredDist = Dot(distVec, distVec);
+				float squaredDist = Dot(distVec, distVec);
 
 				// We want to only add light contribution from lights within 
 				// the hemisphere solid angle above X, and not from lights behind it.
-				float32 cosThetaX = Max(0.0f, Dot(normalX, shadowRayDir));
+				float cosThetaX = Max(0.0f, Dot(normalX, shadowRayDir));
 
 				// Check if ray hits anything before hitting the light source
 				HitData shadowData = {};
@@ -396,25 +396,25 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 					Vec3f normalY_nee = shadowData.normal * Sign(cosThetaY);
 					cosThetaY = Abs(cosThetaY);
 				#else
-					float32 cosThetaY = Max(0.0f, Dot(shadowData.normal, -shadowRay.direction));
+					float cosThetaY = Max(0.0f, Dot(shadowData.normal, -shadowRay.direction));
 					Vec3f normalY_nee = shadowData.normal;
 					if(cosThetaY > 0.0f)
 				#endif
 					{
-						float32 pdfPickPointOnLight = 1.0f / lightArea;
+						float pdfPickPointOnLight = 1.0f / lightArea;
 
 						// PDF in terms of area, for picking point on light source k
-						float32 pdfLight_area = pdfPickLight * pdfPickPointOnLight;
+						float pdfLight_area = pdfPickLight * pdfPickPointOnLight;
 
 						// PDF in terms of solid angle, for picking point on light source k
-						float32 pdfLight_sa = pdfLight_area * squaredDist / cosThetaY;
+						float pdfLight_sa = pdfLight_area * squaredDist / cosThetaY;
 
 						// PDF in terms of solid angle, for picking ray from cos. weighted hemisphere
-						float32 pdfBSDFsolidAngle = cosThetaX / PI;
+						float pdfBSDFsolidAngle = cosThetaX / PI;
 
 						// weight for NEE 
 						// float32 wNEE = BalanceHeuristic(pdfLight_sa, pdfBSDFsolidAngle) / pdfLight_sa;
-						float32 wNEE = 1.0f / (pdfLight_sa + pdfBSDFsolidAngle);
+						float wNEE = 1.0f / (pdfLight_sa + pdfBSDFsolidAngle);
 
 						color += lightSourceMat->Le * matX->diffuse * cosThetaX * throughputTerm * wNEE;
 					}
@@ -441,19 +441,19 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 			Vec3f reflectedDir = Reflect(-ray.direction, normalX);
 			Mat3f tnb = ConstructTNB(reflectedDir);
 
-			float32 inv = 1.0f / (matX->n_spec+1.0f);
+			float inv = 1.0f / (matX->n_spec+1.0f);
 
 			Vec2f randomVec2f = RandomVec2fPCG(rngptr);
-			float32 cosAlpha = powf(randomVec2f.x, inv);
-			float32 sinAlpha = sqrtf(1.0f - cosAlpha * cosAlpha);
-			float32 phi = 2.0f * PI * randomVec2f.y;
+			float cosAlpha = powf(randomVec2f.x, inv);
+			float sinAlpha = sqrtf(1.0f - cosAlpha * cosAlpha);
+			float phi = 2.0f * PI * randomVec2f.y;
 
 			Vec3f dir = {sinAlpha * cosf(phi), cosAlpha, sinAlpha * sinf(phi)};
 			dir = tnb * dir;
 			ray = {x, dir};
 		}
 
-		float32 cosThetaX = Max(0.0f, Dot(normalX, ray.direction));
+		float cosThetaX = Max(0.0f, Dot(normalX, ray.direction));
 
 		intersect = Intersect(ray, scene, &data);
 		if(!intersect)
@@ -467,7 +467,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 					color += throughputTerm * matX->specular * SkyColor(ray.direction) * cosThetaX * ENVIRONMENT_MAP_LE;
 				else if(matX->type == MATERIAL_PHONG)
 				{
-					float32 thetaTerm = 1.0f + 1.0f / (matX->n_spec + 1.0f);
+					float thetaTerm = 1.0f + 1.0f / (matX->n_spec + 1.0f);
 					color += throughputTerm * matX->specular * SkyColor(ray.direction) * cosThetaX * thetaTerm * ENVIRONMENT_MAP_LE;
 				}
 				
@@ -480,11 +480,11 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 		normalY = data.normal * Sign(cosThetaY);
 		cosThetaY = Abs(cosThetaY);
 	#else
-        float32 cosThetaY = Max(0.0f, -Dot(data.normal, ray.direction));
+        float cosThetaY = Max(0.0f, -Dot(data.normal, ray.direction));
 		normalY = data.normal;
 	#endif
 
-		float32 pdfBSDFsolidAngle = 0.0f;
+		float pdfBSDFsolidAngle = 0.0f;
 		if(matX->type == MaterialType::MATERIAL_LAMBERTIAN)
 		{
 			// Because the new ray direction is sampled using cosine weighted hemisphere
@@ -508,7 +508,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 		y = ray.origin + ray.direction * data.t + EPSILON * normalY;
 		matY = data.mat;
 
-		float32 wBSDF = 1.0f;
+		float wBSDF = 1.0f;
 
 		// If we can use NEE on the hit surface
 		if(matX->type == MaterialType::MATERIAL_LAMBERTIAN && matX->Le.x < 0.1f && cosThetaY > 0.0f)
@@ -517,7 +517,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 			// the pdf for NEE
 			if(matY->Le.x > 0.1f && scene.numLightTris > 0)
 			{
-				float32 pdfNEE_area = 0.0f;
+				float pdfNEE_area = 0.0f;
 				switch(data.objectType)
 				{
 				case ObjectType::SPHERE:
@@ -531,8 +531,8 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 					break;
 				};
 
-				pdfNEE_area /= (float32)(scene.numLightTris);
-				float32 pdfNEE_solidAngle = pdfNEE_area * data.t * data.t / cosThetaY;
+				pdfNEE_area /= (float)(scene.numLightTris);
+				float pdfNEE_solidAngle = pdfNEE_area * data.t * data.t / cosThetaY;
 				wBSDF = BalanceHeuristic(pdfBSDFsolidAngle, pdfNEE_solidAngle);
 			}
 
@@ -547,7 +547,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 				Vec3f diffusePart = PI * matX->diffuse;
 
 				// Sampled w.r.t the BRDF
-				float32 thetaTerm = 1.0f + 1.0f / (matX->n_spec + 1.0f);
+				float thetaTerm = 1.0f + 1.0f / (matX->n_spec + 1.0f);
 				Vec3f specularPart = matX->specular * thetaTerm * cosThetaX;
 
 				color += throughputTerm * (diffusePart + specularPart) * matY->Le * cosThetaY;
@@ -560,7 +560,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 			throughputTerm *= matX->specular;
 		else if(matX->type == MaterialType::MATERIAL_PHONG)
 		{
-			float32 thetaTerm = 1.0f + 1.0f / (matX->n_spec + 1.0f);
+			float thetaTerm = 1.0f + 1.0f / (matX->n_spec + 1.0f);
 			throughputTerm *= matX->specular * cosThetaX * thetaTerm;
 		}
 	}

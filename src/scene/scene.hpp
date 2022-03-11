@@ -11,7 +11,7 @@ enum ObjectType
 
 struct HitData
 {
-	float32 t;
+	float t;
 	Vec3f normal;
 	Vec3f point;
 
@@ -42,20 +42,20 @@ struct BVH_Node;
 struct Scene
 {
 	Sphere *spheres;
-	int32 numSpheres;
+	uint32 numSpheres;
 
 	Triangle *modelTris;
-	int32 numTris;
+	uint32 numTris;
 
 	uint32 *lightTris;
-	int32 numLightTris;
+	uint32 numLightTris;
 
 	BVH_Node *bvh;
 };
 
-Scene ConstructScene(Sphere *spheres, int32 numSpheres, 
-					 Triangle *modelTris, int32 numTris,
-					 uint32 *lightTris, int32 numLightTris,
+Scene ConstructScene(Sphere *spheres, uint32 numSpheres, 
+					 Triangle *modelTris, uint32 numTris,
+					 uint32 *lightTris, uint32 numLightTris,
 					 BVH_Node *bvh);
 
 bool Intersect(Ray ray, Scene scene, HitData *data);

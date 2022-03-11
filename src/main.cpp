@@ -13,7 +13,7 @@ int main()
 {
 	uint32 width = (uint32) WIDTH;
 	uint32 height = (uint32) HEIGHT;
-	float32 aspectRatio = (float32)width / (float32)height;
+	float aspectRatio = (float)width / (float)height;
 	
 	// Memory allocation for bitmap buffer
 	uint8 *bitmapBuffer = (uint8 *)malloc(sizeof(uint8) * width * height * 3);
@@ -36,7 +36,7 @@ int main()
 	Material *materials = NULL;
 	uint32 numMaterials = 0;
 
-	if(!LoadModelFromObj("CornellBox-Suzanne.obj",
+	if(!LoadModelFromObj("CornellBox-Bunny.obj",
 						 "../res/", 
 						 &tris, &numTris,
 						 &materials, &numMaterials))
@@ -47,7 +47,7 @@ int main()
 	// Apply model matrix to tris
 	Mat4f modelMatrix = CreateIdentityMat4f();
 	modelMatrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), modelMatrix);
-	for(uint32 i = 0; i < (uint32)numTris; i++)
+	for(uint32 i = 0; i < numTris; i++)
 	{
 		tris[i].v0 = modelMatrix * tris[i].v0;
 		tris[i].v1 = modelMatrix * tris[i].v1;
@@ -61,13 +61,14 @@ int main()
 	if(!ConstructBVH(tris, numTris, &rootBVH))
 	{
 		printf("Error in BVH construction!\n");
-		return 0;
+		return -1;
 	}
+	printf("Finished building BVH!\n");
 
 	// Find all emissive triangles in scene
 	uint32 *emissiveTris = new uint32[numTris];
 	uint32 numEmissiveTris = 0;
-	for(uint32 i = 0; i < (uint32)numTris; i++)
+	for(uint32 i = 0; i < numTris; i++)
 	{
 		if(tris[i].mat->Le.x >= 0.01f ||
 		   tris[i].mat->Le.y >= 0.01f ||
@@ -94,8 +95,8 @@ int main()
 	uint32 rowSizeInBytes = pixelSize * width;
 	uint32 threadMemorySize = pixelStep * pixelStep * pixelSize;
 
-	uint16 numChunkColumns = (uint16)Ceil((float32)width / pixelStep);
-	uint16 numChunkRows = (uint16)Ceil((float32)height / pixelStep);
+	uint16 numChunkColumns = (uint16)Ceil((float)width / pixelStep);
+	uint16 numChunkRows = (uint16)Ceil((float)height / pixelStep);
 
 	// If there are more threads than needed, don't allocate memory for them
 	uint16 numThreads = Min((uint16)NUM_THREADS, numChunkRows * numChunkColumns);

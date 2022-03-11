@@ -62,7 +62,7 @@ DWORD WINAPI render_function(LPVOID param)
 
 			// Divide by the number of sample rays sent through pixel
 			// to get the average radiance accumulated
-			color /= (float32)NUM_SAMPLES;
+			color /= (float)NUM_SAMPLES;
 
 			// Gamma correction
 			color.x = sqrtf(color.x);

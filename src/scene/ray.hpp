@@ -8,4 +8,4 @@ struct Ray
 	Vec3f direction;
 };
 
-Vec3f PointAlongRay(Ray r, float32 t);
+Vec3f PointAlongRay(Ray r, float t);
