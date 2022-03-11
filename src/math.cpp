@@ -1,7 +1,7 @@
 #define _CRT_RAND_S
 #include "math.hpp"
 #include <math.h>
-#include "intersect.hpp"
+#include "triangle.hpp"
 
 /*
 	Functions

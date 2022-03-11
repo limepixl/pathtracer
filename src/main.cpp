@@ -3,11 +3,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "defines.hpp"
 #include "material.hpp"
 #include "loader.hpp"
 #include "threads.hpp"
-#include "math.hpp"
+#include "triangle.hpp"
+#include "bvh.hpp"
 
 int main()
 {
@@ -81,7 +81,6 @@ int main()
 	}
 
 	Scene cornellBox = ConstructScene(NULL, 0,
-									  NULL, 0,
 									  cbTris, numCbTris,
 									  cbEmissiveTris, numCbEmissiveTris,
 									  rootNode);

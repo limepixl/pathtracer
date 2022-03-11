@@ -1,6 +1,6 @@
 #pragma once
 #include "defines.hpp"
-#include "intersect.hpp"
+#include "scene.hpp"
 
 struct RenderData
 {
