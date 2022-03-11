@@ -40,7 +40,7 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 	int64 numNormals = (int64)(attrib.normals.size() / 3);
 	int64 numUVs = (int64)(attrib.texcoords.size() / 2);
 	int32 numMaterials = (int32)(materials.size());
-	int32 numShapes = (int32)(shapes.size());
+	uint32 numShapes = (uint32)(shapes.size());
 
 	// Initialize out materials
 	int32 numLoadedMaterials = 0;
@@ -53,7 +53,7 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 	// TODO: compute AABB while loading
 
 	std::vector<Triangle> tris;
-	for(int32 shape = 0; shape < numShapes; shape++)
+	for(uint32 shape = 0; shape < numShapes; shape++)
 	{
 		// This shape's indices
 		// NOTE: assuming mesh is trangulated (which tinyobjloader does by default
@@ -69,9 +69,9 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 			// TODO: get texture coordinates
 
 			// Get vertex data
-			float32 vertex0[3];
-			float32 vertex1[3];
-			float32 vertex2[3];
+			float vertex0[3];
+			float vertex1[3];
+			float vertex2[3];
 			for(int32 component = 0; component < 3; component++)
 			{
 				// Vertex indices are separate from uv and normal indices
@@ -92,9 +92,9 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 
 			// Get normal data
 			Vec3f nv0, nv1, nv2;
-			float32 normalv0[3];
-			float32 normalv1[3];
-			float32 normalv2[3];
+			float normalv0[3];
+			float normalv1[3];
+			float normalv2[3];
 			if(numNormals > 0)
 			{
 				int n0 = index0.normal_index;

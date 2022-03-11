@@ -2,30 +2,30 @@
 #include "../math/math.hpp"
 #include "scene.hpp"
 
-float32 Area(Sphere *sphere)
+float Area(Sphere *sphere)
 {
 	return 4.0f * PI * sphere->radius * sphere->radius;
 };
 
-Sphere CreateSphere(Vec3f origin, float32 radius, Material *mat)
+Sphere CreateSphere(Vec3f origin, float radius, Material *mat)
 {
 	Sphere result = {origin, radius, mat};
 	return result;
 }
 
-bool SphereIntersect(Ray ray, Sphere sphere, HitData *data, float32 &tmax)
+bool SphereIntersect(Ray ray, Sphere sphere, HitData *data, float &tmax)
 {
 	Vec3f oc = ray.origin - sphere.origin;
-	float32 a = Dot(ray.direction, ray.direction);
-	float32 b = 2.0f * Dot(oc, ray.direction);
-	float32 c = Dot(oc, oc) - sphere.radius * sphere.radius;
-	float32 discriminant = b*b - 4.0f*a*c;
+	float a = Dot(ray.direction, ray.direction);
+	float b = 2.0f * Dot(oc, ray.direction);
+	float c = Dot(oc, oc) - sphere.radius * sphere.radius;
+	float discriminant = b*b - 4.0f*a*c;
 	if(discriminant >= 0)
 	{
-		float32 sqrtDiscriminant = sqrtf(discriminant);
+		float sqrtDiscriminant = sqrtf(discriminant);
 		if(discriminant == 0) // 2 equal real solutions
 		{
-			float32 t = -b / (2.0f * a);
+			float t = -b / (2.0f * a);
 			if(t > TMIN && t < tmax)
 			{
 				tmax = t;
@@ -38,11 +38,11 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data, float32 &tmax)
 		}
 		else // 2 different real solutions
 		{
-			float32 t1 = (-b + sqrtDiscriminant) / (2.0f * a);
-			float32 t2 = (-b - sqrtDiscriminant) / (2.0f * a);
+			float t1 = (-b + sqrtDiscriminant) / (2.0f * a);
+			float t2 = (-b - sqrtDiscriminant) / (2.0f * a);
 			if(t1 > t2) 
 			{
-				float32 tmp = t1;
+				float tmp = t1;
 				t1 = t2;
 				t2 = tmp;
 			}

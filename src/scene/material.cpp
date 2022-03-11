@@ -1,7 +1,7 @@
 #include "material.hpp"
 #include <string.h>
 
-Material CreateMaterial(MaterialType type, Vec3f diffuse, Vec3f specular, float32 n_spec, Vec3f Le, const char *name)
+Material CreateMaterial(MaterialType type, Vec3f diffuse, Vec3f specular, float n_spec, Vec3f Le, const char *name)
 {
 	if(type == MaterialType::MATERIAL_LAMBERTIAN || type==MaterialType::MATERIAL_PHONG || type == MaterialType::MATERIAL_BLINN_PHONG)
 	{

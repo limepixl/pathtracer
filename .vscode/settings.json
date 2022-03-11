@@ -48,6 +48,10 @@
 		"xstring": "cpp",
 		"xtr1common": "cpp",
 		"xutility": "cpp",
-		"thread": "cpp"
+		"thread": "cpp",
+		"algorithm": "cpp",
+		"chrono": "cpp",
+		"random": "cpp",
+		"valarray": "cpp"
 	}
 }

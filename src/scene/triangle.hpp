@@ -13,9 +13,9 @@ struct Triangle
 	struct Material *mat;
 };
 
-float32 Area(Triangle *tri);
+float Area(Triangle *tri);
 Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, struct Material *mat);
 Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal, struct Material *mat);
-bool TriangleIntersect(Ray ray, Triangle *tri, struct HitData *data, float32 &tmax);
+bool TriangleIntersect(Ray ray, Triangle *tri, struct HitData *data, float tmax);
 void ApplyScaleToTriangle(Triangle *tri, Vec3f scaleVec);
 void ApplyTranslationToTriangle(Triangle *tri, Vec3f translationVec);

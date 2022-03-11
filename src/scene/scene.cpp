@@ -1,14 +1,15 @@
 #include "scene.hpp"
 #include "bvh.hpp"
+#include "sphere.hpp"
 
 LightSource CreateLightSource(void *obj, LightSourceType type)
 {
 	return {obj, type};
 }
 
-Scene ConstructScene(Sphere *spheres, int32 numSpheres, 
-					 Triangle *tris, int32 numTris,
-					 uint32 *lightTris, int32 numLightTris,
+Scene ConstructScene(Sphere *spheres, uint32 numSpheres, 
+					 Triangle *tris, uint32 numTris,
+					 uint32 *lightTris, uint32 numLightTris,
 					 BVH_Node *bvh)
 {
 	return {spheres, numSpheres, 
@@ -21,10 +22,9 @@ bool Intersect(Ray ray, Scene scene, HitData *data)
 	bool hitAnything = false;
 	HitData resultData = {TMAX};
 
-	float32 tmax = TMAX;
+	float tmax = TMAX;
 
-	/*
-	for(int32 i = 0; i < scene.numSpheres; i++)
+	for(uint32 i = 0; i < scene.numSpheres; i++)
 	{
 		HitData currentData = {};
 		Sphere current = scene.spheres[i];
@@ -39,10 +39,12 @@ bool Intersect(Ray ray, Scene scene, HitData *data)
 			resultData.objectType = ObjectType::SPHERE;
 		}
 	}
-	*/
 
 	IntersectBVH(ray, scene, scene.bvh, &resultData, tmax, hitAnything);
-
-	*data = resultData;
+	if(hitAnything)
+	{
+		*data = resultData;
+	}
+	
 	return hitAnything;
 }

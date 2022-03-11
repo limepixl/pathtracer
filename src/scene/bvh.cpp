@@ -7,13 +7,13 @@ bool operator==(const AABB &lhs, const AABB &rhs)
 	return lhs.bmin == rhs.bmin && lhs.bmax == rhs.bmax;
 }
 
-AABB ConstructAABBFromTris(Triangle *tris, int32 numTris)
+AABB ConstructAABBFromTris(Triangle *tris, uint32 numTris)
 {
 	Vec3f maxVec = CreateVec3f(INFINITY);
 	Vec3f minVec = CreateVec3f(-INFINITY);
 	AABB aabb = {maxVec, minVec};
 
-	for(int32 tIndex = 0; tIndex < numTris; tIndex++)
+	for(uint32 tIndex = 0; tIndex < numTris; tIndex++)
 	{
 		Vec3f &v0 = tris[tIndex].v0;
 		Vec3f &v1 = tris[tIndex].v1;
@@ -83,14 +83,14 @@ int CloserAABB(AABB first, AABB second, Ray ray)
 	return 0;
 }
 
-bool AABBIntersect(Ray ray, AABB aabb, float32 tmax)
+bool AABBIntersect(Ray ray, AABB aabb, float tmax)
 {
 	// First check if ray origin is within AABB
 	Vec3f &ro = ray.origin;
 	if(ro >= aabb.bmin && ro <= aabb.bmax)
 		return true;
 
-	float32 t0x, t1x, t0y, t1y, t0z, t1z;
+	float t0x, t1x, t0y, t1y, t0z, t1z;
 	Vec3f inverseDir = 1.0f / ray.direction;
 	
 	// X axis interval
@@ -120,8 +120,8 @@ bool AABBIntersect(Ray ray, AABB aabb, float32 tmax)
 	if(t0x > t1y || t0y > t1x)
 		return false;
 
-	float32 tmin_t = Max(t0x, t0y);
-	float32 tmax_t = Min(t1x, t1y);
+	float tmin_t = Max(t0x, t0y);
+	float tmax_t = Min(t1x, t1y);
 
 	// Z axis interval
 	if(inverseDir.z >= 0)
@@ -141,13 +141,13 @@ bool AABBIntersect(Ray ray, AABB aabb, float32 tmax)
 	tmin_t = Max(tmin_t, t0z);
 	tmax_t = Min(tmax_t, t1z);
 
-	if(tmin_t <= TMIN || tmin_t >= tmax)
+	if(tmin_t < TMIN || tmin_t > tmax)
 		return false;
 
 	return true;
 }
 
-void IntersectBVH(Ray ray, Scene scene, BVH_Node *node, HitData *data, float32 &tmax, bool &hitAnything)
+void IntersectBVH(Ray ray, Scene scene, BVH_Node *node, HitData *data, float &tmax, bool &hitAnything)
 {
 	// Check if there is an intersection with the current node
 	bool bvhHit = AABBIntersect(ray, node->nodeAABB, tmax);
@@ -157,41 +157,38 @@ void IntersectBVH(Ray ray, Scene scene, BVH_Node *node, HitData *data, float32 &
 		if(!isLeafNode)
 		{
 			// Check which child is closer
-			BVH_Node *first = NULL, *second = NULL;
 			int res = CloserAABB(node->left->nodeAABB, node->right->nodeAABB, ray);
 			
 			if(res == -1 || res == 0)
 			{
-				first = node->left;
-				second = node->right;
+				IntersectBVH(ray, scene, node->left, data, tmax, hitAnything);
+				IntersectBVH(ray, scene, node->right, data, tmax, hitAnything);
 			}
 			else if(res == 1)
 			{
-				first = node->right;
-				second = node->left;
+				IntersectBVH(ray, scene, node->right, data, tmax, hitAnything);
+				IntersectBVH(ray, scene, node->left, data, tmax, hitAnything);
 			}
-
-			IntersectBVH(ray, scene, first, data, tmax, hitAnything);
-			IntersectBVH(ray, scene, second, data, tmax, hitAnything);
 		}
 		else
 		{
 			// If leaf node, test against triangles of node
 			Triangle *nodeTris = scene.modelTris + node->index;
 			uint32 numNodeTris = node->numTris;
-
+			
 			for(uint32 i = 0; i < numNodeTris; i++)
 			{
 				HitData currentData = {};
 				Triangle *current = &nodeTris[i];
 				bool intersect = TriangleIntersect(ray, current, &currentData, tmax);
-				if(intersect)
+				if(intersect && currentData.t < tmax)
 				{
 					// Found closer hit, store it.
+					tmax = currentData.t;
+					currentData.objectIndex = node->index + i;
+
 					hitAnything = true;
 					*data = currentData;
-					data->objectType = ObjectType::TRIANGLE;
-					data->objectIndex = node->index + i;
 				}
 			}
 		}
@@ -209,8 +206,8 @@ int compare_tris(const void* a, const void* b)
 
 	if(axis == 0)
 	{
-		float32 xCentroid1 = (arg1.v0.x + arg1.v1.x + arg1.v2.x) / 3.0f;
-		float32 xCentroid2 = (arg2.v0.x + arg2.v1.x + arg2.v2.x) / 3.0f;
+		float xCentroid1 = (arg1.v0.x + arg1.v1.x + arg1.v2.x) / 3.0f;
+		float xCentroid2 = (arg2.v0.x + arg2.v1.x + arg2.v2.x) / 3.0f;
 		if(xCentroid1 < xCentroid2) 
 			return -1;
 		if(xCentroid1 > xCentroid2)
@@ -220,8 +217,8 @@ int compare_tris(const void* a, const void* b)
 	}
 	else if(axis == 1)
 	{
-		float32 yCentroid1 = (arg1.v0.y + arg1.v1.y + arg1.v2.y) / 3.0f;
-		float32 yCentroid2 = (arg2.v0.y + arg2.v1.y + arg2.v2.y) / 3.0f;
+		float yCentroid1 = (arg1.v0.y + arg1.v1.y + arg1.v2.y) / 3.0f;
+		float yCentroid2 = (arg2.v0.y + arg2.v1.y + arg2.v2.y) / 3.0f;
 		if(yCentroid1 < yCentroid2) 
 			return -1;
 		if(yCentroid1 > yCentroid2)
@@ -231,8 +228,8 @@ int compare_tris(const void* a, const void* b)
 	}
 	else
 	{
-		float32 zCentroid1 = (arg1.v0.z + arg1.v1.z + arg1.v2.z) / 3.0f;
-		float32 zCentroid2 = (arg2.v0.z + arg2.v1.z + arg2.v2.z) / 3.0f;
+		float zCentroid1 = (arg1.v0.z + arg1.v1.z + arg1.v2.z) / 3.0f;
+		float zCentroid2 = (arg2.v0.z + arg2.v1.z + arg2.v2.z) / 3.0f;
 		if(zCentroid1 < zCentroid2) 
 			return -1;
 		if(zCentroid1 > zCentroid2)
@@ -251,7 +248,6 @@ bool ConstructBVH(Triangle *tris, uint32 numTris, BVH_Node **node, uint32 index)
 	current_node->right = NULL;
 	current_node->index = index;
 	current_node->numTris = numTris;
-	current_node->nodeAABB = ConstructAABBFromTris(tris, numTris);
 
 	// If the node has more than n_leaf triangles, it needs to be
 	// split into 2 child nodes.
@@ -269,6 +265,8 @@ bool ConstructBVH(Triangle *tris, uint32 numTris, BVH_Node **node, uint32 index)
 		ConstructBVH(tris, leftChildNumTris, &current_node->left, index);
 		ConstructBVH(tris + leftChildNumTris, rightChildNumTris, &current_node->right, index + leftChildNumTris);
 	}
+
+	current_node->nodeAABB = ConstructAABBFromTris(tris, numTris);
 
 	return true;
 }

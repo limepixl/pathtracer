@@ -2,7 +2,7 @@
 #include "../math/math.hpp"
 #include "scene.hpp"
 
-float32 Area(Triangle *tri)
+float Area(Triangle *tri)
 {
 	return sqrtf(Dot(tri->edge1, tri->edge1) * Dot(tri->edge2, tri->edge2)) / 2.0f;
 }
@@ -24,10 +24,10 @@ Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal, Material *ma
 }
 
 // Moller–Trumbore ray-triangle intersection algorithm
-bool TriangleIntersect(Ray ray, Triangle *tri, HitData *data, float32 &tmax)
+bool TriangleIntersect(Ray ray, Triangle *tri, HitData *data, float tmax)
 {
 	Vec3f pvec = Cross(ray.direction, tri->edge2);
-	float32 determinant = Dot(tri->edge1, pvec);
+	float determinant = Dot(tri->edge1, pvec);
 
 	// Ray direction parallel to the triangle plane
 #if TWO_SIDED_LIGHT
@@ -38,26 +38,26 @@ bool TriangleIntersect(Ray ray, Triangle *tri, HitData *data, float32 &tmax)
         return false;  
 #endif
 
-    float32 inv_determinant = 1.0f / determinant;
+    float inv_determinant = 1.0f / determinant;
     Vec3f tvec = ray.origin - tri->v0;
-    float32 u = Dot(tvec, pvec) * inv_determinant;
+    float u = Dot(tvec, pvec) * inv_determinant;
     if((u < 0.0f) || (u > 1.0f))
         return false;
 
     Vec3f qvec = Cross(tvec, tri->edge1);
-    float32 v = inv_determinant * Dot(ray.direction, qvec);
+    float v = inv_determinant * Dot(ray.direction, qvec);
     if((v < 0.0f) || (u + v > 1.0f))
         return false;
 
 	// Computing t
-    float32 t = inv_determinant * Dot(tri->edge2, qvec);
+    float t = inv_determinant * Dot(tri->edge2, qvec);
     if(t > TMIN && t < tmax)
     {
-		tmax = t;
 		data->t = t;
         data->point = ray.origin + ray.direction * t;
 		data->normal = tri->normal;
 		data->mat = tri->mat;
+		data->objectType = ObjectType::TRIANGLE;
         return true;
     }
     
