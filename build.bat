@@ -2,7 +2,7 @@
 if not exist "build" mkdir "build"
 pushd "build"
 
-set "files=../src/triangle.cpp ../src/scene.cpp ../src/sphere.cpp ../src/ray.cpp ../src/threads.cpp ../src/main.cpp ../src/loader.cpp ../src/vec.cpp ../src/mat4.cpp ../src/math.cpp ../src/material.cpp ../src/mat3.cpp ../src/bvh.cpp ../pcg-c-basic-0.9/pcg_basic.c"
+set "files=../src/scene/triangle.cpp ../src/scene/scene.cpp ../src/scene/sphere.cpp ../src/scene/ray.cpp ../src/threads.cpp ../src/main.cpp ../src/loader.cpp ../src/math/vec.cpp ../src/math/mat4.cpp ../src/math/math.cpp ../src/scene/material.cpp ../src/math/mat3.cpp ../src/scene/bvh.cpp ../thirdparty/pcg-c-basic-0.9/pcg_basic.c"
 
 @REM MSVC
 set "compiler_flags=-Oi -O2 -Zi -FC -WX -W4 -wd4201 -wd4189 -wd4100 -wd4146 -GR- -EHsc -MT -nologo -D_CRT_SECURE_NO_WARNINGS"

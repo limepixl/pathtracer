@@ -1,5 +1,5 @@
 #pragma once
-#include "vec.hpp"
+#include "../math/vec.hpp"
 #include "ray.hpp"
 
 struct Triangle

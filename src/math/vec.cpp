@@ -1,5 +1,5 @@
 #include "vec.hpp"
-#include "defines.hpp"
+#include "../defines.hpp"
 
 Vec4f CreateVec4f(float32 x, float32 y, float32 z, float32 w)
 {

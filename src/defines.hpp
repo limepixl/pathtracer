@@ -2,11 +2,11 @@
 
 #define NUM_THREADS 11
 
-#define WIDTH 1920
-#define HEIGHT 1080
+#define WIDTH 720
+#define HEIGHT 720
 
 #define BOUNCE_COUNT 5
-#define NUM_SAMPLES 200
+#define NUM_SAMPLES 10
 #define NUM_SHADOW_RAYS 1
 
 #define BVH_NUM_LEAF_TRIS 4

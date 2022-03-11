@@ -1,9 +1,9 @@
 #pragma once
-#include "defines.hpp"
+#include "../defines.hpp"
 #include "mat4.hpp"
 #include "mat3.hpp"
 #include <cstdlib>
-#include "../pcg-c-basic-0.9/pcg_basic.h"
+#include "../../thirdparty/pcg-c-basic-0.9/pcg_basic.h"
 
 /*
 	Functions

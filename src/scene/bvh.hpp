@@ -1,6 +1,6 @@
 #pragma once
-#include "defines.hpp"
-#include "math.hpp"
+#include "../defines.hpp"
+#include "../math/math.hpp"
 #include "ray.hpp"
 #include "scene.hpp"
 

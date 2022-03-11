@@ -1,7 +1,7 @@
 #define _CRT_RAND_S
 #include "math.hpp"
 #include <math.h>
-#include "triangle.hpp"
+#include "../scene/triangle.hpp"
 
 /*
 	Functions
@@ -133,8 +133,6 @@ Vec3f NormalizeVec3f(Vec3f vec)
 }
 
 #include <stdio.h>
-
-#include "../pcg-c-basic-0.9/pcg_basic.h"
 
 // // Returns a number in (0, 1)
 // float32 RandomNumberNormalized()

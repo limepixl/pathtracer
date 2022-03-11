@@ -1,6 +1,6 @@
 #pragma once
-#include "defines.hpp"
-#include "vec.hpp"
+#include "../defines.hpp"
+#include "../math/vec.hpp"
 #include "ray.hpp"
 
 enum ObjectType

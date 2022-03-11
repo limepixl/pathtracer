@@ -1,8 +1,8 @@
 #pragma once
-#include "material.hpp"
-#include "math.hpp"
-#include "triangle.hpp"
-#include "sphere.hpp"
+#include "math/math.hpp"
+#include "scene/material.hpp"
+#include "scene/triangle.hpp"
+#include "scene/sphere.hpp"
 
 // A simple lerp between 2 colors
 Vec3f SkyColor(Vec3f dir)
