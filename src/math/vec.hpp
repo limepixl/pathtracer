@@ -48,6 +48,8 @@ Vec3f operator/=(Vec3f &lhs, const float rhs);
 Vec3f operator*=(Vec3f &lhs, const Vec3f &rhs);
 bool operator<=(const Vec3f &lhs, const Vec3f &rhs);
 bool operator>=(const Vec3f &lhs, const Vec3f &rhs);
+bool operator<(const Vec3f &lhs, const Vec3f &rhs);
+bool operator>(const Vec3f &lhs, const Vec3f &rhs);
 
 struct Vec2f
 {

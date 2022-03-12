@@ -44,7 +44,7 @@ struct Scene
 	Sphere *spheres;
 	uint32 numSpheres;
 
-	Triangle *modelTris;
+	Triangle *tris;
 	uint32 numTris;
 
 	uint32 *lightTris;

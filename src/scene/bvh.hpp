@@ -16,7 +16,7 @@ struct AABB
 
 bool operator==(const AABB &lhs, const AABB &rhs);
 int CloserAABB(AABB first, AABB second, Ray ray);
-bool AABBIntersect(Ray ray, AABB aabb, float tmax);
+bool AABBIntersect(Ray ray, AABB aabb, float t);
 
 struct BVH_Node
 {
