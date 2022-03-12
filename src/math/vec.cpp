@@ -107,6 +107,16 @@ bool operator>=(const Vec3f &lhs, const Vec3f &rhs)
 	return (lhs.x >= rhs.x && lhs.y >= rhs.y && lhs.z >= rhs.z);
 }
 
+bool operator<(const Vec3f &lhs, const Vec3f &rhs)
+{
+	return (lhs.x < rhs.x && lhs.y < rhs.y && lhs.z < rhs.z);
+}
+
+bool operator>(const Vec3f &lhs, const Vec3f &rhs)
+{
+	return (lhs.x > rhs.x && lhs.y > rhs.y && lhs.z > rhs.z);
+}
+
 Vec2f CreateVec2f(float x, float y)
 {
 	return {x, y};

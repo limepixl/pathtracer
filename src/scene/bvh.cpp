@@ -30,8 +30,9 @@ AABB ConstructAABBFromTris(Triangle *tris, uint32 numTris)
 
 	// Extend borders of AABB in order to get around 
 	// situations where the node is flat like a plane
-	aabb.bmin.x -= 0.05f; aabb.bmin.y -= 0.05f; aabb.bmin.z -= 0.05f;
-	aabb.bmax.x += 0.05f; aabb.bmax.y += 0.05f; aabb.bmax.z += 0.05f;
+	Vec3f offsetVec = CreateVec3f(0.05f);
+	aabb.bmin = aabb.bmin - offsetVec;
+	aabb.bmax = aabb.bmax + offsetVec;
 	return aabb;
 }
 
@@ -83,11 +84,35 @@ int CloserAABB(AABB first, AABB second, Ray ray)
 	return 0;
 }
 
-bool AABBIntersect(Ray ray, AABB aabb, float tmax)
+// Slab method
+// https://tavianator.com/2011/ray_box.html
+bool AABBIntersect(Ray ray, AABB aabb, float t)
 {
+	Vec3f invDir = 1.0f / ray.direction;
+
+	float tx1 = (aabb.bmin.x - ray.origin.x)*invDir.x;
+	float tx2 = (aabb.bmax.x - ray.origin.x)*invDir.x;
+
+	float tmin = Min(tx1, tx2);
+	float tmax = Max(tx1, tx2);
+
+	float ty1 = (aabb.bmin.y - ray.origin.y)*invDir.y;
+	float ty2 = (aabb.bmax.y - ray.origin.y)*invDir.y;
+
+	tmin = Max(tmin, Min(ty1, ty2));
+	tmax = Min(tmax, Max(ty1, ty2));
+
+	float tz1 = (aabb.bmin.z - ray.origin.z)*invDir.z;
+	float tz2 = (aabb.bmax.z - ray.origin.z)*invDir.z;
+
+	tmin = Max(tmin, Min(tz1, tz2));
+	tmax = Min(tmax, Max(tz1, tz2));
+
+	return tmax >= Max(0.0f, tmin) && tmin < t;
+/*
 	// First check if ray origin is within AABB
 	Vec3f &ro = ray.origin;
-	if(ro >= aabb.bmin && ro <= aabb.bmax)
+	if(ro > aabb.bmin && ro < aabb.bmax)
 		return true;
 
 	float t0x, t1x, t0y, t1y, t0z, t1z;
@@ -141,10 +166,11 @@ bool AABBIntersect(Ray ray, AABB aabb, float tmax)
 	tmin_t = Max(tmin_t, t0z);
 	tmax_t = Min(tmax_t, t1z);
 
-	if(tmin_t < TMIN || tmin_t > tmax)
+	if(tmin_t <= TMIN || tmin_t >= t)
 		return false;
 
 	return true;
+*/
 }
 
 void IntersectBVH(Ray ray, Scene scene, BVH_Node *node, HitData *data, float &tmax, bool &hitAnything)
@@ -173,7 +199,7 @@ void IntersectBVH(Ray ray, Scene scene, BVH_Node *node, HitData *data, float &tm
 		else
 		{
 			// If leaf node, test against triangles of node
-			Triangle *nodeTris = scene.modelTris + node->index;
+			Triangle *nodeTris = scene.tris + node->index;
 			uint32 numNodeTris = node->numTris;
 			
 			for(uint32 i = 0; i < numNodeTris; i++)

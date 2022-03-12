@@ -184,7 +184,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 
 				int32 pickedLightSource = (int32)(pcg32_random_r(rngptr) % scene.numLightTris);
 				// TODO: FIX THIS
-				Triangle lightSource = scene.modelTris[scene.lightTris[pickedLightSource]];
+				Triangle lightSource = scene.tris[scene.lightTris[pickedLightSource]];
 				
 				Material *lightSourceMat = lightSource.mat;
 				float lightArea = Area(&lightSource);
@@ -360,7 +360,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 
 				uint32 r = pcg32_random_r(rngptr);
 				int32 pickedLightSource = (int32)(r % scene.numLightTris);
-				Triangle lightSource = scene.modelTris[scene.lightTris[pickedLightSource]];
+				Triangle lightSource = scene.tris[scene.lightTris[pickedLightSource]];
 				
 				Material *lightSourceMat = lightSource.mat;
 				Vec3f y_nee = MapToTriangle(RandomVec2fPCG(rngptr), lightSource);
@@ -524,7 +524,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 					pdfNEE_area = 1.0f / Area(&scene.spheres[data.objectIndex]);
 					break;
 				case ObjectType::TRIANGLE:
-					pdfNEE_area = 1.0f / Area(&scene.modelTris[data.objectIndex]);
+					pdfNEE_area = 1.0f / Area(&scene.tris[data.objectIndex]);
 					break;
 				default:
 					// printf("Light source type unsupported for sampling!\n");
