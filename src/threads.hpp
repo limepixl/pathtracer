@@ -22,7 +22,6 @@ struct RenderData
 	bool initialized;
 };
 
-void *CreateThreadWin32(void *param);
-void WaitForThreadWin32(void *threadHandle);
-void CloseThreadWin32(void *threadHandle);
-bool CanThreadStart(void *handle);
+#if defined(_WIN32) || defined(_WIN64)
+#include "threads_win32.hpp"
+#endif
