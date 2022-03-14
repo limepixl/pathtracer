@@ -1,13 +1,13 @@
 - BVH
 - More BRDFs / BSDFs
-- Replace tinyobjloader with tinyobjloader-c or another C model loading lib
---- Long compile times
+- Reduce compile times
+	- Replace tinyobjloader with tinyobjloader-c or another C model loading lib
 - Russian Roulette
-- Try out fastmath to see if it gives a good performance improvement
+- Linux thread support or switch to threadpool library
+- Progressive rendering of frames so scene is interactable (CPU first before shader)
 - Stratified sampling
 - Materials from model data
 - Timing
 - Low discrepancy sequences
 - Reduce dependency on CRT
-- Progressive rendering of frames so scene is interactable (CPU first before shader)
 - Orthographic view (intensity instead of flux) 
