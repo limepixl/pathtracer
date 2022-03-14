@@ -8,6 +8,21 @@
 			"type": "process",
 			"command": "build.bat",
 			"problemMatcher": [],
+			"group": "build",
+			"presentation": {
+				"echo": false,
+				"reveal": "always",
+				"focus": true,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": true
+			}
+		},
+		{
+			"label": "Build (Linux Shell)",
+			"type": "process",
+			"command": "./build-linux.sh",
+			"problemMatcher": [],
 			"group": {
 				"kind": "build",
 				"isDefault": true
