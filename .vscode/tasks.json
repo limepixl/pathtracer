@@ -8,7 +8,10 @@
 			"type": "process",
 			"command": "build.bat",
 			"problemMatcher": [],
-			"group": "build",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
 			"presentation": {
 				"echo": false,
 				"reveal": "always",
@@ -23,10 +26,7 @@
 			"type": "process",
 			"command": "./build-linux.sh",
 			"problemMatcher": [],
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
+			"group": "build",
 			"presentation": {
 				"echo": false,
 				"reveal": "always",
