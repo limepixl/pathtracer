@@ -4,3 +4,6 @@
 #include "threads_win32.cpp"
 #endif
 
+#ifdef __linux__
+#include "threads_linux.cpp"
+#endif

@@ -1,12 +1,12 @@
 #pragma once
 
-#define NUM_THREADS 11
+#define NUM_THREADS 4
 
-#define WIDTH 1920
-#define HEIGHT 1080
+#define WIDTH 500
+#define HEIGHT 500
 
 #define BOUNCE_COUNT 5
-#define NUM_SAMPLES 10
+#define NUM_SAMPLES 100
 #define NUM_SHADOW_RAYS 1
 
 #define BVH_NUM_LEAF_TRIS 4

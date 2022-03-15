@@ -3,4 +3,5 @@
 *.exe
 .vs
 build
+build-linux
 .vscode/c_cpp_properties.json

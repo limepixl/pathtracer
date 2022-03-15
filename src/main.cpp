@@ -145,7 +145,11 @@ int main()
 		// We can start a thread if it has never been started, OR
 		// if the thread has started and finished its execution
 		RenderData *data = dataForThreads[i];
-		if(!data->initialized || CanThreadStart(threadHandles[i]))
+#if defined(_WIN32) || defined(_WIN64)
+		if(!data->initialized || CanThreadStartWin32(threadHandles[i]))
+#elif defined(__linux__)
+		if(!data->initialized || CanThreadStartLinux(threadHandles[i]))
+#endif
 		{
 			// If initialized, this means that there was a previous run
 			// that we can save to the bitmap buffer. If not, we need 
@@ -175,7 +179,9 @@ int main()
 				}
 				
 				// Close the finished thread because it can't be rerun
+#if defined(_WIN32) || defined(_WIN64)
 				CloseThreadWin32(threadHandles[i]);
+#endif
 			}
 
 			// Set the thread's region parameters
@@ -188,7 +194,11 @@ int main()
 			data->initialized = true;
 
 			// Create another thread with the above data being the same
+#if defined(_WIN32) || defined(_WIN64)
 			threadHandles[i] = CreateThreadWin32(dataForThreads[i]);
+#elif defined(__linux__)
+			threadHandles[i] = CreateThreadLinux(dataForThreads[i]);
+#endif
 
 			// Increment column index
 			colIndex++;
@@ -198,12 +208,18 @@ int main()
 	// After we finish rendering all chunks
 	for(uint8 i = 0; i < numThreads; i++)
 	{
+#if defined(_WIN32) || defined(_WIN64)
 		// If the thread is currently running, wait for it (join it to main thread)
-		if(!CanThreadStart(threadHandles[i]))
+		if(!CanThreadStartWin32(threadHandles[i]))
 			WaitForThreadWin32(threadHandles[i]);
 
 		// Close the thread, we won't be needing it anymore
 		CloseThreadWin32(threadHandles[i]);
+#elif defined(__linux__)
+		// If the thread is currently running, wait for it (join it to main thread)
+		if(!CanThreadStartLinux(threadHandles[i]))
+			WaitForThreadLinux(threadHandles[i]);
+#endif
 
 		// Thread just finished, so we need to write the changes
 		RenderData *data = dataForThreads[i];

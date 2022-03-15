@@ -1,8 +1,11 @@
-#include <Windows.h>
-#include <time.h>
-#include "pathtracer.hpp"
+#include <pthread.h>
+#include <cstdio>
+#include <errno.h>
+#include <pcg-c-basic-0.9/pcg_basic.h>
+#include "../src/math/math.hpp"
+#include "../src/pathtracer.hpp"
 
-DWORD WINAPI render_function(LPVOID param)
+void *render_function(void *param)
 {
 	RenderData *renderData = (RenderData *)param;
 
@@ -83,37 +86,41 @@ DWORD WINAPI render_function(LPVOID param)
 		}
 	}
 
-	return 1;
+	return NULL;
 }
 
-void *CreateThreadWin32(void *param)
+void *CreateThreadLinux(void *param)
 {
-	DWORD threadID = {};
-	HANDLE threadHandle = CreateThread(NULL, 0, render_function, param, 0, &threadID);
-	if(threadID == NULL)
+	/*
+	// Initialize thread attrib object
+	pthread_attr_t threadAttrib;
+	if(pthread_attr_init(&threadAttrib))
 	{
-		OutputDebugStringA("Failed to create thread!\n");
+		printf("Failed to initialize pthread_attr_t!\n");
+		return NULL;
+	}
+	*/
+
+	pthread_t *threadHandle = (pthread_t *)malloc(sizeof(pthread_t));
+	if(pthread_create(threadHandle, NULL, &render_function, param))
+	{
+		printf("Failed to create pthread_t!\n");
+		return NULL;
 	}
 
 	// printf("Successfully created thread with ID: %d\n", (int)threadID);
 	return threadHandle;
 }
 
-void CloseThreadWin32(void *threadHandle)
+void WaitForThreadLinux(void *threadHandle)
 {
-	CloseHandle(threadHandle);
+	pthread_join(*(pthread_t *)threadHandle, NULL);
+	free(threadHandle);
 }
 
-void WaitForThreadWin32(void *threadHandle)
+bool CanThreadStartLinux(void *handle)
 {
-	WaitForSingleObject(threadHandle, INFINITE);
-}
-
-bool CanThreadStartWin32(void *handle)
-{
-	DWORD exitCode = {};
-	BOOL res = GetExitCodeThread(handle, &exitCode);
-	if(exitCode == STILL_ACTIVE)
+	if(pthread_tryjoin_np(*(pthread_t *)handle, NULL) == EBUSY)
 		return false;
 
 	return true;
