@@ -1,6 +1,7 @@
 #include "sphere.hpp"
 #include "../math/math.hpp"
 #include "scene.hpp"
+#include <math.h>
 
 float Area(Sphere *sphere)
 {

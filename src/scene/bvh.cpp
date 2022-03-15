@@ -1,6 +1,7 @@
 #include "bvh.hpp"
 #include "triangle.hpp"
 #include <cstdlib>
+#include <math.h>
 
 bool operator==(const AABB &lhs, const AABB &rhs)
 {

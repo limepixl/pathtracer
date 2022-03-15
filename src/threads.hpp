@@ -25,3 +25,7 @@ struct RenderData
 #if defined(_WIN32) || defined(_WIN64)
 #include "threads_win32.hpp"
 #endif
+
+#ifdef __linux__
+#include "threads_linux.hpp"
+#endif

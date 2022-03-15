@@ -3,6 +3,7 @@
 #include "scene/material.hpp"
 #include "scene/triangle.hpp"
 #include "scene/sphere.hpp"
+#include <math.h>
 
 // A simple lerp between 2 colors
 Vec3f SkyColor(Vec3f dir)

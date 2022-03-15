@@ -1,6 +1,7 @@
 #include "triangle.hpp"
 #include "../math/math.hpp"
 #include "scene.hpp"
+#include <math.h>
 
 float Area(Triangle *tri)
 {
