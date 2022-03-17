@@ -37,51 +37,23 @@ AABB ConstructAABBFromTris(Triangle *tris, uint32 numTris)
 	return aabb;
 }
 
+inline float squaredDist(AABB &aabb, Vec3f &point)
+{
+	float dx = Max(Max(aabb.bmin.x - point.x, 0.0f), point.x - aabb.bmax.x);
+	float dy = Max(Max(aabb.bmin.y - point.y, 0.0f), point.y - aabb.bmax.y);
+	float dz = Max(Max(aabb.bmin.z - point.z, 0.0f), point.z - aabb.bmax.z);
+	return dx*dx + dy*dy + dz*dz;
+}
+
 // Returns -1 if first is closer than second
 // Returns  1 if second is closer than first
 // Returns  0 if both are overlapping (should not happen)
 int CloserAABB(AABB first, AABB second, Ray ray)
 {
-	Vec3f point1 = ray.origin;
-
-	// Clamp the point to the first AABB
-	if(point1.x > first.bmax.x)
-		point1.x = first.bmax.x;
-	else if(point1.x < first.bmin.x)
-		point1.x = first.bmin.x;
-	if(point1.y > first.bmax.y)
-		point1.y = first.bmax.y;
-	else if(point1.y < first.bmin.y)
-		point1.y = first.bmin.y;
-	if(point1.z > first.bmax.z)
-		point1.z = first.bmax.z;
-	else if(point1.z < first.bmin.z)
-		point1.z = first.bmin.z;
-
-	Vec3f point2 = ray.origin;
-
-	// Clamp the point to the second AABB
-	if(point2.x > second.bmax.x)
-		point2.x = second.bmax.x;
-	else if(point2.x < second.bmin.x)
-		point2.x = second.bmin.x;
-	if(point2.y > second.bmax.y)
-		point2.y = second.bmax.y;
-	else if(point2.y < second.bmin.y)
-		point2.y = second.bmin.y;
-	if(point2.z > second.bmax.z)
-		point2.z = second.bmax.z;
-	else if(point2.z < second.bmin.z)
-		point2.z = second.bmin.z;
-
-	point1 = point1 - ray.origin;
-	point2 = point2 - ray.origin;
-
-	// Compare squared lengths
-	float sl1 = Dot(point1, point1);
-	float sl2 = Dot(point2, point2);
-	if(sl1 < sl2) return -1;
-	if(sl1 > sl2) return 1;
+	float dist1 = squaredDist(first, ray.origin);
+	float dist2 = squaredDist(second, ray.origin);
+	if(dist1 < dist2) return -1;
+	if(dist1 > dist2) return 1;
 	return 0;
 }
 
@@ -89,89 +61,25 @@ int CloserAABB(AABB first, AABB second, Ray ray)
 // https://tavianator.com/2011/ray_box.html
 bool AABBIntersect(Ray ray, AABB aabb, float t)
 {
-	Vec3f invDir = 1.0f / ray.direction;
-
-	float tx1 = (aabb.bmin.x - ray.origin.x)*invDir.x;
-	float tx2 = (aabb.bmax.x - ray.origin.x)*invDir.x;
+	float tx1 = (aabb.bmin.x - ray.origin.x)*ray.invDir.x;
+	float tx2 = (aabb.bmax.x - ray.origin.x)*ray.invDir.x;
 
 	float tmin = Min(tx1, tx2);
 	float tmax = Max(tx1, tx2);
 
-	float ty1 = (aabb.bmin.y - ray.origin.y)*invDir.y;
-	float ty2 = (aabb.bmax.y - ray.origin.y)*invDir.y;
+	float ty1 = (aabb.bmin.y - ray.origin.y)*ray.invDir.y;
+	float ty2 = (aabb.bmax.y - ray.origin.y)*ray.invDir.y;
 
 	tmin = Max(tmin, Min(ty1, ty2));
 	tmax = Min(tmax, Max(ty1, ty2));
 
-	float tz1 = (aabb.bmin.z - ray.origin.z)*invDir.z;
-	float tz2 = (aabb.bmax.z - ray.origin.z)*invDir.z;
+	float tz1 = (aabb.bmin.z - ray.origin.z)*ray.invDir.z;
+	float tz2 = (aabb.bmax.z - ray.origin.z)*ray.invDir.z;
 
 	tmin = Max(tmin, Min(tz1, tz2));
 	tmax = Min(tmax, Max(tz1, tz2));
 
 	return tmax >= Max(0.0f, tmin) && tmin < t;
-/*
-	// First check if ray origin is within AABB
-	Vec3f &ro = ray.origin;
-	if(ro > aabb.bmin && ro < aabb.bmax)
-		return true;
-
-	float t0x, t1x, t0y, t1y, t0z, t1z;
-	Vec3f inverseDir = 1.0f / ray.direction;
-	
-	// X axis interval
-	if(inverseDir.x >= 0)
-	{
-		t0x = (aabb.bmin.x - ray.origin.x) * inverseDir.x;
-		t1x = (aabb.bmax.x - ray.origin.x) * inverseDir.x;
-	}
-	else
-	{
-		t0x = (aabb.bmax.x - ray.origin.x) * inverseDir.x;
-		t1x = (aabb.bmin.x - ray.origin.x) * inverseDir.x;
-	}
-	
-	// Y axis interval
-	if(inverseDir.y >= 0)
-	{
-		t0y = (aabb.bmin.y - ray.origin.y) * inverseDir.y;
-		t1y = (aabb.bmax.y - ray.origin.y) * inverseDir.y;
-	}
-	else
-	{
-		t0y = (aabb.bmax.y - ray.origin.y) * inverseDir.y;
-		t1y = (aabb.bmin.y - ray.origin.y) * inverseDir.y;
-	}
-
-	if(t0x > t1y || t0y > t1x)
-		return false;
-
-	float tmin_t = Max(t0x, t0y);
-	float tmax_t = Min(t1x, t1y);
-
-	// Z axis interval
-	if(inverseDir.z >= 0)
-	{
-		t0z = (aabb.bmin.z - ray.origin.z) * inverseDir.z;
-		t1z = (aabb.bmax.z - ray.origin.z) * inverseDir.z;
-	}
-	else
-	{
-		t0z = (aabb.bmax.z - ray.origin.z) * inverseDir.z;
-		t1z = (aabb.bmin.z - ray.origin.z) * inverseDir.z;
-	}
-
-	if(tmin_t > t1z || t0z > tmax_t)
-		return false;
-
-	tmin_t = Max(tmin_t, t0z);
-	tmax_t = Min(tmax_t, t1z);
-
-	if(tmin_t <= TMIN || tmin_t >= t)
-		return false;
-
-	return true;
-*/
 }
 
 void IntersectBVH(Ray ray, Scene scene, BVH_Node *node, HitData *data, float &tmax, bool &hitAnything)

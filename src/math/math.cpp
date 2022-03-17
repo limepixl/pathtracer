@@ -49,7 +49,7 @@ float Dot(Vec3f vec1, Vec3f vec2)
 	return (vec1.x * vec2.x) + (vec1.y * vec2.y) + (vec1.z * vec2.z);
 }
 
-Vec3f Cross(Vec3f a, Vec3f b)
+Vec3f Cross(Vec3f &a, Vec3f &b)
 {
 	float x = a.y*b.z - a.z*b.y;
 	float y = a.z*b.x - a.x*b.z;
@@ -82,7 +82,7 @@ uint32 Max(uint32 a, uint32 b)
 	return a > b ? a : b;
 }
 
-Vec3f MaxComponentWise(Vec3f a, Vec3f b)
+Vec3f MaxComponentWise(Vec3f &a, Vec3f &b)
 {
 	return { Max(a.x, b.x), Max(a.y, b.y), Max(a.z, b.z) };
 }
@@ -107,7 +107,7 @@ uint16 Min(uint16 a, uint16 b)
 	return a < b ? a : b;
 }
 
-Vec3f MinComponentWise(Vec3f a, Vec3f b)
+Vec3f MinComponentWise(Vec3f &a, Vec3f &b)
 {
 	return { Min(a.x, b.x), Min(a.y, b.y), Min(a.z, b.z) };
 }
@@ -162,16 +162,11 @@ Vec3f NormalizeVec3f(Vec3f vec)
 // PCG variants of the above functions
 float RandomNumberNormalizedPCG(pcg32_random_t *rngptr)
 {
-	/*
-	uint32 val = pcg32_random_r(rngptr);
-
-	float64 result = (float64)(val+1000.0) / ((float64)UINT_MAX + 2000.0);
-	*/
-	
 	double d = ldexp(pcg32_random_r(rngptr), -32);
 	return (float)d;
 }
 
+// TODO: remove conditionals
 Vec2f RandomVec2fPCG(pcg32_random_t *rngptr)
 {
 	float r1 = RandomNumberNormalizedPCG(rngptr);

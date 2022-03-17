@@ -65,7 +65,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngpt
 	
 			// Intersection point and new ray
 			Vec3f point = data.point;
-			ray = {point + EPSILON * data.normal, dir};
+			ray = {point + EPSILON * data.normal, dir, 1.0f / dir};
 		}
 		else if(mat->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
 		{
@@ -73,7 +73,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngpt
 
 			// Intersection point and new ray
 			Vec3f point = data.point;
-			ray = {point + EPSILON * data.normal, reflectedDir};
+			ray = {point + EPSILON * data.normal, reflectedDir, 1.0f / reflectedDir};
 
 			// If we sample uniformly or with cosine weighted sampling, then
 			// we would need to calculate the BRDF every single direction in the
@@ -99,7 +99,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngpt
 				Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 				Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, data.normal);
 
-				ray = {data.point + EPSILON * data.normal, dir};
+				ray = {data.point + EPSILON * data.normal, dir, 1.0f / dir};
 			}
 			else if(uvec <= mat->diffuse * PI + mat->specular)
 			{
@@ -120,7 +120,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngpt
 				Vec3f dir = {sinAlpha * cosf(phi), cosAlpha, sinAlpha * sinf(phi)};
 
 				dir = tnb * dir;
-				ray = {x, dir};
+				ray = {x, dir, 1.0f / dir};
 
 				float cosThetaX = Max(0.0f, Dot(dir, Nx));
 
@@ -201,7 +201,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 				// Send out a shadow ray in direction x->y
 				Vec3f distVec = y - x;
 				Vec3f shadowRayDir = NormalizeVec3f(distVec);
-				Ray shadowRay = {x, shadowRayDir};
+				Ray shadowRay = {x, shadowRayDir, 1.0f / shadowRayDir};
 
 				// Check if ray hits anything before hitting the light source
 				HitData shadowData = {};
@@ -259,7 +259,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 			Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, data.normal);
 
 			Vec3f point = data.point;
-			ray = {point + EPSILON * data.normal, dir};
+			ray = {point + EPSILON * data.normal, dir, 1.0f / dir};
 		}
 		else if(mat->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
 		{
@@ -267,7 +267,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 
 			// Intersection point and new ray
 			Vec3f point = data.point;
-			ray = {point + EPSILON * data.normal, reflectedDir};
+			ray = {point + EPSILON * data.normal, reflectedDir, 1.0f / reflectedDir};
 
 			// If we sample uniformly or with cosine weighted sampling, then
 			// we would need to calculate the BRDF every single direction in the
@@ -301,7 +301,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 			Vec3f dir = {sinAlpha * cosf(phi), cosAlpha, sinAlpha * sinf(phi)};
 
 			dir = tnb * dir;
-			ray = {x, dir};
+			ray = {x, dir, 1.0f / dir};
 
 			float cosThetaX = Max(0.0f, Dot(dir, Nx));
 
@@ -373,7 +373,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 				// Send out a shadow ray in direction x->y
 				Vec3f distVec = y_nee - x_nee;
 				Vec3f shadowRayDir = NormalizeVec3f(distVec);
-				Ray shadowRay = {x_nee, shadowRayDir};
+				Ray shadowRay = {x_nee, shadowRayDir, 1.0f / shadowRayDir};
 
 				float squaredDist = Dot(distVec, distVec);
 
@@ -428,13 +428,13 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 			// Pick a new direction
 			Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 			Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, normalX);
-			ray = {x + EPSILON * normalX, dir};
+			ray = {x + EPSILON * normalX, dir, 1.0f / dir};
 		}
 		else if(matX->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
 		{
 			// Pick the reflected direciton
 			Vec3f reflectedDir = Reflect(-ray.direction, normalX);
-			ray = {x + EPSILON * normalX, reflectedDir};
+			ray = {x + EPSILON * normalX, reflectedDir, 1.0f / reflectedDir};
 		}
 		else if(matX->type == MaterialType::MATERIAL_PHONG)
 		{
@@ -451,7 +451,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 
 			Vec3f dir = {sinAlpha * cosf(phi), cosAlpha, sinAlpha * sinf(phi)};
 			dir = tnb * dir;
-			ray = {x, dir};
+			ray = {x, dir, 1.0f / dir};
 		}
 
 		float cosThetaX = Max(0.0f, Dot(normalX, ray.direction));

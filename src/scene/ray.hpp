@@ -6,6 +6,7 @@ struct Ray
 {
 	Vec3f origin;
 	Vec3f direction;
+	Vec3f invDir;
 };
 
 Vec3f PointAlongRay(Ray r, float t);
