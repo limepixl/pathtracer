@@ -19,7 +19,7 @@ int16 Clamp(int16 value, int16 max);
 
 float Dot(Vec3f vec1, Vec3f vec2);
 
-Vec3f Cross(Vec3f a, Vec3f b);
+Vec3f Cross(Vec3f &a, Vec3f &b);
 
 float Max(float a, float b);
 double Max(double a, double b);
@@ -27,14 +27,14 @@ int32 Max(int32 a, int32 b);
 int16 Max(int16 a, int16 b);
 uint32 Max(uint32 a, uint32 b);
 
-Vec3f MaxComponentWise(Vec3f a, Vec3f b);
+Vec3f MaxComponentWise(Vec3f &a, Vec3f &b);
 
 float Min(float a, float b);
 double Min(double a, double b);
 uint32 Min(uint32 a, uint32 b);
 uint16 Min(uint16 a, uint16 b);
 
-Vec3f MinComponentWise(Vec3f a, Vec3f b);
+Vec3f MinComponentWise(Vec3f &a, Vec3f &b);
 
 float Step(float edge, float x);
 Vec3f Step(Vec3f edge, Vec3f x);
