@@ -15,7 +15,6 @@ struct AABB
 };
 
 bool operator==(const AABB &lhs, const AABB &rhs);
-int CloserAABB(AABB first, AABB second, Ray ray);
 bool AABBIntersect(Ray ray, AABB aabb, float t);
 
 struct BVH_Node
@@ -28,4 +27,5 @@ struct BVH_Node
 
 AABB ConstructAABBFromTris(struct Triangle *tris, uint32 numTris);
 bool ConstructBVH(struct Triangle *tris, uint32 numTris, BVH_Node **node, uint32 index = 0);
-void IntersectBVH(Ray ray, Scene scene, BVH_Node *node, HitData *data, float &tmax, bool &hitAnything);
+void IntersectBVHRecursive(Ray ray, Scene scene, BVH_Node *node, HitData *data, float &tmax, bool &hitAnything);
+bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax);

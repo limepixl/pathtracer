@@ -40,7 +40,7 @@ bool Intersect(Ray ray, Scene scene, HitData *data)
 		}
 	}
 
-	IntersectBVH(ray, scene, scene.bvh, &resultData, tmax, hitAnything);
+	hitAnything = hitAnything || IntersectBVHStack(ray, scene, &resultData, tmax);
 	if(hitAnything)
 	{
 		*data = resultData;
