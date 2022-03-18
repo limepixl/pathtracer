@@ -2,8 +2,8 @@
 
 #define NUM_THREADS 11
 
-#define WIDTH 1000
-#define HEIGHT 1000
+#define WIDTH 500
+#define HEIGHT 500
 
 #define BOUNCE_COUNT 5
 #define NUM_SAMPLES 10

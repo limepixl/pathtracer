@@ -27,7 +27,11 @@ DWORD WINAPI render_function(LPVOID param)
 
 	// Initialize a PCG context for each thread
 	pcg32_random_t rng {};
+#if PREDICTABLE_RAND
+	pcg32_srandom_r(&rng, 0, (intptr_t)&rng);
+#else
 	pcg32_srandom_r(&rng, time(NULL), (intptr_t)&rng);
+#endif
 
 	// Index for memory buffer
 	uint32 index = 0;

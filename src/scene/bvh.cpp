@@ -45,18 +45,6 @@ inline float squaredDist(AABB &aabb, Vec3f &point)
 	return dx*dx + dy*dy + dz*dz;
 }
 
-// Returns -1 if first is closer than second
-// Returns  1 if second is closer than first
-// Returns  0 if both are overlapping (should not happen)
-int CloserAABB(AABB first, AABB second, Ray ray)
-{
-	float dist1 = squaredDist(first, ray.origin);
-	float dist2 = squaredDist(second, ray.origin);
-	if(dist1 < dist2) return -1;
-	if(dist1 > dist2) return 1;
-	return 0;
-}
-
 // Slab method
 // https://tavianator.com/2011/ray_box.html
 bool AABBIntersect(Ray ray, AABB aabb, float t)
@@ -82,7 +70,77 @@ bool AABBIntersect(Ray ray, AABB aabb, float t)
 	return tmax >= Max(0.0f, tmin) && tmin < t;
 }
 
-void IntersectBVH(Ray ray, Scene scene, BVH_Node *node, HitData *data, float &tmax, bool &hitAnything)
+// TODO: change to own stack
+#include <stack>
+
+bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax)
+{
+	bool hitAnything = false;
+	std::stack<BVH_Node *> stack;
+
+	stack.push(scene.bvh);
+
+	while(!stack.empty())
+	{
+		BVH_Node *node = stack.top(); stack.pop();
+
+		// Check if ray intersects root node
+		bool bvhHit = AABBIntersect(ray, node->nodeAABB, tmax);
+		if(bvhHit)
+		{
+			bool isLeafNode = node->numTris <= BVH_NUM_LEAF_TRIS;
+			if(!isLeafNode)
+			{
+				float dist1 = squaredDist(node->left->nodeAABB, ray.origin);
+				float dist2 = squaredDist(node->right->nodeAABB, ray.origin);
+				
+				float squaredtmax = tmax*tmax;
+				if(dist1 <= dist2)
+				{
+					if(dist2 < squaredtmax)
+						stack.push(node->right);
+
+					if(dist1 < squaredtmax)
+						stack.push(node->left);
+				}
+				else
+				{
+					if(dist1 < squaredtmax)
+						stack.push(node->left);
+
+					if(dist2 < squaredtmax)
+						stack.push(node->right);
+				}
+			}
+			else
+			{
+				// If leaf node, test against triangles of node
+				Triangle *nodeTris = scene.tris + node->index;
+				uint32 numNodeTris = node->numTris;
+				
+				for(uint32 i = 0; i < numNodeTris; i++)
+				{
+					HitData currentData = {};
+					Triangle *current = &nodeTris[i];
+					bool intersect = TriangleIntersect(ray, current, &currentData, tmax);
+					if(intersect && currentData.t < tmax)
+					{
+						// Found closer hit, store it.
+						tmax = currentData.t;
+						currentData.objectIndex = node->index + i;
+
+						hitAnything = true;
+						*data = currentData;
+					}
+				}
+			}
+		}
+	}
+
+	return hitAnything;
+}
+
+void IntersectBVHRecursive(Ray ray, Scene scene, BVH_Node *node, HitData *data, float &tmax, bool &hitAnything)
 {
 	// Check if there is an intersection with the current node
 	bool bvhHit = AABBIntersect(ray, node->nodeAABB, tmax);
@@ -92,17 +150,17 @@ void IntersectBVH(Ray ray, Scene scene, BVH_Node *node, HitData *data, float &tm
 		if(!isLeafNode)
 		{
 			// Check which child is closer
-			int res = CloserAABB(node->left->nodeAABB, node->right->nodeAABB, ray);
+			int res = 0;// CloserAABB(node->left->nodeAABB, node->right->nodeAABB, ray);
 			
 			if(res == -1 || res == 0)
 			{
-				IntersectBVH(ray, scene, node->left, data, tmax, hitAnything);
-				IntersectBVH(ray, scene, node->right, data, tmax, hitAnything);
+				IntersectBVHRecursive(ray, scene, node->left, data, tmax, hitAnything);
+				IntersectBVHRecursive(ray, scene, node->right, data, tmax, hitAnything);
 			}
 			else if(res == 1)
 			{
-				IntersectBVH(ray, scene, node->right, data, tmax, hitAnything);
-				IntersectBVH(ray, scene, node->left, data, tmax, hitAnything);
+				IntersectBVHRecursive(ray, scene, node->right, data, tmax, hitAnything);
+				IntersectBVHRecursive(ray, scene, node->left, data, tmax, hitAnything);
 			}
 		}
 		else
