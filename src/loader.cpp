@@ -159,7 +159,7 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 
 			if(unique)
 			{
-				Vec3f ambient = CreateVec3f(mat.ambient[0], mat.ambient[1], mat.ambient[2]);
+				// Vec3f ambient = CreateVec3f(mat.ambient[0], mat.ambient[1], mat.ambient[2]);
 				Vec3f diffuse = CreateVec3f(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]);
 				Vec3f specular = CreateVec3f(mat.specular[0], mat.specular[1], mat.specular[2]);
 				Vec3f emission = CreateVec3f(mat.emission[0], mat.emission[1], mat.emission[2]);
