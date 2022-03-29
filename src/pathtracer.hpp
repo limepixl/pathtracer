@@ -398,7 +398,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 					cosThetaY = Abs(cosThetaY);
 				#else
 					float cosThetaY = Max(0.0f, Dot(shadowData.normal, -shadowRay.direction));
-					Vec3f normalY_nee = shadowData.normal;
+					// Vec3f normalY_nee = shadowData.normal;
 					if(cosThetaY > 0.0f)
 				#endif
 					{
