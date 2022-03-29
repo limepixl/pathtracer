@@ -43,5 +43,4 @@ typedef long int64;
 // ASSERT writes to 0x0, which will throw an access 
 // violation exception. ASSERT is used when we want
 // some expression to be different from zero.
-#define ASSERT(expression) \
-	if(!(expression)) { *(int *)NULL = 0; }
+#define ASSERT(expression) if(!(expression)) { *(int *)NULL = 0; }
