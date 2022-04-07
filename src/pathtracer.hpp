@@ -3,7 +3,7 @@
 #include "scene/material.hpp"
 #include "scene/triangle.hpp"
 #include "scene/sphere.hpp"
-#include <math.h>
+#include <cmath>
 
 // A simple lerp between 2 colors
 Vec3f SkyColor(Vec3f dir)
@@ -140,7 +140,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 	Vec3f color = CreateVec3f(0.0f);
 	Vec3f throughputTerm = CreateVec3f(1.0f);
 
-	Material *oldMat = NULL;
+	Material *oldMat = nullptr;
 
 	for(int16 bounce = 0; bounce < BOUNCE_COUNT; bounce++)
 	{
@@ -165,7 +165,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 		{
 			// TODO: only add if the ray was added by a single lonely bounce from
 			// the mirror instead of just the last bounce being the mirror?
-			bool lastBounceWasReflected = (oldMat != NULL && oldMat->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE);
+			bool lastBounceWasReflected = (oldMat != nullptr && oldMat->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE);
 			if(bounce == 0 || lastBounceWasReflected)
 				color = mat->Le;
 
@@ -181,7 +181,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 			for(int8 shadowRayIndex = 0; shadowRayIndex < NUM_SHADOW_RAYS; shadowRayIndex++)
 			{
 				// pick a light source
-				float pdfPickLight = 1.0f / scene.numLightTris;
+				float pdfPickLight = 1.0f / (float)scene.numLightTris;
 
 				int32 pickedLightSource = (int32)(pcg32_random_r(rngptr) % scene.numLightTris);
 				// TODO: FIX THIS
@@ -357,7 +357,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 			for(int8 shadowRayIndex = 0; shadowRayIndex < NUM_SHADOW_RAYS; shadowRayIndex++)
 			{
 				// pick a light source
-				float pdfPickLight = 1.0f / scene.numLightTris;
+				float pdfPickLight = 1.0f / (float)scene.numLightTris;
 
 				uint32 r = pcg32_random_r(rngptr);
 				int32 pickedLightSource = (int32)(r % scene.numLightTris);

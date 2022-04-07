@@ -91,7 +91,7 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 			}
 
 			// Get normal data
-			Vec3f nv0, nv1, nv2;
+			Vec3f nv0{}, nv1{}, nv2{};
 			float normalv0[3];
 			float normalv1[3];
 			float normalv2[3];
@@ -144,7 +144,7 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 			// Materials
 			int32 matID = shapes[shape].mesh.material_ids[face];
 			tinyobj::material_t mat = materials[matID];
-			Material *triangle_mat = NULL;
+			Material *triangle_mat = nullptr;
 
 			bool unique = true;
 			for(int32 m = 0; m < numLoadedMaterials; m++)

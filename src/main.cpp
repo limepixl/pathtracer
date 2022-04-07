@@ -1,7 +1,7 @@
 // TODO: replace most C standard library calls with native platform layer
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
 
 #include "loader.hpp"
 #include "threads.hpp"
@@ -30,10 +30,10 @@ int main()
 	Vec3f gridOrigin = eye - (gridX / 2.0f) - (gridY / 2.0f);
 	gridOrigin.z = -2.0f;
 
-	Triangle *tris = NULL;
+	Triangle *tris = nullptr;
 	uint32 numTris = 0;
 
-	Material *materials = NULL;
+	Material *materials = nullptr;
 	uint32 numMaterials = 0;
 
 	if(!LoadModelFromObj("CornellBox-Bunny.obj",
@@ -57,7 +57,7 @@ int main()
 	}
 
 	// Construct BVH tree and sort triangle list according to it
-	BVH_Node *rootBVH = NULL;
+	BVH_Node *rootBVH = nullptr;
 	if(!ConstructBVH(tris, numTris, &rootBVH))
 	{
 		printf("Error in BVH construction!\n");
@@ -78,7 +78,7 @@ int main()
 		}
 	}
 
-	Scene scene = ConstructScene(NULL, 0,
+	Scene scene = ConstructScene(nullptr, 0,
 							     tris, numTris,
 								 emissiveTris, numEmissiveTris,
 								 rootBVH);
@@ -95,8 +95,8 @@ int main()
 	uint32 rowSizeInBytes = pixelSize * width;
 	uint32 threadMemorySize = pixelStep * pixelStep * pixelSize;
 
-	uint16 numChunkColumns = (uint16)Ceil((float)width / pixelStep);
-	uint16 numChunkRows = (uint16)Ceil((float)height / pixelStep);
+	uint16 numChunkColumns = (uint16)Ceil((float)width / (float)pixelStep);
+	uint16 numChunkRows = (uint16)Ceil((float)height / (float)pixelStep);
 
 	// If there are more threads than needed, don't allocate memory for them
 	uint16 numThreads = Min((uint16)NUM_THREADS, numChunkRows * numChunkColumns);
@@ -123,7 +123,7 @@ int main()
 	}
 
 	// Start a thread with the next chunk to be rendered
-	for(uint8 i = 0; i <= numThreads; i++)
+	for(uint16 i = 0; i <= numThreads; i++)
 	{
 		// Cycle around the thread array and check each thread infinitely
 		if(i == numThreads)
@@ -158,8 +158,8 @@ int main()
 			{
 				printf("Rendered region: x = %u-%u, y = %u-%u\n", data->startX, data->endX, data->startY, data->endY);
 	
-				int32 deltaX = data->endX - data->startX;
-				int32 deltaY = data->endY - data->startY;
+				int32 deltaX = (int32)(data->endX - data->startX);
+				int32 deltaY = (int32)(data->endY - data->startY);
 
 				// Read only this many bytes at a time from the thread's memory
 				// and write it to the bitmap buffer. If we exceed this number 
@@ -206,7 +206,7 @@ int main()
 	}
 
 	// After we finish rendering all chunks
-	for(uint8 i = 0; i < numThreads; i++)
+	for(uint16 i = 0; i < numThreads; i++)
 	{
 #if defined(_WIN32) || defined(_WIN64)
 		// If the thread is currently running, wait for it (join it to main thread)

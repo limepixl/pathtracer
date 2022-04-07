@@ -17,7 +17,7 @@ struct HitData
 
 	struct Material *mat;
 
-	int32 objectIndex;
+	uint32 objectIndex;
 	ObjectType objectType;
 };
 
