@@ -1,7 +1,7 @@
 #include "bvh.hpp"
 #include "triangle.hpp"
 #include <cstdlib>
-#include <math.h>
+#include <cmath>
 
 bool operator==(const AABB &lhs, const AABB &rhs)
 {
@@ -237,8 +237,8 @@ bool ConstructBVH(Triangle *tris, uint32 numTris, BVH_Node **node, uint32 index)
 	*node = new BVH_Node();
 	BVH_Node *current_node = *node;
 
-	current_node->left = NULL;
-	current_node->right = NULL;
+	current_node->left = nullptr;
+	current_node->right = nullptr;
 	current_node->index = index;
 	current_node->numTris = numTris;
 
@@ -262,4 +262,14 @@ bool ConstructBVH(Triangle *tris, uint32 numTris, BVH_Node **node, uint32 index)
 	current_node->nodeAABB = ConstructAABBFromTris(tris, numTris);
 
 	return true;
+}
+
+void DeleteBVH(BVH_Node *node)
+{
+    if(node->left != nullptr)
+        DeleteBVH(node->left);
+    if(node->right != nullptr)
+        DeleteBVH(node->right);
+
+    delete node;
 }

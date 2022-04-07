@@ -29,3 +29,4 @@ AABB ConstructAABBFromTris(struct Triangle *tris, uint32 numTris);
 bool ConstructBVH(struct Triangle *tris, uint32 numTris, BVH_Node **node, uint32 index = 0);
 void IntersectBVHRecursive(Ray ray, Scene scene, BVH_Node *node, HitData *data, float &tmax, bool &hitAnything);
 bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax);
+void DeleteBVH(BVH_Node *node);

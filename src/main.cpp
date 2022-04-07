@@ -33,7 +33,7 @@ int main()
 	Triangle *tris = nullptr;
 	uint32 numTris = 0;
 
-	Material *materials = nullptr;
+	Material **materials = nullptr;
 	uint32 numMaterials = 0;
 
 	if(!LoadModelFromObj("CornellBox-Suzanne.obj",
@@ -256,7 +256,13 @@ int main()
 
 	free(bitmapBuffer);
 	free(tris);
+    for(uint32 i = 0; i < numMaterials; i++)
+    {
+        free(materials[i]);
+    }
+
 	free(materials);
+    DeleteBVH(rootBVH);
 
 	return 0;
 }

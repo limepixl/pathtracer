@@ -11,7 +11,7 @@
 
 bool LoadModelFromObj(const char *fileName, const char *path, 
 					  Triangle **outTris, uint32 *numOutTris,
-					  Material **outMaterials, uint32 *numOutMaterials)
+					  Material ***outMaterials, uint32 *numOutMaterials)
 {
 	printf("Loading %s model from path: %s\n", fileName, path);
 
@@ -44,7 +44,7 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 
 	// Initialize out materials
 	int32 numLoadedMaterials = 0;
-	outMaterials = (Material **)malloc(numMaterials * sizeof(Material *));
+	*outMaterials = (Material **)malloc(numMaterials * sizeof(Material *));
 
 	// Keep track of emissive triangles so that we can keep them as
 	// light sources for NEE later on
@@ -149,10 +149,10 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 			bool unique = true;
 			for(int32 m = 0; m < numLoadedMaterials; m++)
 			{
-				if(!strcmp(mat.name.c_str(), outMaterials[m]->name))
+				if(!strcmp(mat.name.c_str(), (*outMaterials)[m]->name))
 				{
 					unique = false;
-					triangle_mat = outMaterials[m];
+					triangle_mat = (*outMaterials)[m];
 					break;
 				}
 			}
@@ -175,7 +175,7 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 											emission,
 											mat.name.c_str());
 
-					outMaterials[numLoadedMaterials++] = tmp_mat;
+                    (*outMaterials)[numLoadedMaterials++] = tmp_mat;
 					triangle_mat = tmp_mat;
 				}
 
@@ -190,7 +190,7 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 											  emission,
 											  mat.name.c_str());
 
-					outMaterials[numLoadedMaterials++] = tmp_mat;
+                    (*outMaterials)[numLoadedMaterials++] = tmp_mat;
 					triangle_mat = tmp_mat;
 				}	
 
@@ -206,7 +206,7 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 											  emission,
 											  mat.name.c_str());
 
-					outMaterials[numLoadedMaterials++] = tmp_mat;
+                    (*outMaterials)[numLoadedMaterials++] = tmp_mat;
 					triangle_mat = tmp_mat;
 				}
 			}
