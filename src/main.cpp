@@ -36,7 +36,7 @@ int main()
 	Material *materials = nullptr;
 	uint32 numMaterials = 0;
 
-	if(!LoadModelFromObj("CornellBox-Bunny.obj",
+	if(!LoadModelFromObj("CornellBox-Suzanne.obj",
 						 "../res/", 
 						 &tris, &numTris,
 						 &materials, &numMaterials))

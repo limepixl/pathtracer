@@ -1,6 +1,6 @@
 #pragma once
 
-#define NUM_THREADS 2
+#define NUM_THREADS 4
 
 #define WIDTH 500
 #define HEIGHT 500
