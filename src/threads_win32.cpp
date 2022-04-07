@@ -1,5 +1,5 @@
 #include <Windows.h>
-#include <time.h>
+#include <ctime>
 #include "pathtracer.hpp"
 
 DWORD WINAPI render_function(LPVOID param)
@@ -30,7 +30,7 @@ DWORD WINAPI render_function(LPVOID param)
 #if PREDICTABLE_RAND
 	pcg32_srandom_r(&rng, 0, (intptr_t)&rng);
 #else
-	pcg32_srandom_r(&rng, time(NULL), (intptr_t)&rng);
+	pcg32_srandom_r(&rng, time(nullptr), (intptr_t)&rng);
 #endif
 
 	// Index for memory buffer
@@ -93,8 +93,8 @@ DWORD WINAPI render_function(LPVOID param)
 void *CreateThreadWin32(void *param)
 {
 	DWORD threadID = {};
-	HANDLE threadHandle = CreateThread(NULL, 0, render_function, param, 0, &threadID);
-	if(threadID == NULL)
+	HANDLE threadHandle = CreateThread(nullptr, 0, render_function, param, 0, &threadID);
+	if(threadID == 0)
 	{
 		OutputDebugStringA("Failed to create thread!\n");
 	}

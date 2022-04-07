@@ -1,6 +1,6 @@
 #define _CRT_RAND_S
 #include "math.hpp"
-#include <math.h>
+#include <cmath>
 #include "../scene/triangle.hpp"
 
 /*
