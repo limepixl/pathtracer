@@ -62,7 +62,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 include(CheckIPOSupported)
 check_ipo_supported(RESULT result)
 if(result)
+
+	message("-- Enabled Link-Time Optimization (LTO)!")
 	set_target_properties(${PROJECT_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
@@ -71,10 +74,12 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 include(CMakePrintHelpers)
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -Wno-missing-braces -Wno-unused-variable -Wno-missing-field-initializers)
+
+	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -Wno-missing-braces -Wno-unused-variable)
 	if(UNIX)
 		target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
 	endif()
+
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 	target_compile_options(${PROJECT_NAME} PRIVATE -WX -W4 -wd4201 -wd4189 -wd4100 -wd4146)
 endif()

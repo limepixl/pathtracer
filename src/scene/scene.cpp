@@ -20,7 +20,8 @@ Scene ConstructScene(Sphere *spheres, uint32 numSpheres,
 bool Intersect(Ray ray, Scene scene, HitData *data)
 {
 	bool hitAnything = false;
-	HitData resultData = {TMAX};
+	HitData resultData {};
+	resultData.t = TMAX;
 
 	float tmax = TMAX;
 

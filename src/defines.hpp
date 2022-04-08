@@ -1,9 +1,9 @@
 #pragma once
 
-#define NUM_THREADS 4
+#define NUM_THREADS 11
 
-#define WIDTH 1000
-#define HEIGHT 1000
+#define WIDTH 1920
+#define HEIGHT 1080
 
 #define BOUNCE_COUNT 5
 #define NUM_SAMPLES 20
