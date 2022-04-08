@@ -1,19 +1,20 @@
 #pragma once
 #include "math/math.hpp"
 #include "scene/material.hpp"
-#include "scene/triangle.hpp"
+#include "scene/scene.hpp"
 #include "scene/sphere.hpp"
+#include "scene/triangle.hpp"
 #include <cmath>
 
 // A simple lerp between 2 colors
 Vec3f SkyColor(Vec3f dir)
 {
 	Vec3f normalizedDir = NormalizeVec3f(dir);
-    float t = 0.5f*(normalizedDir.y + 1.0f);
+	float t = 0.5f * (normalizedDir.y + 1.0f);
 
-	Vec3f startColor = {1.0f, 1.0f, 1.0f};
-	Vec3f endColor = {0.546f, 0.824f, 0.925f};
-    return (1.0f-t) * startColor + t * endColor;
+	Vec3f startColor = { 1.0f, 1.0f, 1.0f };
+	Vec3f endColor = { 0.546f, 0.824f, 0.925f };
+	return (1.0f - t) * startColor + t * endColor;
 }
 
 // Cast ray into the scene, have the ray bounce around
@@ -21,23 +22,23 @@ Vec3f SkyColor(Vec3f dir)
 // along the way, and return the color for the given pixel
 Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngptr)
 {
-	Vec3f color {0.0f, 0.0f, 0.0f};
+	Vec3f color { 0.0f, 0.0f, 0.0f };
 
 	// ( BRDF * dot(Nx, psi) ) / PDF(psi)
-	Vec3f throughputTerm {1.0f, 1.0f, 1.0f};
+	Vec3f throughputTerm { 1.0f, 1.0f, 1.0f };
 
 	// Vignette effect (basically undoing We=1/cos^3(theta) )
 	// float32 theta = acosf(-ray.direction.z);
 	// throughputTerm = throughputTerm * powf(cosf(theta), 3);
 
 	int8 numBounces = BOUNCE_COUNT;
-	for(uint8 b = 0; b < numBounces; b++)
+	for (uint8 b = 0; b < numBounces; b++)
 	{
 		HitData data = {};
 		bool intersect = Intersect(ray, scene, &data);
-		if(!intersect) // ray goes off into infinity
+		if (!intersect) // ray goes off into infinity
 		{
-			if(b <= BOUNCE_COUNT)
+			if (b <= BOUNCE_COUNT)
 				color += throughputTerm * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
 			break;
 		}
@@ -45,10 +46,10 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngpt
 		Material *mat = data.mat;
 
 		// add the light that the material emits
-		if(b <= BOUNCE_COUNT)
+		if (b <= BOUNCE_COUNT)
 			color += throughputTerm * mat->Le;
 
-		if(mat->type == MaterialType::MATERIAL_LAMBERTIAN)
+		if (mat->type == MaterialType::MATERIAL_LAMBERTIAN)
 		{
 			Vec3f BRDF = PI * mat->diffuse;
 
@@ -58,40 +59,40 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngpt
 			// This cosine term cancels out with the dot product in
 			// the throughput term and all that is left is the BRDF
 			throughputTerm *= BRDF;
-			
+
 			// pdf(psi) = cos(theta) / PI
 			Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 			Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, data.normal);
-	
+
 			// Intersection point and new ray
 			Vec3f point = data.point;
-			ray = {point + EPSILON * data.normal, dir, 1.0f / dir};
+			ray = { point + EPSILON * data.normal, dir, 1.0f / dir };
 		}
-		else if(mat->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
+		else if (mat->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
 		{
 			Vec3f reflectedDir = Reflect(-ray.direction, data.normal);
 
 			// Intersection point and new ray
 			Vec3f point = data.point;
-			ray = {point + EPSILON * data.normal, reflectedDir, 1.0f / reflectedDir};
+			ray = { point + EPSILON * data.normal, reflectedDir, 1.0f / reflectedDir };
 
 			// If we sample uniformly or with cosine weighted sampling, then
 			// we would need to calculate the BRDF every single direction in the
 			// hemisphere. If the direction is the reflected direction, then
 			// the BRDF is 1, otherwise it is 0. But that is wasteful. Instead,
 			// we *only* pick the reflected direction (not the case for glossy or
-			// otherwise un-ideal reflective materials) so the pdf is 1, and the 
+			// otherwise un-ideal reflective materials) so the pdf is 1, and the
 			// BRDF is 1. Because of this, we have an instant solution without
 			// having to sample the hemisphere at all. The throughput term is then
 			// BRDF*(Nx dot wi) = (Nx dot wi) = cosThetaX
 			throughputTerm *= mat->specular;
 		}
-		else if(mat->type == MaterialType::MATERIAL_PHONG)
+		else if (mat->type == MaterialType::MATERIAL_PHONG)
 		{
 			// TODO: fix the diffuse part
 			float u = RandomNumberNormalizedPCG(rngptr);
 			Vec3f uvec = CreateVec3f(u);
-			if(uvec <= mat->diffuse * PI)
+			if (uvec <= mat->diffuse * PI)
 			{
 				throughputTerm *= PI * mat->diffuse;
 
@@ -99,9 +100,9 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngpt
 				Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 				Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, data.normal);
 
-				ray = {data.point + EPSILON * data.normal, dir, 1.0f / dir};
+				ray = { data.point + EPSILON * data.normal, dir, 1.0f / dir };
 			}
-			else if(uvec <= mat->diffuse * PI + mat->specular)
+			else if (uvec <= mat->diffuse * PI + mat->specular)
 			{
 				Vec3f Nx = data.normal;
 				Vec3f x = data.point + EPSILON * data.normal;
@@ -109,7 +110,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngpt
 				Vec3f reflectedDir = NormalizeVec3f(Reflect(-ray.direction, Nx));
 				Mat3f tnb = ConstructTNB(reflectedDir);
 
-				float inv = 1.0f / (mat->n_spec+1.0f);
+				float inv = 1.0f / (mat->n_spec + 1.0f);
 
 				Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 
@@ -117,16 +118,16 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngpt
 				float sinAlpha = sqrtf(1.0f - cosAlpha * cosAlpha);
 				float phi = 2.0f * PI * randomVec2f.y;
 
-				Vec3f dir = {sinAlpha * cosf(phi), cosAlpha, sinAlpha * sinf(phi)};
+				Vec3f dir = { sinAlpha * cosf(phi), cosAlpha, sinAlpha * sinf(phi) };
 
 				dir = tnb * dir;
-				ray = {x, dir, 1.0f / dir};
+				ray = { x, dir, 1.0f / dir };
 
 				float cosThetaX = Max(0.0f, Dot(dir, Nx));
 
 				float pdfTheta = ((mat->n_spec + 1.0f) / (2.0f * PI)) * powf(cosAlpha, mat->n_spec);
 				float thetaTerm = powf(cosAlpha, mat->n_spec) * ((mat->n_spec + 2.0f) / (2.0f * PI)) / pdfTheta;
-				
+
 				throughputTerm *= mat->specular * cosThetaX * thetaTerm;
 			}
 		}
@@ -142,11 +143,11 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 
 	Material *oldMat = nullptr;
 
-	for(int16 bounce = 0; bounce < BOUNCE_COUNT; bounce++)
+	for (int16 bounce = 0; bounce < BOUNCE_COUNT; bounce++)
 	{
 		HitData data = {};
 		bool intersect = Intersect(ray, scene, &data);
-		if(!intersect)
+		if (!intersect)
 		{
 			// No intersection with scene, add env map contribution
 			color += throughputTerm * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
@@ -161,24 +162,23 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 		float pdfCosineWeightedHemisphere = cosTheta / PI;
 
 		// add light that is emitted from surface (but stop right afterwards)
-		if(bounce <= BOUNCE_COUNT && mat->Le.x >= 0.5f)
+		if (bounce <= BOUNCE_COUNT && mat->Le.x >= 0.5f)
 		{
 			// TODO: only add if the ray was added by a single lonely bounce from
 			// the mirror instead of just the last bounce being the mirror?
 			bool lastBounceWasReflected = (oldMat != nullptr && oldMat->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE);
-			if(bounce == 0 || lastBounceWasReflected)
+			if (bounce == 0 || lastBounceWasReflected)
 				color = mat->Le;
 
 			return color;
 		}
 		// If there is at least 1 light source in the scene and the material
 		// of the surface we hit is diffuse, we can use NEE.
-		else if(scene.numLightTris > 0 && 
-			(mat->type == MaterialType::MATERIAL_LAMBERTIAN || (mat->type == MaterialType::MATERIAL_PHONG && mat->specular == CreateVec3f(0.0f))))
+		else if (scene.numLightTris > 0 && (mat->type == MaterialType::MATERIAL_LAMBERTIAN || (mat->type == MaterialType::MATERIAL_PHONG && mat->specular == CreateVec3f(0.0f))))
 		{
 			// sample light sources for direct illumination
 			Vec3f directIllumination = CreateVec3f(0.0f);
-			for(int8 shadowRayIndex = 0; shadowRayIndex < NUM_SHADOW_RAYS; shadowRayIndex++)
+			for (int8 shadowRayIndex = 0; shadowRayIndex < NUM_SHADOW_RAYS; shadowRayIndex++)
 			{
 				// pick a light source
 				float pdfPickLight = 1.0f / (float)scene.numLightTris;
@@ -186,7 +186,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 				int32 pickedLightSource = (int32)(pcg32_random_r(rngptr) % scene.numLightTris);
 				// TODO: FIX THIS
 				Triangle lightSource = scene.tris[scene.lightTris[pickedLightSource]];
-				
+
 				Material *lightSourceMat = lightSource.mat;
 				float lightArea = Area(&lightSource);
 				float pdfPickPointOnLight = 1.0f / lightArea;
@@ -201,12 +201,12 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 				// Send out a shadow ray in direction x->y
 				Vec3f distVec = y - x;
 				Vec3f shadowRayDir = NormalizeVec3f(distVec);
-				Ray shadowRay = {x, shadowRayDir, 1.0f / shadowRayDir};
+				Ray shadowRay = { x, shadowRayDir, 1.0f / shadowRayDir };
 
 				// Check if ray hits anything before hitting the light source
 				HitData shadowData = {};
 				bool hitAnything = Intersect(shadowRay, scene, &shadowData);
-				if(!hitAnything)
+				if (!hitAnything)
 				{
 					// It shouldn't be possible to send a ray towards the light
 					// source and not hit anything in the scene, even the light
@@ -217,28 +217,26 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 				}
 
 				// Visibility check means we have a clear line of sight!
-				if(hitAnything && y == shadowData.point)
+				if (hitAnything && y == shadowData.point)
 				{
 					float squaredDist = Dot(distVec, distVec);
 
-					// We want to only add light contribution from lights within 
+					// We want to only add light contribution from lights within
 					// the hemisphere solid angle above X, and not from lights behind it.
 					float cosThetaX = Max(0.0f, Dot(data.normal, shadowRayDir));
 
 					// We can sample the light from both sides, it doesn't have to
 					// be a one-sided light source.
-				#if TWO_SIDED_LIGHT
+#if TWO_SIDED_LIGHT
 					float32 cosThetaY = Abs(Dot(shadowData.normal, shadowRayDir));
-				#else
+#else
 					float cosThetaY = Max(0.0f, Dot(shadowData.normal, -shadowRayDir));
-				#endif
+#endif
 
 					float G = cosThetaX * cosThetaY / squaredDist;
 
 					directIllumination += lightSourceMat->Le * BRDF * G / pdfLight_area;
-					if(directIllumination.x != directIllumination.x ||
-					   directIllumination.y != directIllumination.y ||
-					   directIllumination.z != directIllumination.z)
+					if (directIllumination.x != directIllumination.x || directIllumination.y != directIllumination.y || directIllumination.z != directIllumination.z)
 					{
 						// printf("NaN!\n");
 					}
@@ -259,28 +257,28 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 			Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, data.normal);
 
 			Vec3f point = data.point;
-			ray = {point + EPSILON * data.normal, dir, 1.0f / dir};
+			ray = { point + EPSILON * data.normal, dir, 1.0f / dir };
 		}
-		else if(mat->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
+		else if (mat->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
 		{
 			Vec3f reflectedDir = Reflect(-ray.direction, data.normal);
 
 			// Intersection point and new ray
 			Vec3f point = data.point;
-			ray = {point + EPSILON * data.normal, reflectedDir, 1.0f / reflectedDir};
+			ray = { point + EPSILON * data.normal, reflectedDir, 1.0f / reflectedDir };
 
 			// If we sample uniformly or with cosine weighted sampling, then
 			// we would need to calculate the BRDF every single direction in the
 			// hemisphere. If the direction is the reflected direction, then
 			// the BRDF is 1, otherwise it is 0. But that is wasteful. Instead,
 			// we *only* pick the reflected direction (not the case for glossy or
-			// otherwise un-ideal reflective materials) so the pdf is 1, and the 
+			// otherwise un-ideal reflective materials) so the pdf is 1, and the
 			// BRDF is 1. Because of this, we have an instant solution without
 			// having to sample the hemisphere at all. The throughput term is then
 			// BRDF*(Nx dot wi) = (Nx dot wi) = cosThetaX
 			// throughputTerm *= Abs(cosTheta);
 		}
-		else if(mat->type == MaterialType::MATERIAL_PHONG)
+		else if (mat->type == MaterialType::MATERIAL_PHONG)
 		{
 			// TODO: support the diffuse part
 
@@ -290,7 +288,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 			Vec3f reflectedDir = NormalizeVec3f(Reflect(-ray.direction, Nx));
 			Mat3f tnb = ConstructTNB(reflectedDir);
 
-			float inv = 1.0f / (mat->n_spec+1.0f);
+			float inv = 1.0f / (mat->n_spec + 1.0f);
 
 			Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 
@@ -298,10 +296,10 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 			float sinAlpha = sqrtf(1.0f - cosAlpha * cosAlpha);
 			float phi = 2.0f * PI * randomVec2f.y;
 
-			Vec3f dir = {sinAlpha * cosf(phi), cosAlpha, sinAlpha * sinf(phi)};
+			Vec3f dir = { sinAlpha * cosf(phi), cosAlpha, sinAlpha * sinf(phi) };
 
 			dir = tnb * dir;
-			ray = {x, dir, 1.0f / dir};
+			ray = { x, dir, 1.0f / dir };
 
 			float cosThetaX = Max(0.0f, Dot(dir, Nx));
 
@@ -323,7 +321,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 
 	HitData data = {};
 	bool intersect = Intersect(ray, scene, &data);
-	if(!intersect)
+	if (!intersect)
 	{
 		// No intersection with scene, add env map contribution
 		color += throughputTerm * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
@@ -338,7 +336,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 	color += throughputTerm * matY->Le;
 
 	int8 numBounces = BOUNCE_COUNT + 1;
-	for(uint8 b = 1; b < numBounces; b++)
+	for (uint8 b = 1; b < numBounces; b++)
 	{
 		Vec3f x = y;
 		Vec3f normalX = normalY;
@@ -346,15 +344,12 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 
 		// If there is at least 1 light source in the scene, and the material of the
 		// surface is diffuse, we can calculate the direct light contribution (NEE)
-		bool canUseNEE = scene.numLightTris > 0 && 
-		                 (matX->type == MaterialType::MATERIAL_LAMBERTIAN || 
-						 (matX->type == MaterialType::MATERIAL_PHONG && matX->specular == CreateVec3f(0.0f))) && 
-						 matX->Le.x < 0.1f;
-		
-		if(canUseNEE)
+		bool canUseNEE = scene.numLightTris > 0 && (matX->type == MaterialType::MATERIAL_LAMBERTIAN || (matX->type == MaterialType::MATERIAL_PHONG && matX->specular == CreateVec3f(0.0f))) && matX->Le.x < 0.1f;
+
+		if (canUseNEE)
 		{
 			// sample light sources for direct illumination
-			for(int8 shadowRayIndex = 0; shadowRayIndex < NUM_SHADOW_RAYS; shadowRayIndex++)
+			for (int8 shadowRayIndex = 0; shadowRayIndex < NUM_SHADOW_RAYS; shadowRayIndex++)
 			{
 				// pick a light source
 				float pdfPickLight = 1.0f / (float)scene.numLightTris;
@@ -362,7 +357,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 				uint32 r = pcg32_random_r(rngptr);
 				int32 pickedLightSource = (int32)(r % scene.numLightTris);
 				Triangle lightSource = scene.tris[scene.lightTris[pickedLightSource]];
-				
+
 				Material *lightSourceMat = lightSource.mat;
 				Vec3f y_nee = MapToTriangle(RandomVec2fPCG(rngptr), lightSource);
 				float lightArea = Area(&lightSource);
@@ -373,34 +368,34 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 				// Send out a shadow ray in direction x->y
 				Vec3f distVec = y_nee - x_nee;
 				Vec3f shadowRayDir = NormalizeVec3f(distVec);
-				Ray shadowRay = {x_nee, shadowRayDir, 1.0f / shadowRayDir};
+				Ray shadowRay = { x_nee, shadowRayDir, 1.0f / shadowRayDir };
 
 				float squaredDist = Dot(distVec, distVec);
 
-				// We want to only add light contribution from lights within 
+				// We want to only add light contribution from lights within
 				// the hemisphere solid angle above X, and not from lights behind it.
 				float cosThetaX = Max(0.0f, Dot(normalX, shadowRayDir));
 
 				// Check if ray hits anything before hitting the light source
 				HitData shadowData = {};
 				bool hitAnything = Intersect(shadowRay, scene, &shadowData);
-				if(!hitAnything)
+				if (!hitAnything)
 				{
 					// return CreateVec3f(5.0f, 0.0f, 5.0f);
 				}
 
 				// Visibility check means we have a clear line of sight!
-				if(hitAnything && y_nee == shadowData.point)
+				if (hitAnything && y_nee == shadowData.point)
 				{
-				#if TWO_SIDED_LIGHT
+#if TWO_SIDED_LIGHT
 					float32 cosThetaY = Dot(shadowData.normal, -shadowRay.direction);
 					Vec3f normalY_nee = shadowData.normal * Sign(cosThetaY);
 					cosThetaY = Abs(cosThetaY);
-				#else
+#else
 					float cosThetaY = Max(0.0f, Dot(shadowData.normal, -shadowRay.direction));
 					// Vec3f normalY_nee = shadowData.normal;
-					if(cosThetaY > 0.0f)
-				#endif
+					if (cosThetaY > 0.0f)
+#endif
 					{
 						float pdfPickPointOnLight = 1.0f / lightArea;
 
@@ -413,7 +408,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 						// PDF in terms of solid angle, for picking ray from cos. weighted hemisphere
 						float pdfBSDFsolidAngle = cosThetaX / PI;
 
-						// weight for NEE 
+						// weight for NEE
 						// float32 wNEE = BalanceHeuristic(pdfLight_sa, pdfBSDFsolidAngle) / pdfLight_sa;
 						float wNEE = 1.0f / (pdfLight_sa + pdfBSDFsolidAngle);
 
@@ -423,86 +418,86 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 			}
 		}
 
-		if(matX->type == MaterialType::MATERIAL_LAMBERTIAN)
+		if (matX->type == MaterialType::MATERIAL_LAMBERTIAN)
 		{
 			// Pick a new direction
 			Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 			Vec3f dir = MapToUnitHemisphereCosineWeightedCriver(randomVec2f, normalX);
-			ray = {x + EPSILON * normalX, dir, 1.0f / dir};
+			ray = { x + EPSILON * normalX, dir, 1.0f / dir };
 		}
-		else if(matX->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
+		else if (matX->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
 		{
 			// Pick the reflected direciton
 			Vec3f reflectedDir = Reflect(-ray.direction, normalX);
-			ray = {x + EPSILON * normalX, reflectedDir, 1.0f / reflectedDir};
+			ray = { x + EPSILON * normalX, reflectedDir, 1.0f / reflectedDir };
 		}
-		else if(matX->type == MaterialType::MATERIAL_PHONG)
+		else if (matX->type == MaterialType::MATERIAL_PHONG)
 		{
 			// Pick direction in the cosine lobe around reflected dir
 			Vec3f reflectedDir = Reflect(-ray.direction, normalX);
 			Mat3f tnb = ConstructTNB(reflectedDir);
 
-			float inv = 1.0f / (matX->n_spec+1.0f);
+			float inv = 1.0f / (matX->n_spec + 1.0f);
 
 			Vec2f randomVec2f = RandomVec2fPCG(rngptr);
 			float cosAlpha = powf(randomVec2f.x, inv);
 			float sinAlpha = sqrtf(1.0f - cosAlpha * cosAlpha);
 			float phi = 2.0f * PI * randomVec2f.y;
 
-			Vec3f dir = {sinAlpha * cosf(phi), cosAlpha, sinAlpha * sinf(phi)};
+			Vec3f dir = { sinAlpha * cosf(phi), cosAlpha, sinAlpha * sinf(phi) };
 			dir = tnb * dir;
-			ray = {x, dir, 1.0f / dir};
+			ray = { x, dir, 1.0f / dir };
 		}
 
 		float cosThetaX = Max(0.0f, Dot(normalX, ray.direction));
 
 		intersect = Intersect(ray, scene, &data);
-		if(!intersect)
+		if (!intersect)
 		{
 			// No intersection with scene, add env map contribution
-			if(b <= BOUNCE_COUNT)
+			if (b <= BOUNCE_COUNT)
 			{
-				if(matX->type == MATERIAL_LAMBERTIAN)
+				if (matX->type == MATERIAL_LAMBERTIAN)
 					color += throughputTerm * PI * matX->diffuse * SkyColor(ray.direction) * ENVIRONMENT_MAP_LE;
-				else if(matX->type == MATERIAL_IDEAL_REFLECTIVE)
+				else if (matX->type == MATERIAL_IDEAL_REFLECTIVE)
 					color += throughputTerm * matX->specular * SkyColor(ray.direction) * cosThetaX * ENVIRONMENT_MAP_LE;
-				else if(matX->type == MATERIAL_PHONG)
+				else if (matX->type == MATERIAL_PHONG)
 				{
 					float thetaTerm = 1.0f + 1.0f / (matX->n_spec + 1.0f);
 					color += throughputTerm * matX->specular * SkyColor(ray.direction) * cosThetaX * thetaTerm * ENVIRONMENT_MAP_LE;
 				}
-				
+
 				break;
 			}
 		}
 
-	#if TWO_SIDED_LIGHT
+#if TWO_SIDED_LIGHT
 		float32 cosThetaY = Dot(data.normal, -ray.direction);
 		normalY = data.normal * Sign(cosThetaY);
 		cosThetaY = Abs(cosThetaY);
-	#else
-        float cosThetaY = Max(0.0f, -Dot(data.normal, ray.direction));
+#else
+		float cosThetaY = Max(0.0f, -Dot(data.normal, ray.direction));
 		normalY = data.normal;
-	#endif
+#endif
 
 		float pdfBSDFsolidAngle = 0.0f;
-		if(matX->type == MaterialType::MATERIAL_LAMBERTIAN)
+		if (matX->type == MaterialType::MATERIAL_LAMBERTIAN)
 		{
 			// Because the new ray direction is sampled using cosine weighted hemisphere
 			// sampling, the pdf is cosTheta / PI
 			pdfBSDFsolidAngle = cosThetaY / PI;
 		}
-		else if(matX->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
+		else if (matX->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
 		{
 			// We only sample the single direction, so the pdf is 1 for that
 			// reflected direction
 			pdfBSDFsolidAngle = 1.0f;
 		}
-		else if(matX->type == MaterialType::MATERIAL_PHONG)
+		else if (matX->type == MaterialType::MATERIAL_PHONG)
 		{
 			// NOTE: it's this value because I assume the terms present in the pdf
 			// cancel out with the terms present in the specular term of the BRDF
-			// because I importance sample the specular term 
+			// because I importance sample the specular term
 			pdfBSDFsolidAngle = 1.0f;
 		}
 
@@ -512,14 +507,14 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 		float wBSDF = 1.0f;
 
 		// If we can use NEE on the hit surface
-		if(matX->type == MaterialType::MATERIAL_LAMBERTIAN && matX->Le.x < 0.1f && cosThetaY > 0.0f)
+		if (matX->type == MaterialType::MATERIAL_LAMBERTIAN && matX->Le.x < 0.1f && cosThetaY > 0.0f)
 		{
 			// If the hit surface is a light source, we need to calculate
 			// the pdf for NEE
-			if(matY->Le.x > 0.1f && scene.numLightTris > 0)
+			if (matY->Le.x > 0.1f && scene.numLightTris > 0)
 			{
 				float pdfNEE_area = 0.0f;
-				switch(data.objectType)
+				switch (data.objectType)
 				{
 				case ObjectType::SPHERE:
 					pdfNEE_area = 1.0f / Area(&scene.spheres[data.objectIndex]);
@@ -537,14 +532,14 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 				wBSDF = BalanceHeuristic(pdfBSDFsolidAngle, pdfNEE_solidAngle);
 			}
 
-			if(b <= BOUNCE_COUNT)
+			if (b <= BOUNCE_COUNT)
 				color += throughputTerm * matX->diffuse * matY->Le * PI * wBSDF;
 		}
-		else if(b <= BOUNCE_COUNT && cosThetaY > 0.0f)
+		else if (b <= BOUNCE_COUNT && cosThetaY > 0.0f)
 		{
-			if(matX->type == MATERIAL_PHONG)
+			if (matX->type == MATERIAL_PHONG)
 			{
-				// Sampled w.r.t the cosine term 
+				// Sampled w.r.t the cosine term
 				Vec3f diffusePart = PI * matX->diffuse;
 
 				// Sampled w.r.t the BRDF
@@ -555,11 +550,11 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 			}
 		}
 
-		if(matX->type == MaterialType::MATERIAL_LAMBERTIAN)
+		if (matX->type == MaterialType::MATERIAL_LAMBERTIAN)
 			throughputTerm *= PI * matX->diffuse;
-		else if(matX->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
+		else if (matX->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
 			throughputTerm *= matX->specular;
-		else if(matX->type == MaterialType::MATERIAL_PHONG)
+		else if (matX->type == MaterialType::MATERIAL_PHONG)
 		{
 			float thetaTerm = 1.0f + 1.0f / (matX->n_spec + 1.0f);
 			throughputTerm *= matX->specular * cosThetaX * thetaTerm;

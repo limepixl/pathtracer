@@ -1,6 +1,6 @@
+#include "pathtracer.hpp"
 #include <Windows.h>
 #include <ctime>
-#include "pathtracer.hpp"
 
 DWORD WINAPI render_function(LPVOID param)
 {
@@ -35,20 +35,20 @@ DWORD WINAPI render_function(LPVOID param)
 
 	// Index for memory buffer
 	uint32 index = 0;
-	for(uint32 ypixel = renderData->startY; ypixel < endY; ypixel++)
+	for (uint32 ypixel = renderData->startY; ypixel < endY; ypixel++)
 	{
 		uint32 y = (ypixel - renderData->startY);
 
-		for(uint32 xpixel = renderData->startX; xpixel < endX; xpixel++)
+		for (uint32 xpixel = renderData->startX; xpixel < endX; xpixel++)
 		{
 			uint32 x = (xpixel - renderData->startX);
 
-			Vec3f color = {0.0f, 0.0f, 0.0f};
+			Vec3f color = { 0.0f, 0.0f, 0.0f };
 
-			for(int16 sample = 0; sample < NUM_SAMPLES; sample++)
+			for (int16 sample = 0; sample < NUM_SAMPLES; sample++)
 			{
 				// TODO: verify that this math checks out
-				Vec2f offsetToPixelCenter = {0.5f, 0.5f};
+				Vec2f offsetToPixelCenter = { 0.5f, 0.5f };
 				Vec2f uvOffset = RandomVec2fPCG(&rng) - offsetToPixelCenter;
 
 				float u = ((float)xpixel + uvOffset.x) / (float)width;
@@ -57,7 +57,7 @@ DWORD WINAPI render_function(LPVOID param)
 				Vec3f pointOnGrid = gridOrigin + u * gridX + v * gridY;
 				Vec3f rayDirection = NormalizeVec3f(pointOnGrid - eye);
 
-				Ray ray = {eye, rayDirection, 1.0f/rayDirection};
+				Ray ray = { eye, rayDirection, 1.0f / rayDirection };
 				// color += EstimatorPathTracingLambertian(ray, scene, &rng);
 				// color += EstimatorPathTracingLambertianNEE(ray, scene, &rng);
 				color += EstimatorPathTracingMIS(ray, scene, &rng);
@@ -94,7 +94,7 @@ void *CreateThreadWin32(void *param)
 {
 	DWORD threadID = {};
 	HANDLE threadHandle = CreateThread(nullptr, 0, render_function, param, 0, &threadID);
-	if(threadID == 0)
+	if (threadID == 0)
 	{
 		OutputDebugStringA("Failed to create thread!\n");
 	}
@@ -117,7 +117,7 @@ bool CanThreadStartWin32(void *handle)
 {
 	DWORD exitCode = {};
 	BOOL res = GetExitCodeThread(handle, &exitCode);
-	if(exitCode == STILL_ACTIVE)
+	if (exitCode == STILL_ACTIVE)
 		return false;
 
 	return true;

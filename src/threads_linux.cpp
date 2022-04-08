@@ -1,9 +1,9 @@
-#include <pthread.h>
-#include <cstdio>
-#include <errno.h>
-#include "../thirdparty/pcg-c-basic-0.9/pcg_basic.h"
 #include "../src/math/math.hpp"
 #include "../src/pathtracer.hpp"
+#include "../thirdparty/pcg-c-basic-0.9/pcg_basic.h"
+#include <cstdio>
+#include <errno.h>
+#include <pthread.h>
 
 void *render_function(void *param)
 {
@@ -34,20 +34,20 @@ void *render_function(void *param)
 
 	// Index for memory buffer
 	uint32 index = 0;
-	for(uint32 ypixel = renderData->startY; ypixel < endY; ypixel++)
+	for (uint32 ypixel = renderData->startY; ypixel < endY; ypixel++)
 	{
 		uint32 y = (ypixel - renderData->startY);
 
-		for(uint32 xpixel = renderData->startX; xpixel < endX; xpixel++)
+		for (uint32 xpixel = renderData->startX; xpixel < endX; xpixel++)
 		{
 			uint32 x = (xpixel - renderData->startX);
 
-			Vec3f color = {0.0f, 0.0f, 0.0f};
+			Vec3f color = { 0.0f, 0.0f, 0.0f };
 
-			for(int16 sample = 0; sample < NUM_SAMPLES; sample++)
+			for (int16 sample = 0; sample < NUM_SAMPLES; sample++)
 			{
 				// TODO: verify that this math checks out
-				Vec2f offsetToPixelCenter = {0.5f, 0.5f};
+				Vec2f offsetToPixelCenter = { 0.5f, 0.5f };
 				Vec2f uvOffset = RandomVec2fPCG(&rng) - offsetToPixelCenter;
 
 				float u = ((float)xpixel + uvOffset.x) / (float)width;
@@ -56,7 +56,7 @@ void *render_function(void *param)
 				Vec3f pointOnGrid = gridOrigin + u * gridX + v * gridY;
 				Vec3f rayDirection = NormalizeVec3f(pointOnGrid - eye);
 
-				Ray ray = {eye, rayDirection};
+				Ray ray = { eye, rayDirection };
 				// color += EstimatorPathTracingLambertian(ray, scene, &rng);
 				// color += EstimatorPathTracingLambertianNEE(ray, scene, &rng);
 				color += EstimatorPathTracingMIS(ray, scene, &rng);
@@ -102,7 +102,7 @@ void *CreateThreadLinux(void *param)
 	*/
 
 	pthread_t *threadHandle = (pthread_t *)malloc(sizeof(pthread_t));
-	if(pthread_create(threadHandle, NULL, &render_function, param))
+	if (pthread_create(threadHandle, NULL, &render_function, param))
 	{
 		printf("Failed to create pthread_t!\n");
 		return NULL;
@@ -120,7 +120,7 @@ void WaitForThreadLinux(void *threadHandle)
 
 bool CanThreadStartLinux(void *handle)
 {
-	if(pthread_tryjoin_np(*(pthread_t *)handle, NULL) == EBUSY)
+	if (pthread_tryjoin_np(*(pthread_t *)handle, NULL) == EBUSY)
 		return false;
 
 	return true;

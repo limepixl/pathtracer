@@ -14,14 +14,14 @@ Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Material *mat)
 	Vec3f A = v1 - v0;
 	Vec3f B = v2 - v0;
 	Vec3f normal = NormalizeVec3f(Cross(A, B));
-	return {v0, v1, v2, normal, A, B, mat};
+	return { v0, v1, v2, normal, A, B, mat };
 }
 
 Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal, Material *mat)
 {
 	Vec3f A = v1 - v0;
 	Vec3f B = v2 - v0;
-	return {v0, v1, v2, normal, A, B, mat};
+	return { v0, v1, v2, normal, A, B, mat };
 }
 
 // Moller–Trumbore ray-triangle intersection algorithm
@@ -32,36 +32,36 @@ bool TriangleIntersect(Ray ray, Triangle *tri, HitData *data, float tmax)
 
 	// Ray direction parallel to the triangle plane
 #if TWO_SIDED_LIGHT
-    if(Abs(determinant) < EPSILON)
-		return false; 
+	if (Abs(determinant) < EPSILON)
+		return false;
 #else
-	if(determinant < EPSILON)
-        return false;  
+	if (determinant < EPSILON)
+		return false;
 #endif
 
-    float inv_determinant = 1.0f / determinant;
-    Vec3f tvec = ray.origin - tri->v0;
-    float u = Dot(tvec, pvec) * inv_determinant;
-    if((u < 0.0f) || (u > 1.0f))
-        return false;
+	float inv_determinant = 1.0f / determinant;
+	Vec3f tvec = ray.origin - tri->v0;
+	float u = Dot(tvec, pvec) * inv_determinant;
+	if ((u < 0.0f) || (u > 1.0f))
+		return false;
 
-    Vec3f qvec = Cross(tvec, tri->edge1);
-    float v = inv_determinant * Dot(ray.direction, qvec);
-    if((v < 0.0f) || (u + v > 1.0f))
-        return false;
+	Vec3f qvec = Cross(tvec, tri->edge1);
+	float v = inv_determinant * Dot(ray.direction, qvec);
+	if ((v < 0.0f) || (u + v > 1.0f))
+		return false;
 
 	// Computing t
-    float t = inv_determinant * Dot(tri->edge2, qvec);
-    if(t > TMIN && t < tmax)
-    {
+	float t = inv_determinant * Dot(tri->edge2, qvec);
+	if (t > TMIN && t < tmax)
+	{
 		data->t = t;
-        data->point = ray.origin + ray.direction * t;
+		data->point = ray.origin + ray.direction * t;
 		data->normal = tri->normal;
 		data->mat = tri->mat;
 		data->objectType = ObjectType::TRIANGLE;
-        return true;
-    }
-    
+		return true;
+	}
+
 	return false;
 }
 

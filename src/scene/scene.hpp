@@ -53,7 +53,7 @@ struct Scene
 	BVH_Node *bvh;
 };
 
-Scene ConstructScene(Sphere *spheres, uint32 numSpheres, 
+Scene ConstructScene(Sphere *spheres, uint32 numSpheres,
 					 Triangle *modelTris, uint32 numTris,
 					 uint32 *lightTris, uint32 numLightTris,
 					 BVH_Node *bvh);

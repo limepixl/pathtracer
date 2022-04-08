@@ -3,15 +3,15 @@
 
 Material CreateMaterial(MaterialType type, Vec3f diffuse, Vec3f specular, float n_spec, Vec3f Le, const char *name)
 {
-	if(type == MaterialType::MATERIAL_LAMBERTIAN || type==MaterialType::MATERIAL_PHONG || type == MaterialType::MATERIAL_BLINN_PHONG)
+	if (type == MaterialType::MATERIAL_LAMBERTIAN || type == MaterialType::MATERIAL_PHONG || type == MaterialType::MATERIAL_BLINN_PHONG)
 	{
 		diffuse /= PI;
 	}
 
-	Material result = {type, diffuse, specular, n_spec, Le, {}};
+	Material result = { type, diffuse, specular, n_spec, Le, {} };
 
 	size_t name_length = strlen(name);
-	if(name_length > 0)
+	if (name_length > 0)
 	{
 		strncpy(result.name, name, 31);
 
