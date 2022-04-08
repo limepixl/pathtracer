@@ -1,7 +1,7 @@
 #define _CRT_RAND_S
 #include "math.hpp"
-#include <cmath>
 #include "../scene/triangle.hpp"
+#include <cmath>
 
 /*
 	Functions
@@ -9,36 +9,36 @@
 
 float Sign(float value)
 {
-	if(value < 0.0f)
+	if (value < 0.0f)
 		return -1.0f;
-	
-	if(value > 0.0f)
+
+	if (value > 0.0f)
 		return 1.0f;
-	
+
 	return value;
 }
 
 Vec3f Sign(Vec3f value)
 {
-	return {Sign(value.x), Sign(value.y), Sign(value.z)};
+	return { Sign(value.x), Sign(value.y), Sign(value.z) };
 }
 
 float Abs(float value)
 {
-	if(value < 0.0f)
+	if (value < 0.0f)
 		return -value;
-	
+
 	return value;
 }
 
 Vec3f Abs(Vec3f value)
 {
-	return {Abs(value.x), Abs(value.y), Abs(value.z)};
+	return { Abs(value.x), Abs(value.y), Abs(value.z) };
 }
 
 int16 Clamp(int16 value, int16 max)
 {
-	if(value > max)
+	if (value > max)
 		return max;
 
 	return value;
@@ -51,10 +51,10 @@ float Dot(Vec3f vec1, Vec3f vec2)
 
 Vec3f Cross(Vec3f &a, Vec3f &b)
 {
-	float x = a.y*b.z - a.z*b.y;
-	float y = a.z*b.x - a.x*b.z;
-	float z = a.x*b.y - a.y*b.x;
-	return {x, y, z};
+	float x = a.y * b.z - a.z * b.y;
+	float y = a.z * b.x - a.x * b.z;
+	float z = a.x * b.y - a.y * b.x;
+	return { x, y, z };
 }
 
 float Max(float a, float b)
@@ -119,14 +119,14 @@ float Step(float edge, float x)
 
 Vec3f Step(Vec3f edge, Vec3f x)
 {
-	return {Step(edge.x, x.x), Step(edge.y, x.y), Step(edge.z, x.z)};
+	return { Step(edge.x, x.x), Step(edge.y, x.y), Step(edge.z, x.z) };
 }
 
 float Ceil(float num)
 {
-	if(num - (int32)num > 0.0f)
+	if (num - (int32)num > 0.0f)
 		return float((int32)num + 1);
-	
+
 	return num;
 }
 
@@ -170,11 +170,11 @@ float RandomNumberNormalizedPCG(pcg32_random_t *rngptr)
 Vec2f RandomVec2fPCG(pcg32_random_t *rngptr)
 {
 	float r1 = RandomNumberNormalizedPCG(rngptr);
-	while(r1 < 0.0001f || r1 > 0.9999f)
+	while (r1 < 0.0001f || r1 > 0.9999f)
 		r1 = RandomNumberNormalizedPCG(rngptr);
 
 	float r2 = RandomNumberNormalizedPCG(rngptr);
-	while(r2 < 0.0001f || r2 > 0.9999f)
+	while (r2 < 0.0001f || r2 > 0.9999f)
 		r2 = RandomNumberNormalizedPCG(rngptr);
 
 	return { r1, r2 };
@@ -186,33 +186,33 @@ Vec3f MapToUnitSphere(Vec2f vec2)
 	// that to [-1, 1], which is the range of cosine.
 	float cosTheta = 2.0f * vec2.x - 1.0f;
 
-	// We can directly map phi to [0, 2PI] from [0, 1] by just 
+	// We can directly map phi to [0, 2PI] from [0, 1] by just
 	// multiplying it with 2PI
-    float Phi = 2.0f*PI*vec2.y;
+	float Phi = 2.0f * PI * vec2.y;
 
 	// sin^2(x) = 1 - cos^2(x)
 	// sin(x) = sqrt(1 - cos^2(x))
-    float sinTheta = sqrtf(1.0f - cosTheta * cosTheta);
+	float sinTheta = sqrtf(1.0f - cosTheta * cosTheta);
 
-    float sinPhi = sinf(Phi);
-    float cosPhi = cosf(Phi);
-    
+	float sinPhi = sinf(Phi);
+	float cosPhi = cosf(Phi);
+
 	// Just a conversion between spherical and Cartesian coordinates
-    return { sinTheta * cosPhi, cosTheta, sinTheta * sinPhi };
+	return { sinTheta * cosPhi, cosTheta, sinTheta * sinPhi };
 }
 
 Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal)
 {
-    Vec3f p = MapToUnitSphere(uv);
-	return NormalizeVec3f(p+normal);
+	Vec3f p = MapToUnitSphere(uv);
+	return NormalizeVec3f(p + normal);
 }
 
 Vec3f MapToTriangle(Vec2f vec2, Triangle tri)
 {
 	float u = vec2.x;
 	float v = vec2.y;
-	
-	if(u + v > 1.0f)
+
+	if (u + v > 1.0f)
 	{
 		// The generated point is outside triangle but
 		// within the parallelogram defined by the 2 edges
@@ -220,7 +220,7 @@ Vec3f MapToTriangle(Vec2f vec2, Triangle tri)
 		u = 1.0f - u;
 		v = 1.0f - v;
 	}
-	
+
 	Vec3f p = u * tri.edge1 + v * tri.edge2;
 	return p + tri.v0;
 }
@@ -260,9 +260,9 @@ Mat3f ConstructTNB(Vec3f &n)
 
 bool operator==(const Vec3f &lhs, const Vec3f &rhs)
 {
-	Vec3f graceInterval = {FLOAT_EQUALITY_PRECISION, 
-						   FLOAT_EQUALITY_PRECISION, 
-						   FLOAT_EQUALITY_PRECISION};
+	Vec3f graceInterval = { FLOAT_EQUALITY_PRECISION,
+							FLOAT_EQUALITY_PRECISION,
+							FLOAT_EQUALITY_PRECISION };
 	Vec3f absdiff = Abs(lhs - rhs);
 	return absdiff <= graceInterval;
 }

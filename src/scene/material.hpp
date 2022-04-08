@@ -12,12 +12,12 @@ enum MaterialType
 struct Material
 {
 
-    MaterialType type;
+	MaterialType type;
 	Vec3f diffuse;
 	Vec3f specular;
 	float n_spec;
 
-    Vec3f Le; // emmision of light
+	Vec3f Le; // emmision of light
 
 	// Optional
 	char name[32];

@@ -5,7 +5,7 @@ struct Sphere
 {
 	Vec3f origin;
 	float radius;
-	
+
 	struct Material *mat;
 };
 

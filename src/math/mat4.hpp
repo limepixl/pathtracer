@@ -1,7 +1,7 @@
 #pragma once
 #include "vec.hpp"
 
-// Represents a square matrix with 
+// Represents a square matrix with
 // 4 rows and 4 columns
 struct Mat4f
 {

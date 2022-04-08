@@ -4,17 +4,17 @@
 
 LightSource CreateLightSource(void *obj, LightSourceType type)
 {
-	return {obj, type};
+	return { obj, type };
 }
 
-Scene ConstructScene(Sphere *spheres, uint32 numSpheres, 
+Scene ConstructScene(Sphere *spheres, uint32 numSpheres,
 					 Triangle *tris, uint32 numTris,
 					 uint32 *lightTris, uint32 numLightTris,
 					 BVH_Node *bvh)
 {
-	return {spheres, numSpheres, 
-			tris, numTris,
-			lightTris, numLightTris, bvh};
+	return { spheres, numSpheres,
+			 tris, numTris,
+			 lightTris, numLightTris, bvh };
 }
 
 bool Intersect(Ray ray, Scene scene, HitData *data)
@@ -25,27 +25,27 @@ bool Intersect(Ray ray, Scene scene, HitData *data)
 
 	float tmax = TMAX;
 
-	for(uint32 i = 0; i < scene.numSpheres; i++)
+	for (uint32 i = 0; i < scene.numSpheres; i++)
 	{
 		HitData currentData = {};
 		Sphere current = scene.spheres[i];
 		bool intersect = SphereIntersect(ray, current, &currentData, tmax);
-		if(intersect)
+		if (intersect)
 		{
 			// Found closer hit, store it.
 			hitAnything = true;
 			resultData = currentData;
-			
+
 			resultData.objectIndex = i;
 			resultData.objectType = ObjectType::SPHERE;
 		}
 	}
 
 	hitAnything = hitAnything || IntersectBVHStack(ray, scene, &resultData, tmax);
-	if(hitAnything)
+	if (hitAnything)
 	{
 		*data = resultData;
 	}
-	
+
 	return hitAnything;
 }
