@@ -70,20 +70,15 @@ bool AABBIntersect(Ray ray, AABB aabb, float t)
 	return tmax >= Max(0.0f, tmin) && tmin < t;
 }
 
-// TODO: change to own stack
-#include <vector>
-
 bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax)
 {
 	bool hitAnything = false;
-	std::vector<BVH_Node *> stack;
+	Array<BVH_Node *> stack = CreateArray<BVH_Node *>(1);
+	AppendToArray(stack, scene.bvh);
 
-	stack.push_back(scene.bvh);
-
-	while (!stack.empty())
+	while (stack.size > 0)
 	{
-		BVH_Node *node = stack.back();
-		stack.pop_back();
+		BVH_Node *node = PopFromArray(stack);
 
 		// Check if ray intersects root node
 		bool bvhHit = AABBIntersect(ray, node->nodeAABB, tmax);
@@ -99,18 +94,18 @@ bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax)
 				if (dist1 <= dist2)
 				{
 					if (dist2 < squaredtmax)
-						stack.push_back(node->right);
+						AppendToArray(stack, node->right);
 
 					if (dist1 < squaredtmax)
-						stack.push_back(node->left);
+						AppendToArray(stack, node->left);
 				}
 				else
 				{
 					if (dist1 < squaredtmax)
-						stack.push_back(node->left);
+						AppendToArray(stack, node->left);
 
 					if (dist2 < squaredtmax)
-						stack.push_back(node->right);
+						AppendToArray(stack, node->right);
 				}
 			}
 			else

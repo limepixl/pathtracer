@@ -7,7 +7,6 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "../thirdparty/tinyobjloader/tiny_obj_loader.h"
 #include <string>
-#include <vector>
 
 bool LoadModelFromObj(const char *fileName, const char *path,
 					  Array<struct Triangle> &outTris,

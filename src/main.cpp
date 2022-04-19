@@ -3,9 +3,9 @@
 #include "scene/bvh.hpp"
 #include "scene/material.hpp"
 #include "scene/triangle.hpp"
+#include "scene/sphere.hpp"
 #include "threads.hpp"
 
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
