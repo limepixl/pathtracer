@@ -133,6 +133,7 @@ bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax)
 		}
 	}
 
+	DeallocateArray(stack);
 	return hitAnything;
 }
 
