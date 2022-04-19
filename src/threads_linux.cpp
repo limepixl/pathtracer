@@ -56,7 +56,7 @@ void *render_function(void *param)
 				Vec3f pointOnGrid = gridOrigin + u * gridX + v * gridY;
 				Vec3f rayDirection = NormalizeVec3f(pointOnGrid - eye);
 
-				Ray ray = { eye, rayDirection };
+				Ray ray = { eye, rayDirection, {} };
 				// color += EstimatorPathTracingLambertian(ray, scene, &rng);
 				// color += EstimatorPathTracingLambertianNEE(ray, scene, &rng);
 				color += EstimatorPathTracingMIS(ray, scene, &rng);
