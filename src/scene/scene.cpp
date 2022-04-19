@@ -7,14 +7,12 @@ LightSource CreateLightSource(void *obj, LightSourceType type)
 	return { obj, type };
 }
 
-Scene ConstructScene(Sphere *spheres, uint32 numSpheres,
-					 Triangle *tris, uint32 numTris,
-					 uint32 *lightTris, uint32 numLightTris,
+Scene ConstructScene(Array<Sphere> &spheres,
+					 Array<Triangle> &tris,
+					 Array<uint32> &lightTris,
 					 BVH_Node *bvh)
 {
-	return { spheres, numSpheres,
-			 tris, numTris,
-			 lightTris, numLightTris, bvh };
+	return { spheres, tris, lightTris, bvh };
 }
 
 bool Intersect(Ray ray, Scene scene, HitData *data)
@@ -25,7 +23,7 @@ bool Intersect(Ray ray, Scene scene, HitData *data)
 
 	float tmax = TMAX;
 
-	for (uint32 i = 0; i < scene.numSpheres; i++)
+	for (uint32 i = 0; i < scene.spheres.size; i++)
 	{
 		HitData currentData = {};
 		Sphere current = scene.spheres[i];

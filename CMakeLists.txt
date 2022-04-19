@@ -50,6 +50,8 @@ set(HEADER_FILES
 	src/math/mat4.hpp
 	src/math/math.hpp
 	src/math/vec.hpp
+
+	src/core/array.hpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})

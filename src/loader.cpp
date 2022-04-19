@@ -10,8 +10,8 @@
 #include <vector>
 
 bool LoadModelFromObj(const char *fileName, const char *path,
-					  Triangle **outTris, uint32 *numOutTris,
-					  Material ***outMaterials, uint32 *numOutMaterials)
+					  Array<struct Triangle> &outTris,
+					  Array<struct Material *> &outMaterials)
 {
 	printf("Loading %s model from path: %s\n", fileName, path);
 
@@ -44,7 +44,7 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 
 	// Initialize out materials
 	int32 numLoadedMaterials = 0;
-	*outMaterials = (Material **)malloc(numMaterials * sizeof(Material *));
+	outMaterials = CreateArray<Material *>(numMaterials);
 
 	// Keep track of emissive triangles so that we can keep them as
 	// light sources for NEE later on
@@ -151,10 +151,10 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 			bool unique = true;
 			for (int32 m = 0; m < numLoadedMaterials; m++)
 			{
-				if (!strcmp(mat.name.c_str(), (*outMaterials)[m]->name))
+				if (!strcmp(mat.name.c_str(), outMaterials[m]->name))
 				{
 					unique = false;
-					triangle_mat = (*outMaterials)[m];
+					triangle_mat = outMaterials[m];
 					break;
 				}
 			}
@@ -177,7 +177,7 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 											  emission,
 											  mat.name.c_str());
 
-					(*outMaterials)[numLoadedMaterials++] = tmp_mat;
+					outMaterials[numLoadedMaterials++] = tmp_mat;
 					triangle_mat = tmp_mat;
 				}
 
@@ -192,7 +192,7 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 											  emission,
 											  mat.name.c_str());
 
-					(*outMaterials)[numLoadedMaterials++] = tmp_mat;
+					outMaterials[numLoadedMaterials++] = tmp_mat;
 					triangle_mat = tmp_mat;
 				}
 
@@ -208,7 +208,7 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 											  emission,
 											  mat.name.c_str());
 
-					(*outMaterials)[numLoadedMaterials++] = tmp_mat;
+					outMaterials[numLoadedMaterials++] = tmp_mat;
 					triangle_mat = tmp_mat;
 				}
 			}
@@ -228,12 +228,9 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 		}
 	}
 
-	*numOutTris = (uint32)tris.size();
-	*outTris = (Triangle *)malloc(*numOutTris * sizeof(Triangle));
-	for (uint32 i = 0; i < *numOutTris; i++)
-		(*outTris)[i] = tris[i];
-
-	*numOutMaterials = numLoadedMaterials;
+	outTris = CreateArray<Triangle>((unsigned int)tris.size());
+	for (uint32 i = 0; i < tris.size(); i++)
+		AppendToArray(outTris, tris[i]);
 
 	printf("Finished loading .obj model!\n");
 	return true;

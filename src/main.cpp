@@ -16,7 +16,7 @@ int main()
 	float aspectRatio = (float)width / (float)height;
 
 	// Memory allocation for bitmap buffer
-	uint8 *bitmapBuffer = (uint8 *)malloc(sizeof(uint8) * width * height * 3);
+	Array<uint8> bitmapBuffer = CreateArray<uint8>(width * height * 3);
 
 	// x is right, y is up, z is backwards
 	Vec3f eye = CreateVec3f(0.0f, 0.0f, 0.0f);
@@ -31,23 +31,24 @@ int main()
 	Vec3f gridOrigin = eye - (gridX / 2.0f) - (gridY / 2.0f);
 	gridOrigin.z = -2.0f;
 
-	Triangle *tris = nullptr;
-	uint32 numTris = 0;
+	Array<Triangle> tris = CreateArray<Triangle>();
+	// Triangle *tris = nullptr;
+	// uint32 tris.size = 0;
 
-	Material **materials = nullptr;
-	uint32 numMaterials = 0;
+	Array<Material *> materials = CreateArray<Material *>();
+	// Material **materials = nullptr;
+	// uint32 numMaterials = 0;
 
-	if (!LoadModelFromObj("CornellBox-Suzanne.obj", "../res/", &tris, &numTris,
-						  &materials, &numMaterials))
+	if (!LoadModelFromObj("CornellBox-Suzanne.obj", "../res/", tris, materials))
 	{
-		free(bitmapBuffer);
+		DeallocateArray(bitmapBuffer);
 		return -1;
 	}
 
 	// Apply model matrix to tris
 	Mat4f modelMatrix = CreateIdentityMat4f();
 	modelMatrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), modelMatrix);
-	for (uint32 i = 0; i < numTris; i++)
+	for (uint32 i = 0; i < tris.size; i++)
 	{
 		tris[i].v0 = modelMatrix * tris[i].v0;
 		tris[i].v1 = modelMatrix * tris[i].v1;
@@ -58,27 +59,27 @@ int main()
 
 	// Construct BVH tree and sort triangle list according to it
 	BVH_Node *rootBVH = nullptr;
-	if (!ConstructBVH(tris, numTris, &rootBVH))
+	if (!ConstructBVH(tris.data, tris.size, &rootBVH))
 	{
 		printf("Error in BVH construction!\n");
-		free(bitmapBuffer);
+		DeallocateArray(bitmapBuffer);
 		return -1;
 	}
 	printf("Finished building BVH!\n");
 
 	// Find all emissive triangles in scene
-	uint32 *emissiveTris = new uint32[numTris];
+	Array<uint32> emissiveTris = CreateArray<uint32>(tris.size);
 	uint32 numEmissiveTris = 0;
-	for (uint32 i = 0; i < numTris; i++)
+	for (uint32 i = 0; i < tris.size; i++)
 	{
 		if (tris[i].mat->Le.x >= 0.01f || tris[i].mat->Le.y >= 0.01f || tris[i].mat->Le.z >= 0.01f)
 		{
-			emissiveTris[numEmissiveTris++] = i;
+			AppendToArray(emissiveTris, i);
 		}
 	}
 
-	Scene scene = ConstructScene(nullptr, 0, tris, numTris, emissiveTris,
-								 numEmissiveTris, rootBVH);
+	Array<Sphere> spheres = CreateArray<Sphere>();
+	Scene scene = ConstructScene(spheres, tris, emissiveTris, rootBVH);
 
 	// Each thread's handle and data to be used by it
 	void *threadHandles[NUM_THREADS];
@@ -175,7 +176,7 @@ int main()
 				// Write the rendered region into the bitmap memory
 				for (uint32 ymem = data->startY; ymem < data->endY; ymem++)
 				{
-					uint8 *offsetBitmapBuffer = bitmapBuffer + (ymem * rowSizeInBytes) + data->startX * pixelSize;
+					uint8 *offsetBitmapBuffer = bitmapBuffer.data + (ymem * rowSizeInBytes) + data->startX * pixelSize;
 					memcpy(offsetBitmapBuffer,
 						   (uint8 *)data->threadMemoryChunk + (ymem - data->startY) * chunkRowSizeInBytes,
 						   chunkRowSizeInBytes);
@@ -234,7 +235,7 @@ int main()
 
 		for (uint32 ymem = data->startY; ymem < data->endY; ymem++)
 		{
-			uint8 *offsetBitmapBuffer = bitmapBuffer + (ymem * rowSizeInBytes) + data->startX * pixelSize;
+			uint8 *offsetBitmapBuffer = bitmapBuffer.data + (ymem * rowSizeInBytes) + data->startX * pixelSize;
 			memcpy(offsetBitmapBuffer,
 				   (uint8 *)data->threadMemoryChunk + (ymem - data->startY) * chunkRowSizeInBytes,
 				   chunkRowSizeInBytes);
@@ -250,26 +251,26 @@ int main()
 	if (!result)
 	{
 		printf("Failed to create file!\n");
-		free(bitmapBuffer);
+		DeallocateArray(bitmapBuffer);
 		DeleteBVH(rootBVH);
 		return -1;
 	}
 	fprintf(result, "P3\n%d %d\n255\n", width, height);
 
 	for (uint32 i = 0; i < (uint32)(width * height * 3); i += 3)
-		fprintf(result, "%d %d %d\n", bitmapBuffer[i], bitmapBuffer[i + 1], bitmapBuffer[i + 2]);
+		fprintf(result, "%d %d %d\n", bitmapBuffer.data[i], bitmapBuffer.data[i + 1], bitmapBuffer.data[i + 2]);
 
 	fclose(result);
 	printf("Finished rendering to image!\n");
 
-	free(bitmapBuffer);
-	free(tris);
-	for (uint32 i = 0; i < numMaterials; i++)
+	DeallocateArray(bitmapBuffer);
+	DeallocateArray(tris);
+	for (uint32 i = 0; i < materials.size; i++)
 	{
 		free(materials[i]);
 	}
 
-	free(materials);
+	DeallocateArray(materials);
 	DeleteBVH(rootBVH);
 
 	return 0;
