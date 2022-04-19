@@ -116,13 +116,13 @@ bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax)
 			else
 			{
 				// If leaf node, test against triangles of node
-				Triangle *nodeTris = scene.tris + node->index;
+				Triangle *nodeTris = scene.tris.data + node->index;
 				uint32 numNodeTris = node->numTris;
 
 				for (uint32 i = 0; i < numNodeTris; i++)
 				{
 					HitData currentData = {};
-					Triangle *current = &nodeTris[i];
+					Triangle *current = &(nodeTris[i]);
 					bool intersect = TriangleIntersect(ray, current, &currentData, tmax);
 					if (intersect && currentData.t < tmax)
 					{
@@ -167,7 +167,7 @@ void IntersectBVHRecursive(Ray ray, Scene scene, BVH_Node *node, HitData *data, 
 		else
 		{
 			// If leaf node, test against triangles of node
-			Triangle *nodeTris = scene.tris + node->index;
+			Triangle *nodeTris = scene.tris.data + node->index;
 			uint32 numNodeTris = node->numTris;
 
 			for (uint32 i = 0; i < numNodeTris; i++)

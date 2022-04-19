@@ -1,4 +1,5 @@
 #pragma once
+#include "../core/array.hpp"
 #include "../defines.hpp"
 #include "../math/vec.hpp"
 #include "ray.hpp"
@@ -41,21 +42,16 @@ struct BVH_Node;
 
 struct Scene
 {
-	Sphere *spheres;
-	uint32 numSpheres;
-
-	Triangle *tris;
-	uint32 numTris;
-
-	uint32 *lightTris;
-	uint32 numLightTris;
+	Array<Sphere> spheres;
+	Array<Triangle> tris;
+	Array<uint32> lightTris;
 
 	BVH_Node *bvh;
 };
 
-Scene ConstructScene(Sphere *spheres, uint32 numSpheres,
-					 Triangle *modelTris, uint32 numTris,
-					 uint32 *lightTris, uint32 numLightTris,
+Scene ConstructScene(Array<Sphere> &spheres,
+					 Array<Triangle> &modelTris,
+					 Array<uint32> &lightTris,
 					 BVH_Node *bvh);
 
 bool Intersect(Ray ray, Scene scene, HitData *data);

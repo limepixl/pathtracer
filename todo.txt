@@ -1,7 +1,6 @@
 - BVH
     - Optimize BVH intersection
     - SAH
-- Own array / vector class
 - More BRDFs / BSDFs
 - Reduce compile times
 - Russian Roulette

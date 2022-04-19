@@ -174,16 +174,16 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 		}
 		// If there is at least 1 light source in the scene and the material
 		// of the surface we hit is diffuse, we can use NEE.
-		else if (scene.numLightTris > 0 && (mat->type == MaterialType::MATERIAL_LAMBERTIAN || (mat->type == MaterialType::MATERIAL_PHONG && mat->specular == CreateVec3f(0.0f))))
+		else if (scene.lightTris.size > 0 && (mat->type == MaterialType::MATERIAL_LAMBERTIAN || (mat->type == MaterialType::MATERIAL_PHONG && mat->specular == CreateVec3f(0.0f))))
 		{
 			// sample light sources for direct illumination
 			Vec3f directIllumination = CreateVec3f(0.0f);
 			for (int8 shadowRayIndex = 0; shadowRayIndex < NUM_SHADOW_RAYS; shadowRayIndex++)
 			{
 				// pick a light source
-				float pdfPickLight = 1.0f / (float)scene.numLightTris;
+				float pdfPickLight = 1.0f / (float)scene.lightTris.size;
 
-				int32 pickedLightSource = (int32)(pcg32_random_r(rngptr) % scene.numLightTris);
+				int32 pickedLightSource = (int32)(pcg32_random_r(rngptr) % scene.lightTris.size);
 				// TODO: FIX THIS
 				Triangle lightSource = scene.tris[scene.lightTris[pickedLightSource]];
 
@@ -344,7 +344,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 
 		// If there is at least 1 light source in the scene, and the material of the
 		// surface is diffuse, we can calculate the direct light contribution (NEE)
-		bool canUseNEE = scene.numLightTris > 0 && (matX->type == MaterialType::MATERIAL_LAMBERTIAN || (matX->type == MaterialType::MATERIAL_PHONG && matX->specular == CreateVec3f(0.0f))) && matX->Le.x < 0.1f;
+		bool canUseNEE = scene.lightTris.size > 0 && (matX->type == MaterialType::MATERIAL_LAMBERTIAN || (matX->type == MaterialType::MATERIAL_PHONG && matX->specular == CreateVec3f(0.0f))) && matX->Le.x < 0.1f;
 
 		if (canUseNEE)
 		{
@@ -352,10 +352,10 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 			for (int8 shadowRayIndex = 0; shadowRayIndex < NUM_SHADOW_RAYS; shadowRayIndex++)
 			{
 				// pick a light source
-				float pdfPickLight = 1.0f / (float)scene.numLightTris;
+				float pdfPickLight = 1.0f / (float)scene.lightTris.size;
 
 				uint32 r = pcg32_random_r(rngptr);
-				int32 pickedLightSource = (int32)(r % scene.numLightTris);
+				int32 pickedLightSource = (int32)(r % scene.lightTris.size);
 				Triangle lightSource = scene.tris[scene.lightTris[pickedLightSource]];
 
 				Material *lightSourceMat = lightSource.mat;
@@ -511,7 +511,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 		{
 			// If the hit surface is a light source, we need to calculate
 			// the pdf for NEE
-			if (matY->Le.x > 0.1f && scene.numLightTris > 0)
+			if (matY->Le.x > 0.1f && scene.lightTris.size > 0)
 			{
 				float pdfNEE_area = 0.0f;
 				switch (data.objectType)
@@ -527,7 +527,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 					break;
 				};
 
-				pdfNEE_area /= (float)(scene.numLightTris);
+				pdfNEE_area /= (float)(scene.lightTris.size);
 				float pdfNEE_solidAngle = pdfNEE_area * data.t * data.t / cosThetaY;
 				wBSDF = BalanceHeuristic(pdfBSDFsolidAngle, pdfNEE_solidAngle);
 			}
