@@ -8,3 +8,4 @@ build-linux
 cmake-build-debug
 cmake-build-release
 .idea
+*.sln
