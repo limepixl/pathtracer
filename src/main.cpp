@@ -2,8 +2,8 @@
 #include "loader.hpp"
 #include "scene/bvh.hpp"
 #include "scene/material.hpp"
-#include "scene/triangle.hpp"
 #include "scene/sphere.hpp"
+#include "scene/triangle.hpp"
 #include "threads.hpp"
 
 #include <cstdlib>
@@ -32,12 +32,7 @@ int main()
 	gridOrigin.z = -2.0f;
 
 	Array<Triangle> tris = CreateArray<Triangle>();
-	// Triangle *tris = nullptr;
-	// uint32 tris.size = 0;
-
 	Array<Material *> materials = CreateArray<Material *>();
-	// Material **materials = nullptr;
-	// uint32 numMaterials = 0;
 
 	if (!LoadModelFromObj("CornellBox-Suzanne.obj", "../res/", tris, materials))
 	{
@@ -157,8 +152,7 @@ int main()
 			// to initialize and start the thread for the first time
 			if (data->initialized)
 			{
-				printf("Rendered region: x = %u-%u, y = %u-%u\n", data->startX,
-					   data->endX, data->startY, data->endY);
+				printf("Rendered region: x = %u-%u, y = %u-%u\n", data->startX, data->endX, data->startY, data->endY);
 
 				int32 deltaX = (int32)(data->endX - data->startX);
 				int32 deltaY = (int32)(data->endY - data->startY);
