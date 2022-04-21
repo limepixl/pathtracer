@@ -88,46 +88,46 @@ bool AABBIntersect(Ray ray, AABB aabb, float t)
 bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax)
 {
 	bool hitAnything = false;
-	Array<BVH_Node *> stack = CreateArray<BVH_Node *>(16);
-	AppendToArray(stack, scene.bvh);
+	Array<BVH_Node> stack = CreateArray<BVH_Node>(1);
+	AppendToArray(stack, scene.bvh_tree[0]);
 
 	while (stack.size > 0)
 	{
-		BVH_Node *node = PopFromArray(stack);
+		BVH_Node node = PopFromArray(stack);
 
 		// Check if ray intersects root node
-		bool bvhHit = AABBIntersect(ray, node->nodeAABB, tmax);
+		bool bvhHit = AABBIntersect(ray, node.nodeAABB, tmax);
 		if (bvhHit)
 		{
-			bool isLeafNode = node->numTris <= BVH_NUM_LEAF_TRIS;
+			bool isLeafNode = node.left == -1 && node.right == -1;
 			if (!isLeafNode)
 			{
-				float dist1 = squaredDist(node->left->nodeAABB, ray.origin);
-				float dist2 = squaredDist(node->right->nodeAABB, ray.origin);
+				float dist1 = squaredDist(scene.bvh_tree[node.left].nodeAABB, ray.origin);
+				float dist2 = squaredDist(scene.bvh_tree[node.right].nodeAABB, ray.origin);
 
 				float squaredtmax = tmax * tmax;
 				if (dist1 <= dist2)
 				{
 					if (dist2 < squaredtmax)
-						AppendToArray(stack, node->right);
+						AppendToArray(stack, scene.bvh_tree[node.right]);
 
 					if (dist1 < squaredtmax)
-						AppendToArray(stack, node->left);
+						AppendToArray(stack, scene.bvh_tree[node.left]);
 				}
 				else
 				{
 					if (dist1 < squaredtmax)
-						AppendToArray(stack, node->left);
+						AppendToArray(stack, scene.bvh_tree[node.left]);
 
 					if (dist2 < squaredtmax)
-						AppendToArray(stack, node->right);
+						AppendToArray(stack, scene.bvh_tree[node.right]);
 				}
 			}
 			else
 			{
 				// If leaf node, test against triangles of node
-				Triangle *nodeTris = scene.tris.data + node->index;
-				uint32 numNodeTris = node->numTris;
+				Triangle *nodeTris = scene.tris.data + node.first_tri;
+				uint32 numNodeTris = node.numTris;
 
 				for (uint32 i = 0; i < numNodeTris; i++)
 				{
@@ -138,7 +138,7 @@ bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax)
 					{
 						// Found closer hit, store it.
 						tmax = currentData.t;
-						currentData.objectIndex = node->index + i;
+						currentData.objectIndex = node.first_tri + i;
 
 						hitAnything = true;
 						*data = currentData;
@@ -152,6 +152,7 @@ bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax)
 	return hitAnything;
 }
 
+/*
 void IntersectBVHRecursive(Ray ray, Scene scene, BVH_Node *node, HitData *data, float &tmax, bool &hitAnything)
 {
 	// Check if there is an intersection with the current node
@@ -199,6 +200,7 @@ void IntersectBVHRecursive(Ray ray, Scene scene, BVH_Node *node, HitData *data, 
 		}
 	}
 }
+*/
 
 static int axis = 0;
 
@@ -251,6 +253,7 @@ float SurfaceAreaOfAABB(AABB aabb)
 	return (dims.x * dims.y + dims.x * dims.z + dims.y * dims.z);
 }
 
+/*
 bool ConstructBVHObjectMedian(Triangle *tris, uint32 numTris, BVH_Node **node, uint32 index)
 {
 	*node = new BVH_Node();
@@ -282,25 +285,22 @@ bool ConstructBVHObjectMedian(Triangle *tris, uint32 numTris, BVH_Node **node, u
 
 	return true;
 }
+*/
 
-bool ConstructBVHSweepSAH(Triangle *tris, uint32 numTris, BVH_Node **node, uint32 index)
+bool ConstructBVHSweepSAH(Triangle *tris, uint32 numTris, Array<BVH_Node> &bvh_tree, uint32 bvh_index)
 {
-	*node = new BVH_Node();
-	BVH_Node *current_node = *node;
-
-	current_node->left = nullptr;
-	current_node->right = nullptr;
-	current_node->index = index;
-	current_node->numTris = numTris;
-	current_node->nodeAABB = ConstructAABBFromTris(tris, numTris);
+	bvh_tree[bvh_index].left = -1;
+	bvh_tree[bvh_index].right = -1;
+	bvh_tree[bvh_index].numTris = numTris;
+	bvh_tree[bvh_index].nodeAABB = ConstructAABBFromTris(tris, numTris);
 
 	// If the node has more than n_leaf triangles, it needs to be
 	// split into 2 child nodes.
 	if (numTris > BVH_NUM_LEAF_TRIS)
 	{
-		Array<float> axis_costs = CreateArray<float>(3);
-		Array<unsigned int> axis_indices = CreateArray<unsigned int>(3);
-		
+		float axis_costs[3];
+		unsigned int axis_indices[3];
+
 		for (int a = 0; a < 3; a++)
 		{
 			// Sort triangles along an axis
@@ -341,7 +341,7 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 numTris, BVH_Node **node, uint3
 			unsigned int min_index = 0;
 			for (unsigned int i = 0; i < partition_costs.size; i++)
 			{
-				if(partition_costs[i] < 0)
+				if (partition_costs[i] < 0)
 				{
 					printf("Wait...\n");
 				}
@@ -354,21 +354,29 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 numTris, BVH_Node **node, uint3
 
 			DeallocateArray(partition_costs);
 
-			AppendToArray(axis_costs, min_cost);
-			AppendToArray(axis_indices, min_index);
+			axis_costs[a] = min_cost;
+			axis_indices[a] = min_index;
 		}
 
 		float min_cost = axis_costs[0];
 		unsigned int optimal_axis = 0;
 
-		if(axis_costs[1] < min_cost) { min_cost = axis_costs[1]; optimal_axis = 1;}
-		if(axis_costs[2] < min_cost) { optimal_axis = 2;}
+		if (axis_costs[1] < min_cost)
+		{
+			min_cost = axis_costs[1];
+			optimal_axis = 1;
+		}
+		if (axis_costs[2] < min_cost)
+		{
+			optimal_axis = 2;
+		}
 
 		// Check if splitting cost is bigger than not splitting
-		float S_Parent = SurfaceAreaOfAABB(current_node->nodeAABB);
-		float cost_parent = S_Parent * current_node->numTris;
-		if(cost_parent <= min_cost)
+		float S_Parent = SurfaceAreaOfAABB(bvh_tree[bvh_index].nodeAABB);
+		float cost_parent = S_Parent * bvh_tree[bvh_index].numTris;
+		if (cost_parent <= min_cost)
 		{
+			printf("Skipped split!\n");
 			return true;
 		}
 
@@ -376,27 +384,27 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 numTris, BVH_Node **node, uint3
 		axis = optimal_axis;
 		qsort(tris, numTris, sizeof(Triangle), compare_tris);
 
-		// Recurse with the same function for the left and right children
+		// Create left and right child
 		uint32 leftChildNumTris = axis_indices[optimal_axis] + 1;
 		uint32 rightChildNumTris = numTris - axis_indices[optimal_axis] - 1;
-		ConstructBVHSweepSAH(tris, leftChildNumTris, &current_node->left, index);
-		ConstructBVHSweepSAH(tris + leftChildNumTris, rightChildNumTris, &current_node->right, index + leftChildNumTris);
 
-		// Clean up
-		DeallocateArray(axis_costs);
-		DeallocateArray(axis_indices);
+		BVH_Node leftChild {};
+		leftChild.first_tri = bvh_tree[bvh_index].first_tri;
+		leftChild.numTris = leftChildNumTris;
+		AppendToArray(bvh_tree, leftChild);
+
+		BVH_Node rightChild {};
+		rightChild.first_tri = bvh_tree[bvh_index].first_tri + leftChildNumTris;
+		rightChild.numTris = rightChildNumTris;
+		AppendToArray(bvh_tree, rightChild);
+
+		bvh_tree[bvh_index].left = bvh_index + 1;
+		bvh_tree[bvh_index].right = bvh_index + 2;
+
+		// Recurse with the same function for the left and right children
+		ConstructBVHSweepSAH(tris, leftChildNumTris, bvh_tree, bvh_index + 1);
+		ConstructBVHSweepSAH(tris + leftChildNumTris, rightChildNumTris, bvh_tree, bvh_index + 2);
 	}
 
-
 	return true;
-}
-
-void DeleteBVH(BVH_Node *node)
-{
-	if (node->left != nullptr)
-		DeleteBVH(node->left);
-	if (node->right != nullptr)
-		DeleteBVH(node->right);
-
-	delete node;
 }
