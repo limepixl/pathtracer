@@ -12,6 +12,10 @@ struct Array
 
 	T &operator[](unsigned int i)
 	{
+		if(i >= size) 
+		{ 
+			printf("ERROR!\n"); 
+		}
 		return data[i];
 	}
 };
@@ -73,6 +77,31 @@ void AppendToArray(Array<T> &arr, T &element)
 	}
 
 	arr.data[arr.size] = element;
+	arr.size++;
+}
+
+template <typename T>
+void PrependToArray(Array<T> &arr, T &element)
+{
+	// If the array has max elements, expand it
+	if (arr.size == arr.internal_size)
+	{
+		// Increase old size by 1.5x (with some exceptions)
+		unsigned int old_size = arr.internal_size;
+		if (old_size <= 1)
+			arr.internal_size += 2;
+		else
+			arr.internal_size += arr.internal_size / 2;
+	}
+
+	// Shift all elements to the right
+	T *tmp_data = new T[arr.internal_size];
+	memcpy(tmp_data + 1, arr.data, arr.size * sizeof(T));
+	
+	delete[] arr.data;
+	arr.data = tmp_data;
+
+	arr.data[0] = element;
 	arr.size++;
 }
 

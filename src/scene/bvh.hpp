@@ -19,14 +19,16 @@ bool AABBIntersect(Ray ray, AABB aabb, float t);
 
 struct BVH_Node
 {
-	BVH_Node *left, *right;
-	uint32 numTris;
-	uint32 index;
-	AABB nodeAABB;
+	AABB nodeAABB; // 6 * 4 = 24 bytes
+	uint32 index; // 4 bytes
+	uint32 numTris; // 4 bytes
+	BVH_Node *left, *right; // 16 bytes
+	// = 48 bytes
 };
 
 AABB ConstructAABBFromTris(struct Triangle *tris, uint32 numTris);
-bool ConstructBVH(struct Triangle *tris, uint32 numTris, BVH_Node **node, uint32 index = 0);
+bool ConstructBVHSweepSAH(struct Triangle *tris, uint32 numTris, BVH_Node **node, uint32 index = 0);
+bool ConstructBVHObjectMedian(struct Triangle *tris, uint32 numTris, BVH_Node **node, uint32 index = 0);
 void IntersectBVHRecursive(Ray ray, Scene scene, BVH_Node *node, HitData *data, float &tmax, bool &hitAnything);
 bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax);
 void DeleteBVH(BVH_Node *node);

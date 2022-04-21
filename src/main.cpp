@@ -34,7 +34,7 @@ int main()
 	Array<Triangle> tris = CreateArray<Triangle>();
 	Array<Material *> materials = CreateArray<Material *>();
 
-	if (!LoadModelFromObj("CornellBox-Suzanne.obj", "../res/", tris, materials))
+	if (!LoadModelFromObj("stanford-bunny.obj", "../res/", tris, materials))
 	{
 		DeallocateArray(bitmapBuffer);
 		return -1;
@@ -43,6 +43,7 @@ int main()
 	// Apply model matrix to tris
 	Mat4f modelMatrix = CreateIdentityMat4f();
 	modelMatrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), modelMatrix);
+	modelMatrix = ScaleMat4f(CreateVec3f(8.0f), modelMatrix);
 	for (uint32 i = 0; i < tris.size; i++)
 	{
 		tris[i].v0 = modelMatrix * tris[i].v0;
@@ -54,7 +55,7 @@ int main()
 
 	// Construct BVH tree and sort triangle list according to it
 	BVH_Node *rootBVH = nullptr;
-	if (!ConstructBVH(tris.data, tris.size, &rootBVH))
+	if (!ConstructBVHSweepSAH(tris.data, tris.size, &rootBVH))
 	{
 		printf("Error in BVH construction!\n");
 		DeallocateArray(bitmapBuffer);

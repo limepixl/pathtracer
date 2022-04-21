@@ -1,0 +1,4 @@
+Only Bunny (CLANG):
+- SAH: BVH Build: 4.5s, Total: 40s
+- Object median split:  Total: 26s
+
