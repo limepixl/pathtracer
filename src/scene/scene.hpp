@@ -45,13 +45,12 @@ struct Scene
 	Array<Sphere> spheres;
 	Array<Triangle> tris;
 	Array<uint32> lightTris;
-
-	BVH_Node *bvh;
+	Array<BVH_Node> bvh_tree;
 };
 
-Scene ConstructScene(Array<Sphere> &spheres,
-					 Array<Triangle> &modelTris,
-					 Array<uint32> &lightTris,
-					 BVH_Node *bvh);
+Scene ConstructScene(Array<Sphere> spheres,
+					 Array<Triangle> modelTris,
+					 Array<uint32> lightTris,
+					 Array<BVH_Node> bvh_tree);
 
 bool Intersect(Ray ray, Scene scene, HitData *data);

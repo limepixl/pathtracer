@@ -56,7 +56,7 @@ Array<T> CreateArray()
 }
 
 template <typename T>
-void AppendToArray(Array<T> &arr, T &element)
+void AppendToArray(Array<T> &arr, T element)
 {
 	// If the array has max elements, expand it
 	if (arr.size == arr.internal_size)
@@ -96,12 +96,17 @@ void PrependToArray(Array<T> &arr, T &element)
 
 	// Shift all elements to the right
 	T *tmp_data = new T[arr.internal_size];
-	memcpy(tmp_data + 1, arr.data, arr.size * sizeof(T));
+	if(arr.size < arr.internal_size)
+		memcpy(tmp_data + 1, arr.data, arr.size * sizeof(T));
+	else
+	{
+		printf("ERROR 123!\n");
+	}
 	
+	tmp_data[0] = element;
+
 	delete[] arr.data;
 	arr.data = tmp_data;
-
-	arr.data[0] = element;
 	arr.size++;
 }
 
@@ -114,14 +119,20 @@ T PopFromArray(Array<T> &arr)
 	if (arr.size == 0)
 	{
 		printf("ERROR: Popping from empty array!\n");
-		return { 0 };
+		exit(-1);
 	}
 
 	T result = arr.data[arr.size - 1];
-	arr.data[arr.size - 1] = { 0 };
+	arr.data[arr.size - 1] = {};
 	arr.size--;
 
 	return result;
+}
+
+template <typename T>
+T &Back(Array<T> &arr)
+{
+	return arr.data[arr.size - 1];
 }
 
 template <typename T>
