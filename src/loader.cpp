@@ -176,7 +176,8 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 											  emission,
 											  mat.name.c_str());
 
-					outMaterials[numLoadedMaterials++] = tmp_mat;
+					AppendToArray(outMaterials, tmp_mat);
+					numLoadedMaterials++;
 					triangle_mat = tmp_mat;
 				}
 
@@ -191,7 +192,8 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 											  emission,
 											  mat.name.c_str());
 
-					outMaterials[numLoadedMaterials++] = tmp_mat;
+					AppendToArray(outMaterials, tmp_mat);
+					numLoadedMaterials++;
 					triangle_mat = tmp_mat;
 				}
 
@@ -207,7 +209,8 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 											  emission,
 											  mat.name.c_str());
 
-					outMaterials[numLoadedMaterials++] = tmp_mat;
+					AppendToArray(outMaterials, tmp_mat);
+					numLoadedMaterials++;
 					triangle_mat = tmp_mat;
 				}
 			}
