@@ -6,7 +6,7 @@
 #define HEIGHT 500
 
 #define BOUNCE_COUNT 5
-#define NUM_SAMPLES 1
+#define NUM_SAMPLES 200
 #define NUM_SHADOW_RAYS 1
 
 #define BVH_NUM_LEAF_TRIS 4
