@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdio>
 #include <cstring>
 
 #define ARRAY_STARTING_SIZE 0
@@ -110,8 +111,6 @@ void PrependToArray(Array<T> &arr, T &element)
 	arr.size++;
 }
 
-#include <cstdio>
-
 template <typename T>
 T PopFromArray(Array<T> &arr)
 {
@@ -119,7 +118,6 @@ T PopFromArray(Array<T> &arr)
 	if (arr.size == 0)
 	{
 		printf("ERROR: Popping from empty array!\n");
-		exit(-1);
 	}
 
 	T result = arr.data[arr.size - 1];
