@@ -34,7 +34,7 @@ int main()
 	Array<Triangle> tris = CreateArray<Triangle>();
 	Array<Material *> materials = CreateArray<Material *>();
 
-	if (!LoadModelFromObj("suzanne.obj", "../res/", tris, materials))
+	if (!LoadModelFromObj("CornellBox-Suzanne.obj", "../res/", tris, materials))
 	{
 		DeallocateArray(bitmapBuffer);
 		return -1;
@@ -43,7 +43,6 @@ int main()
 	// Apply model matrix to tris
 	Mat4f modelMatrix = CreateIdentityMat4f();
 	modelMatrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), modelMatrix);
-	// modelMatrix = ScaleMat4f(CreateVec3f(8.0f), modelMatrix);
 	for (uint32 i = 0; i < tris.size; i++)
 	{
 		tris[i].v0 = modelMatrix * tris[i].v0;
@@ -55,12 +54,10 @@ int main()
 
 	// Construct BVH tree and sort triangle list according to it
 	Array<BVH_Node> bvh_tree = CreateArray<BVH_Node>(1);
-
-	// FOR TOMORROW: for some reason the triangles aren't being tested against,
-	// even though the BVH looks fine in the debugger. Find out why.
 	
 	BVH_Node root_node {};
 	root_node.first_tri = 0;
+	root_node.numTris = tris.size;
 
 	AppendToArray(bvh_tree, root_node);
 	

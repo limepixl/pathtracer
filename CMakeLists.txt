@@ -83,7 +83,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 	endif()
 
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-	target_compile_options(${PROJECT_NAME} PRIVATE -WX -W4 -wd4201 -wd4189 -wd4100 -wd4146 -Oy -Zi -fsanitize=address)
+	target_compile_options(${PROJECT_NAME} PRIVATE -WX -W4 -wd4201 -wd4189 -wd4100 -wd4146 -Oy -Zi)
 endif()
 
 cmake_print_variables(CMAKE_CXX_COMPILER_ID)

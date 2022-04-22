@@ -1,15 +1,5 @@
-# Blender 3.1.0 MTL File: 'None'
-# www.blender.org
-
-newmtl Default_OBJ
-Ns 10.000005
-Ka 1.000000 1.000000 1.000000
-Kd 0.725000 0.710000 0.680000
-Ks 0.000000 0.000000 0.000000
-Ke 0.000000 0.000000 0.000000
-Ni 1.000000
-d 1.000000
-illum 1
+# Blender MTL File: 'None'
+# Material Count: 7
 
 newmtl backWall.001
 Ns 1000.000000
