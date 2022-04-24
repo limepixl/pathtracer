@@ -34,7 +34,7 @@ int main()
 	Array<Triangle> tris = CreateArray<Triangle>();
 	Array<Material *> materials = CreateArray<Material *>();
 
-	if (!LoadModelFromObj("CornellBox-Suzanne.obj", "../res/", tris, materials))
+	if (!LoadModelFromObj("CornellBox-Bunny.obj", "../res/", tris, materials))
 	{
 		DeallocateArray(bitmapBuffer);
 		return -1;
