@@ -53,7 +53,7 @@ int main()
 	}
 
 	// Construct BVH tree and sort triangle list according to it
-	Array<BVH_Node> bvh_tree = CreateArray<BVH_Node>(1);
+	Array<BVH_Node> bvh_tree = CreateArray<BVH_Node>(2 * tris.size - 1);
 	
 	BVH_Node root_node {};
 	root_node.first_tri = 0;
@@ -62,6 +62,7 @@ int main()
 	AppendToArray(bvh_tree, root_node);
 	
 	if (!ConstructBVHSweepSAH(tris.data, tris.size, bvh_tree, 0))
+	// if (!ConstructBVHObjectMedian(tris.data, tris.size, bvh_tree, 0))
 	{
 		printf("Error in BVH construction!\n");
 		DeallocateArray(bitmapBuffer);
