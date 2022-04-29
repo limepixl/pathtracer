@@ -19,11 +19,13 @@ bool AABBIntersect(Ray ray, AABB aabb, float t);
 
 struct BVH_Node
 {
-	AABB nodeAABB; // 6 * 4 = 24 bytes
-	uint32 first_tri; // 4 bytes
-	uint32 numTris; // 4 bytes
-	int32 left, right; // 8 bytes
-	// = 40 bytes
+	AABB nodeAABB;
+	union
+	{
+		uint32 left = ~0U;
+		uint32 first_tri;
+	};
+	uint32 numTris;
 };
 
 AABB ConstructAABBFromTris(struct Triangle *tris, uint32 numTris);

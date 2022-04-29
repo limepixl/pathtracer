@@ -57,8 +57,6 @@ int main()
 	
 	BVH_Node root_node {};
 	root_node.first_tri = 0;
-	root_node.numTris = tris.size;
-
 	AppendToArray(bvh_tree, root_node);
 	
 	if (!ConstructBVHSweepSAH(tris.data, tris.size, bvh_tree, 0))
