@@ -39,7 +39,7 @@ AABB ConstructAABBFromTris(Triangle *tris, uint32 numTris)
 
 void ExpandAABBWithTri(AABB &aabb, Triangle &tri)
 {
-	Vec3f offsetVec = CreateVec3f(0.001f);
+	Vec3f offsetVec = CreateVec3f(0.01f);
 	
 	Vec3f v0 = tri.v0 - offsetVec;
 	Vec3f v1 = tri.v1 - offsetVec;
@@ -131,17 +131,17 @@ bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax)
 		bool bvhHit = AABBIntersect(ray, node.nodeAABB, tmax);
 		if (bvhHit)
 		{
-			bool isLeafNode = node.left == -1 && node.right == -1;
+			bool isLeafNode = node.numTris > 0;
 			if (!isLeafNode)
 			{
 				float dist1 = squaredDist(scene.bvh_tree[node.left].nodeAABB, ray.origin);
-				float dist2 = squaredDist(scene.bvh_tree[node.right].nodeAABB, ray.origin);
+				float dist2 = squaredDist(scene.bvh_tree[node.left + 1].nodeAABB, ray.origin);
 
 				float squaredtmax = tmax * tmax;
 				if (dist1 <= dist2)
 				{
 					if (dist2 < squaredtmax)
-						AppendToArray(stack, scene.bvh_tree[node.right]);
+						AppendToArray(stack, scene.bvh_tree[node.left + 1]);
 
 					if (dist1 < squaredtmax)
 						AppendToArray(stack, scene.bvh_tree[node.left]);
@@ -152,7 +152,7 @@ bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax)
 						AppendToArray(stack, scene.bvh_tree[node.left]);
 
 					if (dist2 < squaredtmax)
-						AppendToArray(stack, scene.bvh_tree[node.right]);
+						AppendToArray(stack, scene.bvh_tree[node.left + 1]);
 				}
 			}
 			else
@@ -237,8 +237,6 @@ float SurfaceAreaOfAABB(AABB aabb)
 bool ConstructBVHObjectMedian(struct Triangle *tris, uint32 numTris, Array<BVH_Node> &bvh_tree, uint32 bvh_index)
 {
 	BVH_Node &current_node = bvh_tree[bvh_index];
-	current_node.left = -1;
-	current_node.right = -1;
 	current_node.nodeAABB = ConstructAABBFromTris(tris, numTris);
 
 	// If the node has more than n_leaf triangles, it needs to be
@@ -264,11 +262,12 @@ bool ConstructBVHObjectMedian(struct Triangle *tris, uint32 numTris, Array<BVH_N
 		BVH_Node rightChild {};
 		rightChild.first_tri = current_node.first_tri + leftChildNumTris;
 		rightChild.numTris = rightChildNumTris;
-		current_node.right = bvh_tree.size;
+		// current_node.right = bvh_tree.size;
 		AppendToArray(bvh_tree, rightChild);
 
 		ConstructBVHObjectMedian(tris, leftChildNumTris, bvh_tree, current_node.left);
-		ConstructBVHObjectMedian(tris + leftChildNumTris, rightChildNumTris, bvh_tree, current_node.right);
+		ConstructBVHObjectMedian(tris + leftChildNumTris, rightChildNumTris, bvh_tree, current_node.left + 1);
+		current_node.numTris = 0;
 	}
 
 	return true;
@@ -277,8 +276,6 @@ bool ConstructBVHObjectMedian(struct Triangle *tris, uint32 numTris, Array<BVH_N
 bool ConstructBVHSweepSAH(Triangle *tris, uint32 numTris, Array<BVH_Node> &bvh_tree, uint32 bvh_index)
 {
 	BVH_Node &current_node = bvh_tree[bvh_index];
-	current_node.left = -1;
-	current_node.right = -1;
 	current_node.nodeAABB = ConstructAABBFromTris(tris, numTris);
 	
 	float S_P = SurfaceAreaOfAABB(current_node.nodeAABB);
@@ -366,13 +363,16 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 numTris, Array<BVH_Node> &bvh_t
 	}
 
 	// Check if splitting cost is bigger than not splitting
-	uint32 cost_parent = current_node.numTris;
+	uint32 cost_parent = numTris;
 	if ((float)cost_parent < min_cost)
 	{
 		// Skipped split of node
-		// printf("Keeping node with %u tris!\n", current_node.numTris); 
+		// printf("Keeping node with %u tris!\n", current_node.numTris);
+		current_node.numTris = numTris;
 		return true;
 	}
+
+	current_node.numTris = 0;
 
 	// Sort triangles along the optimal axis
 	if(optimal_axis != 2)
@@ -388,14 +388,15 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 numTris, Array<BVH_Node> &bvh_t
 	BVH_Node leftChild {};
 	leftChild.first_tri = current_node.first_tri;
 	leftChild.numTris = leftChildNumTris;
-	current_node.left = bvh_tree.size;
+	uint32 left_index = bvh_tree.size;
 	AppendToArray(bvh_tree, leftChild);
 
 	BVH_Node rightChild {};
 	rightChild.first_tri = current_node.first_tri + leftChildNumTris;
 	rightChild.numTris = rightChildNumTris;
-	current_node.right = bvh_tree.size;
 	AppendToArray(bvh_tree, rightChild);
+
+	current_node.left = left_index;
 
 	// printf("Left child #tris: %d\n", leftChildNumTris);
 	// printf("Right child #tris: %d\n", rightChildNumTris);
@@ -403,7 +404,7 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 numTris, Array<BVH_Node> &bvh_t
 
 	// Recurse with the same function for the left and right children
 	ConstructBVHSweepSAH(tris, leftChildNumTris, bvh_tree, current_node.left);
-	ConstructBVHSweepSAH(tris + leftChildNumTris, rightChildNumTris, bvh_tree, current_node.right);
+	ConstructBVHSweepSAH(tris + leftChildNumTris, rightChildNumTris, bvh_tree, current_node.left + 1);
 
 	return true;
 }
