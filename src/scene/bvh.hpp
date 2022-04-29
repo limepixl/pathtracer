@@ -27,7 +27,7 @@ struct BVH_Node
 };
 
 AABB ConstructAABBFromTris(struct Triangle *tris, uint32 numTris);
-bool ConstructBVHSweepSAH(Triangle *tris, uint32 numTris, Array<BVH_Node> &bvh_tree, uint32 index);
-bool ConstructBVHObjectMedian(struct Triangle *tris, uint32 numTris, BVH_Node **node, uint32 index = 0);
+bool ConstructBVHSweepSAH(Triangle *tris, uint32 numTris, Array<BVH_Node> &bvh_tree, uint32 bvh_index);
+bool ConstructBVHObjectMedian(struct Triangle *tris, uint32 numTris, Array<BVH_Node> &bvh_tree, uint32 bvh_index);
 void IntersectBVHRecursive(Ray ray, Scene scene, BVH_Node *node, HitData *data, float &tmax, bool &hitAnything);
 bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax);
