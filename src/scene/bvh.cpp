@@ -40,7 +40,7 @@ AABB ConstructAABBFromTris(Triangle *tris, uint32 numTris)
 void ExpandAABBWithTri(AABB &aabb, Triangle &tri)
 {
 	Vec3f offsetVec = CreateVec3f(0.01f);
-	
+
 	Vec3f v0 = tri.v0 - offsetVec;
 	Vec3f v1 = tri.v1 - offsetVec;
 	Vec3f v2 = tri.v2 - offsetVec;
@@ -111,9 +111,9 @@ float AABBIntersectValue(Ray ray, AABB aabb, float t)
 	tmin = Max(tmin, Min(tz1, tz2));
 	tmax = Min(tmax, Max(tz1, tz2));
 
-	if(tmax >= Max(0.0f, tmin) && tmin < t)
+	if (tmax >= Max(0.0f, tmin) && tmin < t)
 		return tmin;
-	
+
 	return t;
 }
 
@@ -234,7 +234,7 @@ float SurfaceAreaOfAABB(AABB aabb)
 	return (dims.x * dims.y + dims.x * dims.z + dims.y * dims.z);
 }
 
-bool ConstructBVHObjectMedian(struct Triangle *tris, uint32 numTris, Array<BVH_Node> &bvh_tree, uint32 bvh_index)
+bool ConstructBVHObjectMedian(Triangle *tris, uint32 numTris, Array<BVH_Node> &bvh_tree, uint32 bvh_index)
 {
 	BVH_Node &current_node = bvh_tree[bvh_index];
 	current_node.nodeAABB = ConstructAABBFromTris(tris, numTris);
@@ -256,19 +256,22 @@ bool ConstructBVHObjectMedian(struct Triangle *tris, uint32 numTris, Array<BVH_N
 		BVH_Node leftChild {};
 		leftChild.first_tri = current_node.first_tri;
 		leftChild.numTris = leftChildNumTris;
-		current_node.left = bvh_tree.size;
+		uint32 left_index = bvh_tree.size;
 		AppendToArray(bvh_tree, leftChild);
 
 		BVH_Node rightChild {};
 		rightChild.first_tri = current_node.first_tri + leftChildNumTris;
 		rightChild.numTris = rightChildNumTris;
-		// current_node.right = bvh_tree.size;
 		AppendToArray(bvh_tree, rightChild);
 
-		ConstructBVHObjectMedian(tris, leftChildNumTris, bvh_tree, current_node.left);
-		ConstructBVHObjectMedian(tris + leftChildNumTris, rightChildNumTris, bvh_tree, current_node.left + 1);
+		current_node.left = left_index;
+
+		ConstructBVHObjectMedian(tris, leftChildNumTris, bvh_tree, left_index);
+		ConstructBVHObjectMedian(tris + leftChildNumTris, rightChildNumTris, bvh_tree, left_index + 1);
 		current_node.numTris = 0;
 	}
+	else
+		current_node.numTris = numTris;
 
 	return true;
 }
@@ -277,134 +280,137 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 numTris, Array<BVH_Node> &bvh_t
 {
 	BVH_Node &current_node = bvh_tree[bvh_index];
 	current_node.nodeAABB = ConstructAABBFromTris(tris, numTris);
-	
+	current_node.numTris = numTris;
+
 	float S_P = SurfaceAreaOfAABB(current_node.nodeAABB);
 
-	// If the node has more than n_leaf triangles, it needs to be
-	// split into 2 child nodes.
-	float axis_costs[3];
-	unsigned int axis_indices[3];
-
-	for (int a = 0; a < 3; a++)
+	if (numTris > BVH_NUM_LEAF_TRIS)
 	{
-		// Sort triangles along an axis
-		axis = a;
-		qsort(tris, numTris, sizeof(Triangle), compare_tris);
+		// If the node has more than n_leaf triangles, it needs to be
+		// split into 2 child nodes.
+		float axis_costs[3];
+		unsigned int axis_indices[3];
 
-		// Compute cost (Sweep SAH method)
-		// Cost function:   C(L, R) = ( N(L) * S(L) + N(R) * S(R) ) / S(P)
-
-		Array<float> partition_costs = CreateArray<float>(numTris - 1);
-		partition_costs.size = numTris - 1;
-
-		AABB V_L, V_R;
-		V_L.bmin = { INFINITY, INFINITY, INFINITY };
-		V_L.bmax = { -INFINITY, -INFINITY, -INFINITY };
-		V_R.bmin = { INFINITY, INFINITY, INFINITY };
-		V_R.bmax = { -INFINITY, -INFINITY, -INFINITY };
-
-		// 1) Sweep from right to left to compute (S(R)/S(P)) * N(R)
-		for (unsigned int i = 1; i < numTris; i++)
+		for (int a = 0; a < 3; a++)
 		{
-			Triangle newTri = tris[numTris - i];
-			ExpandAABBWithTri(V_R, newTri);
-			float S_R = SurfaceAreaOfAABB(V_R);
+			// Sort triangles along an axis
+			axis = a;
+			qsort(tris, numTris, sizeof(Triangle), compare_tris);
 
-			float res_R = S_R * i;
-			partition_costs[numTris - i - 1] = res_R;
-		}
+			// Compute cost (Sweep SAH method)
+			// Cost function:   C(L, R) = ( N(L) * S(L) + N(R) * S(R) ) / S(P)
 
-		// 2) Sweep from left to right to compute full cost (by expanding left node)
-		for (unsigned int i = 1; i < numTris; i++)
-		{
-			Triangle newTri = tris[i - 1];
-			ExpandAABBWithTri(V_L, newTri);
+			Array<float> partition_costs = CreateArray<float>(numTris - 1);
+			partition_costs.size = numTris - 1;
 
-			float S_L = SurfaceAreaOfAABB(V_L);
-			float res_L = S_L * i;
-			partition_costs[i - 1] += res_L;
-		}
+			AABB V_L, V_R;
+			V_L.bmin = { INFINITY, INFINITY, INFINITY };
+			V_L.bmax = { -INFINITY, -INFINITY, -INFINITY };
+			V_R.bmin = { INFINITY, INFINITY, INFINITY };
+			V_R.bmax = { -INFINITY, -INFINITY, -INFINITY };
 
-		// 3) Keep only the split with the minimum cost
-		float min_cost = INFINITY;
-		unsigned int min_index = 0;
-		for (unsigned int i = 0; i < partition_costs.size; i++)
-		{
-			partition_costs[i] /= S_P;
-			
-			if (partition_costs[i] < 0)
+			// 1) Sweep from right to left to compute (S(R)/S(P)) * N(R)
+			for (unsigned int i = 1; i < numTris; i++)
 			{
-				printf("//////////////////////////////////////////////////////////////////////////////////////////////////////////\n");
+				Triangle newTri = tris[numTris - i];
+				ExpandAABBWithTri(V_R, newTri);
+				float S_R = SurfaceAreaOfAABB(V_R);
+
+				float res_R = S_R * i;
+				partition_costs[numTris - i - 1] = res_R;
 			}
-			if (partition_costs[i] < min_cost)
+
+			// 2) Sweep from left to right to compute full cost (by expanding left node)
+			for (unsigned int i = 1; i < numTris; i++)
 			{
-				min_cost = partition_costs[i];
-				min_index = i;
+				Triangle newTri = tris[i - 1];
+				ExpandAABBWithTri(V_L, newTri);
+
+				float S_L = SurfaceAreaOfAABB(V_L);
+				float res_L = S_L * i;
+				partition_costs[i - 1] += res_L;
 			}
+
+			// 3) Keep only the split with the minimum cost
+			float min_cost = INFINITY;
+			unsigned int min_index = 0;
+			for (unsigned int i = 0; i < partition_costs.size; i++)
+			{
+				partition_costs[i] /= S_P;
+
+				if (partition_costs[i] < 0)
+				{
+					printf("//////////////////////////////////////////////////////////////////////////////////////////////////////////\n");
+				}
+				if (partition_costs[i] < min_cost)
+				{
+					min_cost = partition_costs[i];
+					min_index = i;
+				}
+			}
+
+			DeallocateArray(partition_costs);
+
+			axis_costs[a] = min_cost;
+			axis_indices[a] = min_index;
 		}
 
-		DeallocateArray(partition_costs);
+		float min_cost = axis_costs[0];
+		unsigned int optimal_axis = 0;
 
-		axis_costs[a] = min_cost;
-		axis_indices[a] = min_index;
+		if (axis_costs[1] < min_cost)
+		{
+			min_cost = axis_costs[1];
+			optimal_axis = 1;
+		}
+		if (axis_costs[2] < min_cost)
+		{
+			optimal_axis = 2;
+		}
+
+		// Check if splitting cost is bigger than not splitting
+		uint32 cost_parent = numTris;
+		if ((float)cost_parent < min_cost)
+		{
+			// Skipped split of node
+			// printf("Keeping node with %u tris!\n", current_node.numTris);
+			return true;
+		}
+
+		current_node.numTris = 0;
+
+		// Sort triangles along the optimal axis
+		if (optimal_axis != 2)
+		{
+			axis = optimal_axis;
+			qsort(tris, numTris, sizeof(Triangle), compare_tris);
+		}
+
+		// Create left and right child
+		uint32 leftChildNumTris = axis_indices[optimal_axis] + 1;
+		uint32 rightChildNumTris = numTris - leftChildNumTris;
+
+		BVH_Node leftChild {};
+		leftChild.first_tri = current_node.first_tri;
+		leftChild.numTris = leftChildNumTris;
+		uint32 left_index = bvh_tree.size;
+		AppendToArray(bvh_tree, leftChild);
+
+		BVH_Node rightChild {};
+		rightChild.first_tri = current_node.first_tri + leftChildNumTris;
+		rightChild.numTris = rightChildNumTris;
+		AppendToArray(bvh_tree, rightChild);
+
+		current_node.left = left_index;
+
+		// printf("Left child #tris: %d\n", leftChildNumTris);
+		// printf("Right child #tris: %d\n", rightChildNumTris);
+		// printf("/////////////////////////////////\n");
+
+		// Recurse with the same function for the left and right children
+		ConstructBVHSweepSAH(tris, leftChildNumTris, bvh_tree, current_node.left);
+		ConstructBVHSweepSAH(tris + leftChildNumTris, rightChildNumTris, bvh_tree, current_node.left + 1);
 	}
-
-	float min_cost = axis_costs[0];
-	unsigned int optimal_axis = 0;
-
-	if (axis_costs[1] < min_cost)
-	{
-		min_cost = axis_costs[1];
-		optimal_axis = 1;
-	}
-	if (axis_costs[2] < min_cost)
-	{
-		optimal_axis = 2;
-	}
-
-	// Check if splitting cost is bigger than not splitting
-	uint32 cost_parent = numTris;
-	if ((float)cost_parent < min_cost)
-	{
-		// Skipped split of node
-		// printf("Keeping node with %u tris!\n", current_node.numTris);
-		current_node.numTris = numTris;
-		return true;
-	}
-
-	current_node.numTris = 0;
-
-	// Sort triangles along the optimal axis
-	if(optimal_axis != 2)
-	{
-		axis = optimal_axis;
-		qsort(tris, numTris, sizeof(Triangle), compare_tris);
-	}
-
-	// Create left and right child
-	uint32 leftChildNumTris = axis_indices[optimal_axis] + 1;
-	uint32 rightChildNumTris = numTris - leftChildNumTris;
-
-	BVH_Node leftChild {};
-	leftChild.first_tri = current_node.first_tri;
-	leftChild.numTris = leftChildNumTris;
-	uint32 left_index = bvh_tree.size;
-	AppendToArray(bvh_tree, leftChild);
-
-	BVH_Node rightChild {};
-	rightChild.first_tri = current_node.first_tri + leftChildNumTris;
-	rightChild.numTris = rightChildNumTris;
-	AppendToArray(bvh_tree, rightChild);
-
-	current_node.left = left_index;
-
-	// printf("Left child #tris: %d\n", leftChildNumTris);
-	// printf("Right child #tris: %d\n", rightChildNumTris);
-	// printf("/////////////////////////////////\n");
-
-	// Recurse with the same function for the left and right children
-	ConstructBVHSweepSAH(tris, leftChildNumTris, bvh_tree, current_node.left);
-	ConstructBVHSweepSAH(tris + leftChildNumTris, rightChildNumTris, bvh_tree, current_node.left + 1);
 
 	return true;
 }
