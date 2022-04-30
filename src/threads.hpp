@@ -4,16 +4,16 @@
 
 struct RenderData
 {
-	void *threadMemoryChunk;
-	uint32 memorySize;
+	void *thread_memory_chunk;
+	uint32 memory_size;
 
 	// Virtual grid dimensions
-	uint32 startX, endX;
-	uint32 startY, endY;
+	uint32 start_x, end_x;
+	uint32 start_y, end_y;
 	uint32 width, height;
 
 	// Camera data
-	Vec3f gridOrigin, gridX, gridY, eye;
+	Vec3f grid_origin, grid_x, grid_y, eye;
 
 	// Scene data
 	Scene scene;

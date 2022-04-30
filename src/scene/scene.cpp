@@ -9,41 +9,41 @@ LightSource CreateLightSource(void *obj, LightSourceType type)
 
 Scene ConstructScene(Array<Sphere> spheres,
 					 Array<Triangle> tris,
-					 Array<uint32> lightTris,
-					 Array<BVH_Node> bvh_tree)
+					 Array<uint32> light_tris,
+					 Array<BVHNode> bvh_tree)
 {
-	return { spheres, tris, lightTris, bvh_tree };
+	return { spheres, tris, light_tris, bvh_tree };
 }
 
 bool Intersect(Ray ray, Scene scene, HitData *data)
 {
-	bool hitAnything = false;
-	HitData resultData {};
-	resultData.t = TMAX;
+	bool hit_anything = false;
+	HitData result_data {};
+	result_data.t = TMAX;
 
 	float tmax = TMAX;
 
 	for (uint32 i = 0; i < scene.spheres.size; i++)
 	{
-		HitData currentData = {};
+		HitData current_data = {};
 		Sphere current = scene.spheres[i];
-		bool intersect = SphereIntersect(ray, current, &currentData, tmax);
+		bool intersect = SphereIntersect(ray, current, &current_data, tmax);
 		if (intersect)
 		{
 			// Found closer hit, store it.
-			hitAnything = true;
-			resultData = currentData;
+			hit_anything = true;
+			result_data = current_data;
 
-			resultData.objectIndex = i;
-			resultData.objectType = ObjectType::SPHERE;
+			result_data.object_index = i;
+			result_data.object_type = ObjectType::SPHERE;
 		}
 	}
 
-	hitAnything = hitAnything || IntersectBVHStack(ray, scene, &resultData, tmax);
-	if (hitAnything)
+	hit_anything = hit_anything || IntersectBVHStack(ray, scene, &result_data, tmax);
+	if (hit_anything)
 	{
-		*data = resultData;
+		*data = result_data;
 	}
 
-	return hitAnything;
+	return hit_anything;
 }

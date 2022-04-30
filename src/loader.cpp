@@ -8,19 +8,19 @@
 #include "../thirdparty/tinyobjloader/tiny_obj_loader.h"
 #include <string>
 
-bool LoadModelFromObj(const char *fileName, const char *path,
-					  Array<struct Triangle> &outTris,
-					  Array<struct Material *> &outMaterials)
+bool LoadModelFromObj(const char *file_name, const char *path,
+					  Array<struct Triangle> &out_tris,
+					  Array<struct Material *> &out_materials)
 {
-	printf("Loading %s model from path: %s\n", fileName, path);
+	printf("Loading %s model from path: %s\n", file_name, path);
 
 	tinyobj::attrib_t attrib = {};
 	std::vector<tinyobj::shape_t> shapes;
 	std::vector<tinyobj::material_t> materials;
 	std::string warning, error;
 
-	std::string finalPath = std::string(path) + std::string(fileName);
-	bool res = tinyobj::LoadObj(&attrib, &shapes, &materials, &warning, &error, finalPath.c_str(), path);
+	std::string final_path = std::string(path) + std::string(file_name);
+	bool res = tinyobj::LoadObj(&attrib, &shapes, &materials, &warning, &error, final_path.c_str(), path);
 
 	// Print out any warnings or errors that tinyobjloader returned
 	if (!warning.empty())
@@ -31,35 +31,35 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 
 	if (!res)
 	{
-		printf("Failed to load obj file at path: %s\n", finalPath.c_str());
+		printf("Failed to load obj file at path: %s\n", final_path.c_str());
 		return false;
 	}
 
 	// int64 numVertices = (int64)(attrib.vertices.size() / 3);
-	int64 numNormals = (int64)(attrib.normals.size() / 3);
+	int64 num_normals = (int64)(attrib.normals.size() / 3);
 	// int64 numUVs = (int64)(attrib.texcoords.size() / 2);
-	int32 numMaterials = (int32)(materials.size());
-	uint32 numShapes = (uint32)(shapes.size());
+	int32 num_materials = (int32)(materials.size());
+	uint32 num_shapes = (uint32)(shapes.size());
 
 	// Initialize out materials
-	int32 numLoadedMaterials = 0;
-	outMaterials = CreateArray<Material *>(numMaterials);
+	int32 num_loaded_materials = 0;
+	out_materials = CreateArray<Material *>(num_materials);
 
 	// Keep track of emissive triangles so that we can keep them as
 	// light sources for NEE later on
-	std::vector<uint32> emissiveTris;
+	std::vector<uint32> emissive_tris;
 
 	// TODO: compute AABB while loading
 
 	std::vector<Triangle> tris;
-	for (uint32 shape = 0; shape < numShapes; shape++)
+	for (uint32 shape = 0; shape < num_shapes; shape++)
 	{
 		// This shape's indices
 		// NOTE: assuming mesh is trangulated (which tinyobjloader does by default
 		// if the mesh isn't triangulated fully), each face consists of 3 vertices
-		int32 numFaces = (int32)(shapes[shape].mesh.indices.size() / 3);
+		int32 num_faces = (int32)(shapes[shape].mesh.indices.size() / 3);
 
-		for (int32 face = 0; face < numFaces; face++)
+		for (int32 face = 0; face < num_faces; face++)
 		{
 			tinyobj::index_t index0 = shapes[shape].mesh.indices[3 * face];
 			tinyobj::index_t index1 = shapes[shape].mesh.indices[3 * face + 1];
@@ -94,20 +94,20 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 			float normalv0[3];
 			float normalv1[3];
 			float normalv2[3];
-			if (numNormals > 0)
+			if (num_normals > 0)
 			{
 				int n0 = index0.normal_index;
 				int n1 = index1.normal_index;
 				int n2 = index2.normal_index;
 
 				if (n0 < 0)
-					n0 += numNormals;
+					n0 += num_normals;
 
 				if (n1 < 0)
-					n1 += numNormals;
+					n1 += num_normals;
 
 				if (n2 < 0)
-					n2 += numNormals;
+					n2 += num_normals;
 
 				for (int32 component = 0; component < 3; component++)
 				{
@@ -143,17 +143,17 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 			Vec3f normal = NormalizeVec3f(nv0 + nv1 + nv2);
 
 			// Materials
-			int32 matID = shapes[shape].mesh.material_ids[face];
-			tinyobj::material_t mat = materials[matID];
+			int32 mat_ID = shapes[shape].mesh.material_ids[face];
+			tinyobj::material_t mat = materials[mat_ID];
 			Material *triangle_mat = nullptr;
 
 			bool unique = true;
-			for (int32 m = 0; m < numLoadedMaterials; m++)
+			for (int32 m = 0; m < num_loaded_materials; m++)
 			{
-				if (!strcmp(mat.name.c_str(), outMaterials[m]->name))
+				if (!strcmp(mat.name.c_str(), out_materials[m]->name))
 				{
 					unique = false;
-					triangle_mat = outMaterials[m];
+					triangle_mat = out_materials[m];
 					break;
 				}
 			}
@@ -176,8 +176,8 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 											  emission,
 											  mat.name.c_str());
 
-					AppendToArray(outMaterials, tmp_mat);
-					numLoadedMaterials++;
+					AppendToArray(out_materials, tmp_mat);
+					num_loaded_materials++;
 					triangle_mat = tmp_mat;
 				}
 
@@ -192,8 +192,8 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 											  emission,
 											  mat.name.c_str());
 
-					AppendToArray(outMaterials, tmp_mat);
-					numLoadedMaterials++;
+					AppendToArray(out_materials, tmp_mat);
+					num_loaded_materials++;
 					triangle_mat = tmp_mat;
 				}
 
@@ -209,8 +209,8 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 											  emission,
 											  mat.name.c_str());
 
-					AppendToArray(outMaterials, tmp_mat);
-					numLoadedMaterials++;
+					AppendToArray(out_materials, tmp_mat);
+					num_loaded_materials++;
 					triangle_mat = tmp_mat;
 				}
 			}
@@ -223,16 +223,16 @@ bool LoadModelFromObj(const char *fileName, const char *path,
 
 			if (triangle_mat->Le >= CreateVec3f(0.1f, 0.1f, 0.1f))
 			{
-				emissiveTris.push_back((uint32)tris.size());
+				emissive_tris.push_back((uint32)tris.size());
 			}
 
 			tris.push_back(tri);
 		}
 	}
 
-	outTris = CreateArray<Triangle>((unsigned int)tris.size());
+	out_tris = CreateArray<Triangle>((unsigned int)tris.size());
 	for (uint32 i = 0; i < tris.size(); i++)
-		AppendToArray(outTris, tris[i]);
+		AppendToArray(out_tris, tris[i]);
 
 	printf("Finished loading .obj model!\n");
 	return true;

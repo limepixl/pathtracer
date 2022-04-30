@@ -58,7 +58,7 @@ bool TriangleIntersect(Ray ray, Triangle &tri, HitData *data, float tmax)
 		data->point = ray.origin + ray.direction * t;
 		data->normal = tri.normal;
 		data->mat = tri.mat;
-		data->objectType = ObjectType::TRIANGLE;
+		data->object_type = ObjectType::TRIANGLE;
 		return true;
 	}
 
@@ -66,38 +66,38 @@ bool TriangleIntersect(Ray ray, Triangle &tri, HitData *data, float tmax)
 }
 
 // TODO: replace with actual transformation matrices
-void ApplyScaleToTriangle(Triangle *tri, Vec3f scaleVec)
+void ApplyScaleToTriangle(Triangle *tri, Vec3f scale_vec)
 {
-	tri->v0.x *= scaleVec.x;
-	tri->v1.x *= scaleVec.x;
-	tri->v2.x *= scaleVec.x;
+	tri->v0.x *= scale_vec.x;
+	tri->v1.x *= scale_vec.x;
+	tri->v2.x *= scale_vec.x;
 
-	tri->v0.y *= scaleVec.y;
-	tri->v1.y *= scaleVec.y;
-	tri->v2.y *= scaleVec.y;
+	tri->v0.y *= scale_vec.y;
+	tri->v1.y *= scale_vec.y;
+	tri->v2.y *= scale_vec.y;
 
-	tri->v0.z *= scaleVec.z;
-	tri->v1.z *= scaleVec.z;
-	tri->v2.z *= scaleVec.z;
+	tri->v0.z *= scale_vec.z;
+	tri->v1.z *= scale_vec.z;
+	tri->v2.z *= scale_vec.z;
 
 	tri->edge1 = tri->v1 - tri->v0;
 	tri->edge2 = tri->v2 - tri->v0;
 }
 
 // TODO: replace with actual transformation matrices
-void ApplyTranslationToTriangle(Triangle *tri, Vec3f translationVec)
+void ApplyTranslationToTriangle(Triangle *tri, Vec3f translation_vec)
 {
-	tri->v0.x += translationVec.x;
-	tri->v1.x += translationVec.x;
-	tri->v2.x += translationVec.x;
+	tri->v0.x += translation_vec.x;
+	tri->v1.x += translation_vec.x;
+	tri->v2.x += translation_vec.x;
 
-	tri->v0.y += translationVec.y;
-	tri->v1.y += translationVec.y;
-	tri->v2.y += translationVec.y;
+	tri->v0.y += translation_vec.y;
+	tri->v1.y += translation_vec.y;
+	tri->v2.y += translation_vec.y;
 
-	tri->v0.z += translationVec.z;
-	tri->v1.z += translationVec.z;
-	tri->v2.z += translationVec.z;
+	tri->v0.z += translation_vec.z;
+	tri->v1.z += translation_vec.z;
+	tri->v2.z += translation_vec.z;
 
 	tri->edge1 = tri->v1 - tri->v0;
 	tri->edge2 = tri->v2 - tri->v0;
