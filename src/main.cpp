@@ -34,7 +34,7 @@ int main()
 	Array<Triangle> tris = CreateArray<Triangle>();
 	Array<Material *> materials = CreateArray<Material *>();
 
-	if (!LoadModelFromObj("CornellBox-Bunny.obj", "../res/", tris, materials))
+	if (!LoadModelFromObj("CornellBox-Suzanne.obj", "../res/", tris, materials))
 	{
 		DeallocateArray(bitmapBuffer);
 		return -1;
@@ -42,7 +42,14 @@ int main()
 
 	// Apply model matrix to tris
 	Mat4f modelMatrix = CreateIdentityMat4f();
-	modelMatrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), modelMatrix);
+
+	// for cornell box
+	modelMatrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), modelMatrix); 
+
+	// for robot
+	// modelMatrix = TranslationMat4f(CreateVec3f(0.0f, -1.5f, -4.f), modelMatrix);
+	// modelMatrix = ScaleMat4f(CreateVec3f(0.2f, 0.2f, 0.2f), modelMatrix);
+
 	for (uint32 i = 0; i < tris.size; i++)
 	{
 		tris[i].v0 = modelMatrix * tris[i].v0;
