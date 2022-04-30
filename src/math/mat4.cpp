@@ -16,19 +16,19 @@ Mat4f CreateIdentityMat4f()
 	return res;
 }
 
-Mat4f TranslationMat4f(Vec3f translationVec, Mat4f mat = CreateIdentityMat4f())
+Mat4f TranslationMat4f(Vec3f translation_vec, Mat4f mat = CreateIdentityMat4f())
 {
-	mat.r0.w += translationVec.x;
-	mat.r1.w += translationVec.y;
-	mat.r2.w += translationVec.z;
+	mat.r0.w += translation_vec.x;
+	mat.r1.w += translation_vec.y;
+	mat.r2.w += translation_vec.z;
 	return mat;
 }
 
-Mat4f ScaleMat4f(Vec3f scaleVec, Mat4f mat)
+Mat4f ScaleMat4f(Vec3f scale_vec, Mat4f mat)
 {
-	mat.r0.x *= scaleVec.x;
-	mat.r1.y *= scaleVec.y;
-	mat.r2.z *= scaleVec.z;
+	mat.r0.x *= scale_vec.x;
+	mat.r1.y *= scale_vec.y;
+	mat.r2.z *= scale_vec.z;
 	return mat;
 }
 
@@ -42,7 +42,7 @@ Vec4f operator*(Mat4f lhs, const Vec4f &rhs)
 
 Vec3f operator*(Mat4f lhs, const Vec3f &rhs)
 {
-	Vec4f tmpVec = CreateVec4f(rhs.x, rhs.y, rhs.z, 1.0f);
-	tmpVec = lhs * tmpVec;
-	return CreateVec3f(tmpVec.x, tmpVec.y, tmpVec.z);
+	Vec4f tmp_vec = CreateVec4f(rhs.x, rhs.y, rhs.z, 1.0f);
+	tmp_vec = lhs * tmp_vec;
+	return CreateVec3f(tmp_vec.x, tmp_vec.y, tmp_vec.z);
 }

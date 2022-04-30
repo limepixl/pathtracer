@@ -1,4 +1,3 @@
-// TODO: replace most C standard library calls with native platform layer
 #include "loader.hpp"
 #include "scene/bvh.hpp"
 #include "scene/material.hpp"
@@ -13,56 +12,56 @@ int main()
 {
 	uint32 width = (uint32)WIDTH;
 	uint32 height = (uint32)HEIGHT;
-	float aspectRatio = (float)width / (float)height;
+	float aspect_atio = (float)width / (float)height;
 
 	// Memory allocation for bitmap buffer
-	Array<uint8> bitmapBuffer = CreateArray<uint8>(width * height * 3);
+	Array<uint8> bitmap_buffer = CreateArray<uint8>(width * height * 3);
 
 	// x is right, y is up, z is backwards
 	Vec3f eye = CreateVec3f(0.0f, 0.0f, 0.0f);
 
-	float gridHeight = 2.0f;
-	float gridWidth = aspectRatio * gridHeight;
-	Vec3f gridX = { gridWidth, 0.0f, 0.0f };
-	Vec3f gridY = { 0.0f, -gridHeight,
+	float grid_height = 2.0f;
+	float grid_width = aspect_atio * grid_height;
+	Vec3f grid_x = { grid_width, 0.0f, 0.0f };
+	Vec3f grid_y = { 0.0f, -grid_height,
 					0.0f }; // negative because of the way I am writing to the file
 
 	// Lower left corner of virtual grid
-	Vec3f gridOrigin = eye - (gridX / 2.0f) - (gridY / 2.0f);
-	gridOrigin.z = -2.0f;
+	Vec3f grid_origin = eye - (grid_x / 2.0f) - (grid_y / 2.0f);
+	grid_origin.z = -2.0f;
 
 	Array<Triangle> tris = CreateArray<Triangle>();
 	Array<Material *> materials = CreateArray<Material *>();
 
 	if (!LoadModelFromObj("CornellBox-Suzanne.obj", "../res/", tris, materials))
 	{
-		DeallocateArray(bitmapBuffer);
+		DeallocateArray(bitmap_buffer);
 		return -1;
 	}
 
 	// Apply model matrix to tris
-	Mat4f modelMatrix = CreateIdentityMat4f();
+	Mat4f model_matrix = CreateIdentityMat4f();
 
 	// for cornell box
-	modelMatrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), modelMatrix); 
+	model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), model_matrix); 
 
 	// for robot
-	// modelMatrix = TranslationMat4f(CreateVec3f(0.0f, -1.5f, -4.f), modelMatrix);
-	// modelMatrix = ScaleMat4f(CreateVec3f(0.2f, 0.2f, 0.2f), modelMatrix);
+	// model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.5f, -4.f), model_matrix);
+	// model_matrix = ScaleMat4f(CreateVec3f(0.2f, 0.2f, 0.2f), model_matrix);
 
 	for (uint32 i = 0; i < tris.size; i++)
 	{
-		tris[i].v0 = modelMatrix * tris[i].v0;
-		tris[i].v1 = modelMatrix * tris[i].v1;
-		tris[i].v2 = modelMatrix * tris[i].v2;
+		tris[i].v0 = model_matrix * tris[i].v0;
+		tris[i].v1 = model_matrix * tris[i].v1;
+		tris[i].v2 = model_matrix * tris[i].v2;
 		tris[i].edge1 = tris[i].v1 - tris[i].v0;
 		tris[i].edge2 = tris[i].v2 - tris[i].v0;
 	}
 
 	// Construct BVH tree and sort triangle list according to it
-	Array<BVH_Node> bvh_tree = CreateArray<BVH_Node>(2 * tris.size - 1);
+	Array<BVHNode> bvh_tree = CreateArray<BVHNode>(2 * tris.size - 1);
 	
-	BVH_Node root_node {};
+	BVHNode root_node {};
 	root_node.first_tri = 0;
 	AppendToArray(bvh_tree, root_node);
 	
@@ -70,90 +69,90 @@ int main()
 	// if (!ConstructBVHObjectMedian(tris.data, tris.size, bvh_tree, 0))
 	{
 		printf("Error in BVH construction!\n");
-		DeallocateArray(bitmapBuffer);
+		DeallocateArray(bitmap_buffer);
 		return -1;
 	}
 	printf("Finished building BVH!\n");
 
 	// Find all emissive triangles in scene
-	Array<uint32> emissiveTris = CreateArray<uint32>(tris.size);
-	uint32 numEmissiveTris = 0;
+	Array<uint32> emissive_tris = CreateArray<uint32>(tris.size);
+	uint32 num_emissive_tris = 0;
 	for (uint32 i = 0; i < tris.size; i++)
 	{
 		if (tris[i].mat->Le.x >= 0.01f || tris[i].mat->Le.y >= 0.01f || tris[i].mat->Le.z >= 0.01f)
 		{
-			AppendToArray(emissiveTris, i);
+			AppendToArray(emissive_tris, i);
 		}
 	}
 
 	Array<Sphere> spheres = CreateArray<Sphere>();
-	Scene scene = ConstructScene(spheres, tris, emissiveTris, bvh_tree);
+	Scene scene = ConstructScene(spheres, tris, emissive_tris, bvh_tree);
 
 	// Each thread's handle and data to be used by it
 	void *threadHandles[NUM_THREADS];
-	RenderData *dataForThreads[NUM_THREADS];
+	RenderData *data_for_threads[NUM_THREADS];
 
 	// Variables that keep track of the chunk data
-	uint32 pixelStep = 64;
-	uint32 rowIndex = 0, colIndex = 0;
+	uint32 pixel_step = 64;
+	uint32 row_index = 0, col_index = 0;
 
-	uint32 pixelSize = 3 * sizeof(uint8);
-	uint32 rowSizeInBytes = pixelSize * width;
-	uint32 threadMemorySize = pixelStep * pixelStep * pixelSize;
+	uint32 pixel_size = 3 * sizeof(uint8);
+	uint32 row_size_in_bytes = pixel_size * width;
+	uint32 thread_memory_size = pixel_step * pixel_step * pixel_size;
 
-	uint16 numChunkColumns = (uint16)Ceil((float)width / (float)pixelStep);
-	uint16 numChunkRows = (uint16)Ceil((float)height / (float)pixelStep);
+	uint16 num_chunk_columns = (uint16)Ceil((float)width / (float)pixel_step);
+	uint16 num_chunk_rows = (uint16)Ceil((float)height / (float)pixel_step);
 
 	// If there are more threads than needed, don't allocate memory for them
-	uint16 numThreads = Min((uint16)NUM_THREADS, numChunkRows * numChunkColumns);
+	uint16 num_threads = Min((uint16)NUM_THREADS, num_chunk_rows * num_chunk_columns);
 
 	// Allocate memory for each one of the threads that will
 	// be reused for all chunks to come
-	for (uint16 i = 0; i < numThreads; i++)
+	for (uint16 i = 0; i < num_threads; i++)
 	{
-		uint8 *threadMemory = (uint8 *)malloc(threadMemorySize);
+		uint8 *thread_memory = (uint8 *)malloc(thread_memory_size);
 
-		dataForThreads[i] = (RenderData *)malloc(sizeof(RenderData));
+		data_for_threads[i] = (RenderData *)malloc(sizeof(RenderData));
 
-		*(dataForThreads[i]) = { (void *)threadMemory,
-								 threadMemorySize,
+		*(data_for_threads[i]) = { (void *)thread_memory,
+								 thread_memory_size,
 								 0,
 								 0,
 								 0,
 								 0,
 								 width,
 								 height,
-								 gridOrigin,
-								 gridX,
-								 gridY,
+								 grid_origin,
+								 grid_x,
+								 grid_y,
 								 eye,
 								 scene,
 								 false };
 	}
 
 	// Start a thread with the next chunk to be rendered
-	for (uint16 i = 0; i <= numThreads; i++)
+	for (uint16 i = 0; i <= num_threads; i++)
 	{
 		// Cycle around the thread array and check each thread infinitely
-		if (i == numThreads)
+		if (i == num_threads)
 			i = 0;
 
 		// If we're at the end of the row, go down to the next row
-		if (colIndex == numChunkColumns)
+		if (col_index == num_chunk_columns)
 		{
-			colIndex = 0;
-			rowIndex++;
+			col_index = 0;
+			row_index++;
 		}
 
 		// We rendered all rows
-		if (rowIndex == numChunkRows)
+		if (row_index == num_chunk_rows)
 		{
 			break;
 		}
 
 		// We can start a thread if it has never been started, OR
 		// if the thread has started and finished its execution
-		RenderData *data = dataForThreads[i];
+		RenderData *data = data_for_threads[i];
 #if defined(_WIN32) || defined(_WIN64)
 		if (!data->initialized || CanThreadStartWin32(threadHandles[i]))
 #elif defined(__linux__)
@@ -165,28 +164,28 @@ int main()
 			// to initialize and start the thread for the first time
 			if (data->initialized)
 			{
-				printf("Rendered region: x = %u-%u, y = %u-%u\n", data->startX, data->endX, data->startY, data->endY);
+				printf("Rendered region: x = %u-%u, y = %u-%u\n", data->start_x, data->end_x, data->start_y, data->end_y);
 
-				int32 deltaX = (int32)(data->endX - data->startX);
-				int32 deltaY = (int32)(data->endY - data->startY);
+				int32 delta_x = (int32)(data->end_x - data->start_x);
+				int32 delta_y = (int32)(data->end_y - data->start_y);
 
 				// Read only this many bytes at a time from the thread's memory
 				// and write it to the bitmap buffer. If we exceed this number
 				// of bytes, we will enter the next row and write bytes to it
-				uint32 chunkRowSizeInBytes = pixelSize * deltaX;
+				uint32 chunk_row_size_in_bytes = pixel_size * delta_x;
 
-				if (deltaX <= 0 || deltaY <= 0)
+				if (delta_x <= 0 || delta_y <= 0)
 				{
 					printf("Oh no we gotta go\n");
 				}
 
 				// Write the rendered region into the bitmap memory
-				for (uint32 ymem = data->startY; ymem < data->endY; ymem++)
+				for (uint32 ymem = data->start_y; ymem < data->end_y; ymem++)
 				{
-					uint8 *offsetBitmapBuffer = bitmapBuffer.data + (ymem * rowSizeInBytes) + data->startX * pixelSize;
-					memcpy(offsetBitmapBuffer,
-						   (uint8 *)data->threadMemoryChunk + (ymem - data->startY) * chunkRowSizeInBytes,
-						   chunkRowSizeInBytes);
+					uint8 *offset_bitmap_buffer = bitmap_buffer.data + (ymem * row_size_in_bytes) + data->start_x * pixel_size;
+					memcpy(offset_bitmap_buffer,
+						   (uint8 *)data->thread_memory_chunk + (ymem - data->start_y) * chunk_row_size_in_bytes,
+						   chunk_row_size_in_bytes);
 				}
 
 				// Close the finished thread because it can't be rerun
@@ -196,28 +195,28 @@ int main()
 			}
 
 			// Set the thread's region parameters
-			data->startX = colIndex * pixelStep;
-			data->endX = Min(width, data->startX + pixelStep);
-			data->startY = rowIndex * pixelStep;
-			data->endY = Min(height, data->startY + pixelStep);
+			data->start_x = col_index * pixel_step;
+			data->end_x = Min(width, data->start_x + pixel_step);
+			data->start_y = row_index * pixel_step;
+			data->end_y = Min(height, data->start_y + pixel_step);
 
 			// Make sure next run's rendered region is saved
 			data->initialized = true;
 
 			// Create another thread with the above data being the same
 #if defined(_WIN32) || defined(_WIN64)
-			threadHandles[i] = CreateThreadWin32(dataForThreads[i]);
+			threadHandles[i] = CreateThreadWin32(data_for_threads[i]);
 #elif defined(__linux__)
 			threadHandles[i] = CreateThreadLinux(dataForThreads[i]);
 #endif
 
 			// Increment column index
-			colIndex++;
+			col_index++;
 		}
 	}
 
 	// After we finish rendering all chunks
-	for (uint16 i = 0; i < numThreads; i++)
+	for (uint16 i = 0; i < num_threads; i++)
 	{
 #if defined(_WIN32) || defined(_WIN64)
 		// If the thread is currently running, wait for it (join it to main thread)
@@ -233,23 +232,23 @@ int main()
 #endif
 
 		// Thread just finished, so we need to write the changes
-		RenderData *data = dataForThreads[i];
+		RenderData *data = data_for_threads[i];
 
-		printf("Rendered region: x = %u-%u, y = %u-%u\n", data->startX, data->endX,
-			   data->startY, data->endY);
+		printf("Rendered region: x = %u-%u, y = %u-%u\n", data->start_x, data->end_x,
+			   data->start_y, data->end_y);
 
-		uint32 chunkRowSizeInBytes = pixelSize * (data->endX - data->startX);
+		uint32 chunk_row_size_in_bytes = pixel_size * (data->end_x - data->start_x);
 
-		for (uint32 ymem = data->startY; ymem < data->endY; ymem++)
+		for (uint32 ymem = data->start_y; ymem < data->end_y; ymem++)
 		{
-			uint8 *offsetBitmapBuffer = bitmapBuffer.data + (ymem * rowSizeInBytes) + data->startX * pixelSize;
-			memcpy(offsetBitmapBuffer,
-				   (uint8 *)data->threadMemoryChunk + (ymem - data->startY) * chunkRowSizeInBytes,
-				   chunkRowSizeInBytes);
+			uint8 *offset_bitmap_buffer = bitmap_buffer.data + (ymem * row_size_in_bytes) + data->start_x * pixel_size;
+			memcpy(offset_bitmap_buffer,
+				   (uint8 *)data->thread_memory_chunk + (ymem - data->start_y) * chunk_row_size_in_bytes,
+				   chunk_row_size_in_bytes);
 		}
 
 		// Free the allocated thread's memory, and the thread's data struct
-		free(data->threadMemoryChunk);
+		free(data->thread_memory_chunk);
 		free(data);
 	}
 
@@ -258,19 +257,19 @@ int main()
 	if (!result)
 	{
 		printf("Failed to create file!\n");
-		DeallocateArray(bitmapBuffer);
+		DeallocateArray(bitmap_buffer);
 		DeallocateArray(bvh_tree);
 		return -1;
 	}
 	fprintf(result, "P3\n%d %d\n255\n", width, height);
 
 	for (uint32 i = 0; i < (uint32)(width * height * 3); i += 3)
-		fprintf(result, "%d %d %d\n", bitmapBuffer.data[i], bitmapBuffer.data[i + 1], bitmapBuffer.data[i + 2]);
+		fprintf(result, "%d %d %d\n", bitmap_buffer.data[i], bitmap_buffer.data[i + 1], bitmap_buffer.data[i + 2]);
 
 	fclose(result);
 	printf("Finished rendering to image!\n");
 
-	DeallocateArray(bitmapBuffer);
+	DeallocateArray(bitmap_buffer);
 	DeallocateArray(tris);
 	for (uint32 i = 0; i < materials.size; i++)
 	{

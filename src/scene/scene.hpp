@@ -18,8 +18,8 @@ struct HitData
 
 	struct Material *mat;
 
-	uint32 objectIndex;
-	ObjectType objectType;
+	uint32 object_index;
+	ObjectType object_type;
 };
 
 enum class LightSourceType
@@ -38,19 +38,19 @@ LightSource CreateLightSource(void *obj, LightSourceType type);
 
 struct Sphere;
 struct Triangle;
-struct BVH_Node;
+struct BVHNode;
 
 struct Scene
 {
 	Array<Sphere> spheres;
 	Array<Triangle> tris;
-	Array<uint32> lightTris;
-	Array<BVH_Node> bvh_tree;
+	Array<uint32> light_tris;
+	Array<BVHNode> bvh_tree;
 };
 
 Scene ConstructScene(Array<Sphere> spheres,
 					 Array<Triangle> modelTris,
-					 Array<uint32> lightTris,
-					 Array<BVH_Node> bvh_tree);
+					 Array<uint32> light_tris,
+					 Array<BVHNode> bvh_tree);
 
 bool Intersect(Ray ray, Scene scene, HitData *data);

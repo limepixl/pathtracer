@@ -2,6 +2,6 @@
 #include "defines.hpp"
 #include "core/array.hpp"
 
-bool LoadModelFromObj(const char *fileName, const char *path,
-					  Array<struct Triangle> &outTris,
-					  Array<struct Material *> &outMaterials);
+bool LoadModelFromObj(const char *file_name, const char *path,
+					  Array<struct Triangle> &out_tris,
+					  Array<struct Material *> &out_materials);
