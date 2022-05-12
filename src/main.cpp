@@ -207,7 +207,7 @@ int main()
 #if defined(_WIN32) || defined(_WIN64)
 			threadHandles[i] = CreateThreadWin32(data_for_threads[i]);
 #elif defined(__linux__)
-			threadHandles[i] = CreateThreadLinux(dataForThreads[i]);
+			threadHandles[i] = CreateThreadLinux(data_for_threads[i]);
 #endif
 
 			// Increment column index
