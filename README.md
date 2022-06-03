@@ -27,7 +27,7 @@ MIS (Naive+NEE), Modified Blinn-Phong, Sweep SAH BVH
 - PCG Random Number Generation Library (Minimal C Edition) ([GitHub](https://github.com/imneme/pcg-c-basic))
 
 ### To-Do List:
-- Implement more variance reduction techniques (stratified sampling, BRDF sampling, low discrepancy sequences)
+- Implement more variance reduction techniques (stratified sampling, BRDF sampling, low discrepancy sequences).
 - More advanced BRDFs and BSDFs
 - GLTF model support
 - Russian Roulette
