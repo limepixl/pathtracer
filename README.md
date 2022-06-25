@@ -27,10 +27,11 @@ MIS (Naive+NEE), Modified Blinn-Phong, Sweep SAH BVH
 - PCG Random Number Generation Library (Minimal C Edition) ([GitHub](https://github.com/imneme/pcg-c-basic))
 
 ### To-Do List:
+- Timing
+- GPU support
 - Implement more variance reduction techniques (stratified sampling, BRDF sampling, low discrepancy sequences).
 - More advanced BRDFs and BSDFs
 - GLTF model support
 - Russian Roulette
 - Measuring different radiometric quantities (for example intensity, to get an orthographic projection)
 - Progressive rendering over multiple frames but lower sample count
-- Threading library
