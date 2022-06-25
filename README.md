@@ -29,6 +29,7 @@ MIS (Naive+NEE), Modified Blinn-Phong, Sweep SAH BVH
 ### To-Do List:
 - Timing
 - GPU support
+- Textures
 - Implement more variance reduction techniques (stratified sampling, BRDF sampling, low discrepancy sequences).
 - More advanced BRDFs and BSDFs
 - GLTF model support
