@@ -56,6 +56,9 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 		exit(-1);
 	}
 
+	// Turn off VSync
+	// SDL_GL_SetSwapInterval(0);
+
 	return result;
 }
 
@@ -128,4 +131,9 @@ void CloseDisplay(Display &window)
 	SDL_GL_DeleteContext(window.context);
 	SDL_DestroyWindow(window.window_handle);
 	SDL_Quit();
+}
+
+void UpdateDisplayTitle(Display &window, const char *new_title)
+{
+	SDL_SetWindowTitle(window.window_handle, new_title);
 }

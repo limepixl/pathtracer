@@ -7,6 +7,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 #include "display/display.hpp"
 #include <glad/glad.h>
@@ -289,6 +290,9 @@ int main(int argc, char *argv[])
 	glUseProgram(display.compute_shader_program);
 	glUniform1i(glGetUniformLocation(display.compute_shader_program, "screen"), 0);
 
+	uint32 last_time = 0;
+	uint32 last_report = 0;
+
 	while(display.is_open)
 	{
 		SDL_Event e;
@@ -303,11 +307,26 @@ int main(int argc, char *argv[])
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		glUseProgram(display.compute_shader_program);
-		glDispatchCompute(width, height, 1);
+		glDispatchCompute(width / 8, height / 4, 1);
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		glUseProgram(display.rb_shader_program);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+
+		uint32 current_time = SDL_GetTicks();
+		if(current_time > last_report + 1000)
+		{
+			// TODO: replace with C strings
+			uint32 delta_time = current_time - last_time;
+			uint32 fps = (uint32)(1.0f / ((float)delta_time / 1000.0f));
+			std::string new_title = "Pathtracer | ";
+			new_title += std::to_string(delta_time) + "ms | ";
+			new_title += std::to_string(fps) + "fps";
+			UpdateDisplayTitle(display, new_title.c_str());
+			last_report = current_time;
+		}
+
+		last_time = current_time;
 
 		SDL_GL_SwapWindow(display.window_handle);
 	}
