@@ -1,11 +1,11 @@
-#include "window.hpp"
+#include "display.hpp"
 #include <glad/glad.h>
 #include <SDL.h>
 #include <cstdio>
 
-Window CreateWindow(const char *title, uint32 width, uint32 height)
+Display CreateDisplay(const char *title, uint32 width, uint32 height)
 {
-	Window result {};
+	Display result {};
 	result.width = width;
 	result.height = height;
 	result.is_open = true;
@@ -58,7 +58,7 @@ Window CreateWindow(const char *title, uint32 width, uint32 height)
 	return result;
 }
 
-bool InitRenderBuffer(Window &window)
+bool InitRenderBuffer(Display &window)
 {
 	glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 	glViewport(0, 0, window.width, window.height);
@@ -214,7 +214,7 @@ bool InitRenderBuffer(Window &window)
 	return true;
 }
 
-void CloseWindow(Window &window)
+void CloseDisplay(Display &window)
 {
 	SDL_GL_DeleteContext(window.context);
 	SDL_DestroyWindow(window.window_handle);

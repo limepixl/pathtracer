@@ -3,7 +3,7 @@
 #include "../core/array.hpp"
 #include <SDL_video.h>
 
-struct Window
+struct Display
 {
 	// Window specific data
 	uint32 width, height;
@@ -18,6 +18,6 @@ struct Window
 	uint32 compute_shader_program;
 };
 
-Window CreateWindow(const char* title, uint32 width, uint32 height);
-bool InitRenderBuffer(Window &window);
-void CloseWindow(Window &window);
+Display CreateDisplay(const char* title, uint32 width, uint32 height);
+bool InitRenderBuffer(Display &window);
+void CloseDisplay(Display &window);

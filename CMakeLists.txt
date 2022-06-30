@@ -30,7 +30,7 @@ set(SOURCE_FILES
 	src/math/math.cpp
 	src/math/vec.cpp
 
-	src/window/window.cpp
+	src/display/display.cpp
 
 	thirdparty/pcg-c-basic-0.9/pcg_basic.c
 	thirdparty/glad/src/glad.c
@@ -54,7 +54,7 @@ set(HEADER_FILES
 	src/math/math.hpp
 	src/math/vec.hpp
 
-	src/window/window.hpp
+	src/display/display.hpp
 
 	src/core/array.hpp
 )
