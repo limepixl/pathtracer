@@ -21,3 +21,4 @@ struct Display
 Display CreateDisplay(const char* title, uint32 width, uint32 height);
 bool InitRenderBuffer(Display &window);
 void CloseDisplay(Display &window);
+void UpdateDisplayTitle(Display &window, const char *new_title);
