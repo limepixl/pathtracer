@@ -300,9 +300,9 @@ int main(int argc, char *argv[])
 
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		// glUseProgram(display.compute_shader_program);
-		// glDispatchCompute(width / 8, height / 4, 1);
-		// glMemoryBarrier(GL_ALL_BARRIER_BITS);
+		glUseProgram(display.compute_shader_program);
+		glDispatchCompute(width / 8, height / 4, 1);
+		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		glUseProgram(display.rb_shader_program);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);

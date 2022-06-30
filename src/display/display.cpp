@@ -2,6 +2,7 @@
 #include <glad/glad.h>
 #include <SDL.h>
 #include <cstdio>
+#include "../resource/shader.hpp"
 
 Display CreateDisplay(const char *title, uint32 width, uint32 height)
 {
@@ -116,100 +117,8 @@ bool InitRenderBuffer(Display &window)
 	glTextureStorage2D(window.render_buffer_texture, 1, GL_RGBA32F, window.width, window.height);
 	glBindImageTexture(0, window.render_buffer_texture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
-	// Set up render buffer shader
-	const char *vertex_shader_source = "#version 460 core\n"
-	"layout (location = 0) in vec3 pos;\n"
-	"layout (location = 1) in vec2 uvs;\n"
-	"out vec2 frag_uvs;\n"
-	"void main() {\n"
-	"gl_Position = vec4(pos.x, pos.y, pos.z, 1.0);\n"
-	"frag_uvs = uvs;\n}";
-
-	GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertex_shader, 1, &vertex_shader_source, NULL);
-	glCompileShader(vertex_shader);
-
-	GLint compiled;
-	glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &compiled);
-	if (compiled != GL_TRUE)
-	{
-		GLsizei log_length = 0;
-		GLchar message[1024];
-		glGetShaderInfoLog(vertex_shader, 1024, &log_length, message);
-		printf("SHADER COMPILATION ERROR:\n%s\n", message);
-	}
-
-	const char *fragment_shader_source = "#version 460 core\n"
-	"in vec2 frag_uvs;\n"
-	"out vec4 color;\n"
-	"uniform sampler2D tex;\n"
-	"void main() { color = texture(tex, frag_uvs); }\n";
-
-	GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragment_shader, 1, &fragment_shader_source, NULL);
-	glCompileShader(fragment_shader);
-
-	glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &compiled);
-	if (compiled != GL_TRUE)
-	{
-		GLsizei log_length = 0;
-		GLchar message[1024];
-		glGetShaderInfoLog(fragment_shader, 1024, &log_length, message);
-		printf("SHADER COMPILATION ERROR:\n%s\n", message);
-	}
-
-	window.rb_shader_program = glCreateProgram();
-	glAttachShader(window.rb_shader_program, vertex_shader);
-	glAttachShader(window.rb_shader_program, fragment_shader);
-	glLinkProgram(window.rb_shader_program);
-
-	GLint is_linked;
-	glGetProgramiv(window.rb_shader_program, GL_LINK_STATUS, &is_linked);
-	if(is_linked == GL_FALSE)
-	{
-		GLsizei log_length = 0;
-		GLchar message[1024];
-		glGetProgramInfoLog(window.rb_shader_program, 1024, &log_length, message);
-		printf("SHADER PROGRAM LINKING ERROR:\n%s\n", message);
-	}
-
-	glDeleteShader(vertex_shader);
-	glDeleteShader(fragment_shader);
-
-	// Set up compute shader
-	// Set up the compute shader
-	const char *compute_shader_source = "#version 460 core\n"
-	"layout(local_size_x = 8, local_size_y = 4, local_size_z = 1) in;\n"
-	"layout(rgba32f, binding = 0) uniform image2D screen;\n"
-	"void main() {\n"
-	"ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);\n"
-	"imageStore(screen, pixel_coords, vec4(float(gl_WorkGroupID.x) / gl_NumWorkGroups.x, float(gl_WorkGroupID.y) / gl_NumWorkGroups.y, 0.0, 1.0));}";
-
-	GLuint compute_shader = glCreateShader(GL_COMPUTE_SHADER);
-	glShaderSource(compute_shader, 1, &compute_shader_source, NULL);
-	glCompileShader(compute_shader);
-
-	glGetShaderiv(compute_shader, GL_COMPILE_STATUS, &compiled);
-	if (compiled != GL_TRUE)
-	{
-		GLsizei log_length = 0;
-		GLchar message[1024];
-		glGetShaderInfoLog(compute_shader, 1024, &log_length, message);
-		printf("SHADER COMPILATION ERROR:\n%s\n", message);
-	}
-
-	window.compute_shader_program = glCreateProgram();
-	glAttachShader(window.compute_shader_program, compute_shader);
-	glLinkProgram(window.compute_shader_program);
-
-	glGetProgramiv(window.compute_shader_program, GL_LINK_STATUS, &is_linked);
-	if(is_linked == GL_FALSE)
-	{
-		GLsizei log_length = 0;
-		GLchar message[1024];
-		glGetProgramInfoLog(window.compute_shader_program, 1024, &log_length, message);
-		printf("SHADER PROGRAM LINKING ERROR:\n%s\n", message);
-	}
+	window.rb_shader_program = LoadShaderFromFiles("../shaders/framebuffer.vert", "../shaders/framebuffer.frag");	
+	window.compute_shader_program = LoadShaderFromFiles("../shaders/framebuffer.comp");
 
 	return true;
 }
