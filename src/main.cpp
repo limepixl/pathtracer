@@ -8,11 +8,20 @@
 #include <cstdlib>
 #include <cstring>
 
-int main()
+#include "window/window.hpp"
+#include <glad/glad.h>
+#include <SDL.h>
+
+int main(int argc, char *argv[])
 {
+	(void)argc; (void)argv;
+
 	uint32 width = (uint32)WIDTH;
 	uint32 height = (uint32)HEIGHT;
 	float aspect_atio = (float)width / (float)height;
+
+	Window window = CreateWindow("Pathtracer", width, height);
+	InitRenderBuffer(window);
 
 	// Memory allocation for bitmap buffer
 	Array<uint8> bitmap_buffer = CreateArray<uint8>(width * height * 3);
@@ -269,6 +278,38 @@ int main()
 	fclose(result);
 	printf("Finished rendering to image!\n");
 
+	glUseProgram(window.rb_shader_program);
+	glBindTextureUnit(0, window.render_buffer_texture);
+	glUniform1i(glGetUniformLocation(window.rb_shader_program, "tex"), 0);
+
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, bitmap_buffer.data);
+
+	glUseProgram(window.compute_shader_program);
+	glUniform1i(glGetUniformLocation(window.compute_shader_program, "screen"), 0);
+
+	while(window.is_open)
+	{
+		SDL_Event e;
+		while(SDL_PollEvent(&e))
+		{
+			if(e.type == SDL_QUIT)
+			{
+				window.is_open = false;
+			}
+		}
+
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		// glUseProgram(window.compute_shader_program);
+		// glDispatchCompute(width / 8, height / 4, 1);
+		// glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+		glUseProgram(window.rb_shader_program);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+
+		SDL_GL_SwapWindow(window.window_handle);
+	}
+
 	DeallocateArray(bitmap_buffer);
 	DeallocateArray(tris);
 	for (uint32 i = 0; i < materials.size; i++)
@@ -278,6 +319,8 @@ int main()
 
 	DeallocateArray(materials);
 	DeallocateArray(bvh_tree);
+
+	CloseWindow(window);
 
 	return 0;
 }

@@ -10,10 +10,13 @@ pushd "build"
 @REM MSVC
 @REM cmake -S ../ -B . -G "Ninja" -DCMAKE_BUILD_TYPE=Debug
 @REM cmake -S ../ -B . -G "Ninja" -DCMAKE_BUILD_TYPE=RelWithDebInfo
-cmake -S ../ -B . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+@REM cmake -S ../ -B . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
 ninja
 
 popd
+
+echo Copying SDL DLL to build directory.....
+copy thirdparty\SDL2-2.0.22\lib\x64\SDL2.dll build\SDL2.dll
 
 echo.
 echo Build finished.

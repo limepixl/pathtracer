@@ -14,11 +14,11 @@ typedef long int64;
 
 constexpr uint8 NUM_THREADS = 11;
 
-constexpr uint32 WIDTH = 500;
-constexpr uint32 HEIGHT = 500;
+constexpr uint32 WIDTH = 512;
+constexpr uint32 HEIGHT = 512;
 
 constexpr uint8 BOUNCE_COUNT = 5;
-constexpr uint16 NUM_SAMPLES = 100;
+constexpr uint16 NUM_SAMPLES = 1;
 constexpr uint8 NUM_SHADOW_RAYS = 1;
 
 constexpr uint8 BVH_NUM_LEAF_TRIS = 4;
