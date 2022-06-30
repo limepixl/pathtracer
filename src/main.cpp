@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
 	Display display = CreateDisplay("Pathtracer", width, height);
 	InitRenderBuffer(display);
 
+	/*
 	// Memory allocation for bitmap buffer
 	Array<uint8> bitmap_buffer = CreateArray<uint8>(width * height * 3);
 
@@ -277,12 +278,13 @@ int main(int argc, char *argv[])
 
 	fclose(result);
 	printf("Finished rendering to image!\n");
+	*/
 
 	glUseProgram(display.rb_shader_program);
 	glBindTextureUnit(0, display.render_buffer_texture);
 	glUniform1i(glGetUniformLocation(display.rb_shader_program, "tex"), 0);
 
-	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, bitmap_buffer.data);
+	// glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, bitmap_buffer.data);
 
 	glUseProgram(display.compute_shader_program);
 	glUniform1i(glGetUniformLocation(display.compute_shader_program, "screen"), 0);
@@ -301,7 +303,7 @@ int main(int argc, char *argv[])
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		glUseProgram(display.compute_shader_program);
-		glDispatchCompute(width / 8, height / 4, 1);
+		glDispatchCompute(width, height, 1);
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		glUseProgram(display.rb_shader_program);
@@ -310,15 +312,15 @@ int main(int argc, char *argv[])
 		SDL_GL_SwapWindow(display.window_handle);
 	}
 
-	DeallocateArray(bitmap_buffer);
-	DeallocateArray(tris);
-	for (uint32 i = 0; i < materials.size; i++)
-	{
-		free(materials[i]);
-	}
+	// DeallocateArray(bitmap_buffer);
+	// DeallocateArray(tris);
+	// for (uint32 i = 0; i < materials.size; i++)
+	// {
+	// 	free(materials[i]);
+	// }
 
-	DeallocateArray(materials);
-	DeallocateArray(bvh_tree);
+	// DeallocateArray(materials);
+	// DeallocateArray(bvh_tree);
 
 	CloseDisplay(display);
 
