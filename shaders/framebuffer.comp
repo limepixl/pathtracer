@@ -5,13 +5,80 @@ layout(rgba32f, binding = 0) uniform image2D screen;
 const float EPSILON = 0.000001;
 const float TMIN = 0.001;
 const float TMAX = 10000.0;
+const float ENVIRONMENT_MAP_LE = 1.0;
+const float PI = 3.14159265;
+const uint BOUNCE_COUNT = 5;
+const uint NUM_SAMPLES = 10;
 
-float intersect_sphere(vec3 ray_origin, vec3 ray_dir, vec3 sphere_origin, float r)
+float random(vec2 co)
 {
-	vec3 oc = ray_origin - sphere_origin;
-	float a = dot(ray_dir, ray_dir);
-	float b = 2.0 * dot(oc, ray_dir);
-	float c = dot(oc, oc) - r * r;
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+vec3 map_to_unit_sphere(vec2 vec)
+{
+	// First we map [0,1] to [0,2] and subtract one to map
+	// that to [-1, 1], which is the range of cosine.
+	float cos_theta = 2.0 * vec.x - 1.0;
+
+	// We can directly map phi to [0, 2PI] from [0, 1] by just
+	// multiplying it with 2PI
+	float phi = 2.0 * PI * vec.y;
+
+	// sin^2(x) = 1 - cos^2(x)
+	// sin(x) = sqrt(1 - cos^2(x))
+	float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+
+	float sin_phi = sin(phi);
+	float cos_phi = cos(phi);
+
+	// Just a conversion between spherical and Cartesian coordinates
+	return vec3(sin_theta * cos_phi, cos_theta, sin_theta * sin_phi);
+}
+
+vec3 map_to_unit_hemisphere_cosine_weighted_criver(vec2 uv, vec3 normal)
+{
+	vec3 p = map_to_unit_sphere(uv);
+	return p + normal;
+}
+
+struct Ray 
+{
+	vec3 origin;
+	vec3 direction;
+};
+
+vec3 sky_color(vec3 dir)
+{
+	vec3 normalized_dir = normalize(dir);
+	float t = 0.5 * (normalized_dir.y + 1.0);
+
+	vec3 start_color = vec3(1.0, 1.0, 1.0);
+	vec3 end_color = vec3(0.546, 0.824, 0.925);
+	return (1.0 - t) * start_color + t * end_color;
+}
+
+struct LambertianMaterial
+{
+	vec3 Le; // emitted radiance
+	vec3 diffuse; // BRDF
+};
+
+LambertianMaterial materials[] = { LambertianMaterial(vec3(0.0), vec3(0.6) / PI)  };
+
+struct Sphere
+{
+	vec3 origin;
+	float radius;
+	uint material_index;
+};
+
+float intersect_sphere(Ray ray, Sphere sphere)
+{
+	vec3 oc = ray.origin - sphere.origin;
+	float a = dot(ray.direction, ray.direction);
+	float b = 2.0 * dot(oc, ray.direction);
+	float c = dot(oc, oc) - sphere.radius * sphere.radius;
 	float discriminant = b * b - 4.0 * a * c;
 	if(discriminant >= 0)
 	{
@@ -19,7 +86,7 @@ float intersect_sphere(vec3 ray_origin, vec3 ray_dir, vec3 sphere_origin, float 
 		if(abs(discriminant) <= EPSILON)
 		{
 			float t = -b / (2.0 * a);
-			if(t > TMIN && t < TMAX)
+			if(t >= TMIN && t <= TMAX)
 			{
 				return t;
 			}
@@ -35,11 +102,11 @@ float intersect_sphere(vec3 ray_origin, vec3 ray_dir, vec3 sphere_origin, float 
 				t2 = tmp;
 			}
 
-			if(t1 > TMIN && t1 < TMAX)
+			if(t1 >= TMIN && t1 <= TMAX)
 			{
 				return t1;
 			}
-			else if (t2 > TMIN && t2 < TMAX)
+			else if (t2 >= TMIN && t2 <= TMAX)
 			{
 				return t2;
 			}
@@ -47,6 +114,97 @@ float intersect_sphere(vec3 ray_origin, vec3 ray_dir, vec3 sphere_origin, float 
 	}
 
 	return -1.0;
+}
+
+struct Scene
+{
+	Sphere spheres[2];
+};
+
+struct HitData
+{
+	float t;
+	vec3 normal;
+	vec3 point;
+	uint material_index;
+
+	bool hit_anything;
+};
+
+HitData intersect(Ray ray, Scene scene)
+{
+	HitData result;
+	result.hit_anything = false;
+	result.t = TMAX;
+
+	for(uint i = 0; i < scene.spheres.length(); i++)
+	{
+		float current_t = intersect_sphere(ray, scene.spheres[i]);
+		if(current_t >= TMIN && current_t <= TMAX && current_t < result.t)
+		{
+			result.t = current_t;
+			result.hit_anything = true;
+			result.point = ray.origin + ray.direction * current_t;
+			result.normal = (result.point - scene.spheres[i].origin) / scene.spheres[i].radius;
+			result.material_index = scene.spheres[i].material_index;
+		}
+	}
+
+	return result;
+}
+
+vec3 estimator_path_tracing_lambertian(Ray ray, Scene scene)
+{
+	vec3 color = vec3(0.0);
+
+	// ( BRDF * dot(Nx, psi) ) / PDF(psi)
+	vec3 throughput_term = vec3(1.0);
+
+	// Vignette effect (basically undoing We=1/cos^3(theta) )
+	// float32 theta = acosf(-ray.direction.z);
+	// throughput_term = throughput_term * powf(cosf(theta), 3);
+
+	bool hit_anything = false;
+	for (uint b = 0; b < BOUNCE_COUNT; b++)
+	{
+		HitData data = intersect(ray, scene);
+		if(!data.hit_anything) // ray goes off into infinity
+		{
+			if (b <= BOUNCE_COUNT)
+				color += throughput_term * sky_color(ray.direction) * ENVIRONMENT_MAP_LE;
+			break;
+		}
+
+		hit_anything = true;
+
+		// DEBUG NORMALS
+		// color = (data.normal + vec3(1.0)) * 0.5;
+		// continue;
+
+		LambertianMaterial mat = materials[data.material_index];
+
+		// add the light that the material emits
+		if (b <= BOUNCE_COUNT)
+			color += throughput_term * mat.Le;
+
+		vec3 BRDF = PI * mat.diffuse;
+
+		// update throughput
+		// The PI is here because we are sampling w.r.t the pdf
+		// p(psi) = cos(theta) / PI       (cosine weighted sampling)
+		// This cosine term cancels out with the dot product in
+		// the throughput term and all that is left is the BRDF
+		throughput_term *= BRDF;
+
+		// pdf(psi) = cos(theta) / PI
+		vec2 random_vec2 = vec2(random(vec2(gl_GlobalInvocationID.xy)), random(vec2(gl_GlobalInvocationID.yx)));
+		vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(random_vec2, data.normal);
+
+		// Intersection point and new ray
+		ray = Ray(data.point + EPSILON * data.normal, dir);
+	}
+
+	return color;
 }
 
 vec4 render_function(uvec2 screen_size, ivec2 pixel_coords)
@@ -65,27 +223,36 @@ vec4 render_function(uvec2 screen_size, ivec2 pixel_coords)
 	vec3 grid_origin = eye - (grid_x * 0.5) - (grid_y * 0.5);
 	grid_origin.z = -2.0;
 
+	Scene scene;
+	scene.spheres[0] = Sphere(vec3(0.0, 0.0, -5.0), 1.0, 0);
+	scene.spheres[1] = Sphere(vec3(0.0, -101.0, -5.0), 100.0, 0);
+
 	int x = pixel_coords.x;
 	int y = pixel_coords.y;
 
-	vec2 offset_to_pixel_center = vec2(0.5, 0.5);
-	float u = x / float(width);
-	float v = y / float(height);
-
-	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
-	vec3 ray_direction = normalize(point_on_grid - eye);
-
-	vec3 sphere_origin = vec3(0.0, 0.0, -3.0);
-	float sphere_radius = 1.0;
-
-	float t = intersect_sphere(eye, ray_direction, sphere_origin, sphere_radius);
-
-	if(t >= TMIN)
+	vec3 color = vec3(0.0);
+	for(uint s = 0; s < NUM_SAMPLES; s++)
 	{
-		return vec4((normalize(eye + ray_direction * t - sphere_origin) + 1.0) / 2.0, 1.0);
+		vec2 offset_to_pixel_center = vec2(0.5, 0.5);
+		vec2 uv_offset = vec2(random(vec2(gl_GlobalInvocationID.xy) - s), random(vec2(gl_GlobalInvocationID.yx) * s));
+
+		float u = (x + uv_offset.x) / float(width);
+		float v = (y + uv_offset.y) / float(height);
+
+		vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
+		vec3 ray_direction = normalize(point_on_grid - eye);
+
+		Ray ray = Ray(eye, ray_direction);
+
+		color += estimator_path_tracing_lambertian(ray, scene);
 	}
 
-	return vec4(0.2, 0.2, 0.2, 1.0);
+	color /= float(NUM_SAMPLES);
+	color.x = sqrt(color.x);
+	color.y = sqrt(color.y);
+	color.z = sqrt(color.z);
+
+	return vec4(color, 1.0);
 }
 
 void main() 
