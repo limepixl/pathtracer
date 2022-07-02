@@ -292,6 +292,7 @@ int main(int argc, char *argv[])
 
 	uint32 last_time = 0;
 	uint32 last_report = 0;
+	uint32 frame_num = 0;
 
 	while(display.is_open)
 	{
@@ -311,6 +312,7 @@ int main(int argc, char *argv[])
 		glUseProgram(display.compute_shader_program);
 		glUniform1f(glGetUniformLocation(display.compute_shader_program, "f_time"), current_time / 1000.0f);
 		glUniform1ui(glGetUniformLocation(display.compute_shader_program, "u_time"), current_time);
+		glUniform1ui(glGetUniformLocation(display.compute_shader_program, "frame_num"), frame_num++);
 		glDispatchCompute(width / 8, height / 4, 1);
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
