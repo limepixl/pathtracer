@@ -13,6 +13,9 @@ const float PI = 3.14159265;
 const uint BOUNCE_COUNT = 5;
 const uint NUM_SAMPLES = 1;
 
+#define MAX_NUM_SPHERES 16
+#define MAX_NUM_MATERIALS 16
+
 uvec2 seed_vec;
 float fract_time;
 
@@ -99,9 +102,6 @@ struct LambertianMaterial
 	vec3 diffuse; // BRDF
 };
 
-LambertianMaterial materials[] = { LambertianMaterial(vec3(0.0), vec3(0.6) / PI),
-                                   LambertianMaterial(vec3(0.0), vec3(0.6) / PI)  };
-
 struct Sphere
 {
 	vec3 origin;
@@ -154,7 +154,8 @@ float intersect_sphere(Ray ray, Sphere sphere)
 
 struct Scene
 {
-	Sphere spheres[2];
+	Sphere spheres[MAX_NUM_SPHERES];
+	uint num_spheres;
 };
 
 struct HitData
@@ -173,7 +174,7 @@ HitData intersect(Ray ray, Scene scene)
 	result.hit_anything = false;
 	result.t = TMAX;
 
-	for(uint i = 0; i < scene.spheres.length(); i++)
+	for(uint i = 0; i < scene.num_spheres; i++)
 	{
 		float current_t = intersect_sphere(ray, scene.spheres[i]);
 		if(current_t >= TMIN && current_t <= TMAX && current_t < result.t)
@@ -188,6 +189,10 @@ HitData intersect(Ray ray, Scene scene)
 
 	return result;
 }
+
+shared Scene scene;
+shared LambertianMaterial materials[MAX_NUM_MATERIALS];
+shared uint num_materials;
 
 vec3 estimator_path_tracing_lambertian(Ray ray, Scene scene)
 {
@@ -241,7 +246,7 @@ vec3 estimator_path_tracing_lambertian(Ray ray, Scene scene)
 	return color;
 }
 
-vec4 render_function(uvec2 screen_size, ivec2 pixel_coords, Scene scene)
+vec3 render_function(uvec2 screen_size, ivec2 pixel_coords, Scene scene)
 {
 	uint width = screen_size.x;
 	uint height = screen_size.y;
@@ -282,12 +287,12 @@ vec4 render_function(uvec2 screen_size, ivec2 pixel_coords, Scene scene)
 		if(isnan(calculated_color.x) || 
 		   isnan(calculated_color.y) || 
 		   isnan(calculated_color.z))
-			return vec4(1.0, 0.0, 0.0, 1.0);
+			return vec3(1.0, 0.0, 0.0);
 
 		if(isinf(calculated_color.x) || 
 		   isinf(calculated_color.y) || 
 		   isinf(calculated_color.z))
-			return vec4(1.0, 0.0, 0.0, 1.0);
+			return vec3(1.0, 0.0, 0.0);
 
 		color += calculated_color;
 	}
@@ -297,28 +302,40 @@ vec4 render_function(uvec2 screen_size, ivec2 pixel_coords, Scene scene)
 	color.y = sqrt(color.y);
 	color.z = sqrt(color.z);
 
-	return vec4(color, 1.0);
+	return color;
 }
 
 void main() 
 {
+	if(gl_LocalInvocationIndex == 0)
+	{
+		uint num_spheres = 0;
+		scene.spheres[num_spheres++] = Sphere(vec3(0.0, 0.0, -5.0), 1.0, 0);
+		scene.spheres[num_spheres++] = Sphere(vec3(0.0, -101.0, -5.0), 100.0, 1);
+		scene.num_spheres = num_spheres;
+
+		materials[num_materials++] = LambertianMaterial(vec3(0.0), vec3(0.6) / PI);
+		materials[num_materials++] = LambertianMaterial(vec3(0.0), vec3(0.6) / PI);
+	}
+
+	// Sync invocations to make sure shared vars are initialized within each work group
+	memoryBarrierShared();
+	barrier();
+
 	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 	
-	vec4 last_frame = imageLoad(screen, pixel_coords);
-
 	fract_time = fract(f_time);
 	seed_vec = pcg2d(uvec2(pixel_coords) + uvec2(u_time));
 
-	Scene scene;
-	scene.spheres[0] = Sphere(vec3(0.0, 0.0, -5.0), 1.0, 0);
-	scene.spheres[1] = Sphere(vec3(0.0, -101.0, -5.0), 100.0, 1);
-	
 	uvec2 screen_size = imageSize(screen);
-	vec4 color = render_function(screen_size, pixel_coords, scene);
+	vec4 last_frame = imageLoad(screen, pixel_coords);
+
+	vec3 color = render_function(screen_size, pixel_coords, scene);
 
 	// weigh current frame according to accumulated past
 	// frames and the current frame number
-	color = float(frame_num) / float(frame_num + 1) * last_frame + 1.0 / float(frame_num + 1) * color;
+	color = float(frame_num) / float(frame_num + 1) * last_frame.xyz + 1.0 / float(frame_num + 1) * color;
 
-	imageStore(screen, pixel_coords, color);
+	vec4 final_color = vec4(color, 1.0);
+	imageStore(screen, pixel_coords, final_color);
 }
