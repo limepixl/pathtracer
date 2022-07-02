@@ -9,10 +9,10 @@ LightSource CreateLightSource(void *obj, LightSourceType type)
 
 Scene ConstructScene(Array<Sphere> spheres,
 					 Array<Triangle> tris,
-					 Array<uint32> light_tris,
-					 Array<BVHNode> bvh_tree)
+					 Array<uint32> light_tris
+					 /*Array<BVHNode> bvh_tree*/)
 {
-	return { spheres, tris, light_tris, bvh_tree };
+	return { spheres, tris, light_tris/*, bvh_tree*/ };
 }
 
 bool Intersect(Ray ray, Scene scene, HitData *data)
@@ -39,7 +39,7 @@ bool Intersect(Ray ray, Scene scene, HitData *data)
 		}
 	}
 
-	hit_anything = hit_anything || IntersectBVHStack(ray, scene, &result_data, tmax);
+	// hit_anything = hit_anything || IntersectBVHStack(ray, scene, &result_data, tmax);
 	if (hit_anything)
 	{
 		*data = result_data;
