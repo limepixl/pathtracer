@@ -90,7 +90,7 @@ bool AABBIntersect(Ray ray, AABB aabb, float t)
 
 	return tmax >= Max(0.0f, tmin) && tmin < t;
 }
-
+/*
 bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax)
 {
 	bool hit_anything = false;
@@ -156,6 +156,7 @@ bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax)
 	DeallocateArray(stack);
 	return hit_anything;
 }
+*/
 
 static int axis = 0;
 

@@ -13,42 +13,80 @@
 #include <glad/glad.h>
 #include <SDL.h>
 
+#define NUM_MAX_SPHERES 1024
+#define NUM_MAX_MODEL_TRIS 1024
+
+struct SphereGLSL
+{
+	Vec4f data; // o.x, o.y, o.z, radius
+	uint32 mat_index;
+};
+
+struct TriangleGLSL
+{
+	Vec4f v0v1;   // v0.x, v0.y, v0.z, v1.x
+	Vec4f v1v2;   // v1.y, v1.z, v2.x, v2.y
+	Vec4f v2norm; // v2.z, n.x, n.y, n.z
+	Vec4f e1e2;   // e1.x, e1.y, e1.z, e2.x
+	Vec2f e2;     // e2.y, e2.z
+	uint32 mat_index;
+};
+
+struct SpheresSSBO
+{
+	uint32 num_spheres;
+	SphereGLSL spheres[NUM_MAX_SPHERES];
+};
+
+struct ModelTrisSSBO
+{
+	uint32 num_tris;
+	TriangleGLSL triangles[NUM_MAX_MODEL_TRIS];
+};
+
+struct ModelLightTrisSSBO
+{
+	uint32 num_light_tris;
+	uint32 light_tri_indices[NUM_MAX_MODEL_TRIS];
+};
+
 int main(int argc, char *argv[])
 {
 	(void)argc; (void)argv;
 
 	uint32 width = (uint32)WIDTH;
 	uint32 height = (uint32)HEIGHT;
-	float aspect_atio = (float)width / (float)height;
+	// float aspect_atio = (float)width / (float)height;
 
 	Display display = CreateDisplay("Pathtracer", width, height);
 	InitRenderBuffer(display);
 
-	/*
 	// Memory allocation for bitmap buffer
-	Array<uint8> bitmap_buffer = CreateArray<uint8>(width * height * 3);
+	// Array<uint8> bitmap_buffer = CreateArray<uint8>(width * height * 3);
 
 	// x is right, y is up, z is backwards
-	Vec3f eye = CreateVec3f(0.0f, 0.0f, 0.0f);
+	// Vec3f eye = CreateVec3f(0.0f, 0.0f, 0.0f);
 
-	float grid_height = 2.0f;
-	float grid_width = aspect_atio * grid_height;
-	Vec3f grid_x = { grid_width, 0.0f, 0.0f };
-	Vec3f grid_y = { 0.0f, -grid_height,
-					0.0f }; // negative because of the way I am writing to the file
+	// float grid_height = 2.0f;
+	// float grid_width = aspect_atio * grid_height;
+	// Vec3f grid_x = { grid_width, 0.0f, 0.0f };
+	// Vec3f grid_y = { 0.0f, -grid_height,
+					// 0.0f }; // negative because of the way I am writing to the file
 
 	// Lower left corner of virtual grid
-	Vec3f grid_origin = eye - (grid_x / 2.0f) - (grid_y / 2.0f);
-	grid_origin.z = -2.0f;
+	// Vec3f grid_origin = eye - (grid_x / 2.0f) - (grid_y / 2.0f);
+	// grid_origin.z = -2.0f;
 
 	Array<Triangle> tris = CreateArray<Triangle>();
 	Array<Material *> materials = CreateArray<Material *>();
 
 	if (!LoadModelFromObj("CornellBox-Suzanne.obj", "../res/", tris, materials))
 	{
-		DeallocateArray(bitmap_buffer);
+		// DeallocateArray(bitmap_buffer);
 		return -1;
 	}
+
+	printf("Loaded %lu triangles!\n", tris.size);
 
 	// Apply model matrix to tris
 	Mat4f model_matrix = CreateIdentityMat4f();
@@ -69,6 +107,7 @@ int main(int argc, char *argv[])
 		tris[i].edge2 = tris[i].v2 - tris[i].v0;
 	}
 
+/*
 	// Construct BVH tree and sort triangle list according to it
 	Array<BVHNode> bvh_tree = CreateArray<BVHNode>(2 * tris.size - 1);
 	
@@ -80,10 +119,11 @@ int main(int argc, char *argv[])
 	// if (!ConstructBVHObjectMedian(tris.data, tris.size, bvh_tree, 0))
 	{
 		printf("Error in BVH construction!\n");
-		DeallocateArray(bitmap_buffer);
+		// DeallocateArray(bitmap_buffer);
 		return -1;
 	}
 	printf("Finished building BVH!\n");
+*/
 
 	// Find all emissive triangles in scene
 	Array<uint32> emissive_tris = CreateArray<uint32>(tris.size);
@@ -97,8 +137,9 @@ int main(int argc, char *argv[])
 	}
 
 	Array<Sphere> spheres = CreateArray<Sphere>();
-	Scene scene = ConstructScene(spheres, tris, emissive_tris, bvh_tree);
+	Scene scene = ConstructScene(spheres, tris, emissive_tris/*bvh_tree*/);
 
+/*
 	// Each thread's handle and data to be used by it
 	void *threadHandles[NUM_THREADS];
 	RenderData *data_for_threads[NUM_THREADS];
@@ -279,13 +320,61 @@ int main(int argc, char *argv[])
 
 	fclose(result);
 	printf("Finished rendering to image!\n");
-	*/
+*/
+
+	// Set up data to be passed to SSBOs
+
+	SpheresSSBO spheres_ssbo_data {0, {}};
+
+	ModelTrisSSBO model_tris_ssbo_data;
+	model_tris_ssbo_data.num_tris = tris.size;
+	for(uint32 i = 0; i < tris.size; i++)
+	{
+		const Triangle &current_tri = tris[i];
+		const Vec3f &v0 = current_tri.v0;
+		const Vec3f &v1 = current_tri.v1;
+		const Vec3f &v2 = current_tri.v2;
+		const Vec3f &n = current_tri.normal;
+		const Vec3f &e1 = current_tri.edge1;
+		const Vec3f &e2 = current_tri.edge2;
+
+		TriangleGLSL tmp;
+		tmp.v0v1 = CreateVec4f(v0.x, v0.y, v0.z, v1.x);
+		tmp.v1v2 = CreateVec4f(v1.y, v1.z, v2.x, v2.y);
+		tmp.v2norm = CreateVec4f(v2.z, n.x, n.y, n.z);
+		tmp.e1e2 = CreateVec4f(e1.x, e1.y, e1.z, e2.x);
+		tmp.e2 = CreateVec2f(e2.y, e2.z);
+
+		// TODO: Get actual mat index instead of pointer
+		tmp.mat_index = 0; // current_tri.mat;
+
+		model_tris_ssbo_data.triangles[i] = tmp;
+	}
+
+	ModelLightTrisSSBO light_tris_ssbo_data;
+	light_tris_ssbo_data.num_light_tris = emissive_tris.size;
+	memcpy(light_tris_ssbo_data.light_tri_indices, emissive_tris.data, emissive_tris.size);
+
+	// Set up SSBOs
+	GLuint ssbo[3];
+	glGenBuffers(3, ssbo);
+
+	// Sphere SSBO
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[0]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(spheres_ssbo_data), &spheres_ssbo_data, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo[0]);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[1]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(model_tris_ssbo_data), &model_tris_ssbo_data, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo[1]);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[2]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(light_tris_ssbo_data), &light_tris_ssbo_data, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo[2]);
 
 	glUseProgram(display.rb_shader_program);
 	glBindTextureUnit(0, display.render_buffer_texture);
 	glUniform1i(glGetUniformLocation(display.rb_shader_program, "tex"), 0);
-
-	// glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, bitmap_buffer.data);
 
 	glUseProgram(display.compute_shader_program);
 	glUniform1i(glGetUniformLocation(display.compute_shader_program, "screen"), 0);
@@ -309,6 +398,7 @@ int main(int argc, char *argv[])
 
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		// Compute shader data and dispatch
 		glUseProgram(display.compute_shader_program);
 		glUniform1f(glGetUniformLocation(display.compute_shader_program, "f_time"), current_time / 1000.0f);
 		glUniform1ui(glGetUniformLocation(display.compute_shader_program, "u_time"), current_time);
@@ -316,12 +406,13 @@ int main(int argc, char *argv[])
 		glDispatchCompute(width / 8, height / 4, 1);
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
+		// Full screen quad drawing
 		glUseProgram(display.rb_shader_program);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 
+		// Frame time calculation
 		if(current_time > last_report + 1000)
 		{
-			// TODO: replace with C strings
 			uint32 delta_time = current_time - last_time;
 			uint32 fps = (uint32)(1.0f / ((float)delta_time / 1000.0f));
 			std::string new_title = "Pathtracer | ";
@@ -331,20 +422,19 @@ int main(int argc, char *argv[])
 			UpdateDisplayTitle(display, new_title.c_str());
 			last_report = current_time;
 		}
-
 		last_time = current_time;
 
 		SDL_GL_SwapWindow(display.window_handle);
 	}
 
 	// DeallocateArray(bitmap_buffer);
-	// DeallocateArray(tris);
-	// for (uint32 i = 0; i < materials.size; i++)
-	// {
-	// 	free(materials[i]);
-	// }
+	DeallocateArray(tris);
+	for (uint32 i = 0; i < materials.size; i++)
+	{
+		free(materials[i]);
+	}
 
-	// DeallocateArray(materials);
+	DeallocateArray(materials);
 	// DeallocateArray(bvh_tree);
 
 	CloseDisplay(display);

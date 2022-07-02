@@ -8,7 +8,7 @@ uniform uint u_time;
 uniform uint frame_count;
 
 // Math constants
-const float EPSILON = 0.000001;
+const float EPSILON = 0.00001;
 const float PI = 3.14159265;
 
 // Ray constants
@@ -24,6 +24,44 @@ const uint MAX_NUM_MATERIALS = 16;
 
 uvec2 seed_vec;
 float fract_time;
+
+// SSBO helper structs
+
+struct Triangle
+{
+	vec4 v0v1;   // v0.x, v0.y, v0.z, v1.x
+	vec4 v1v2;   // v1.y, v1.z, v2.x, v2.y
+	vec4 v2norm; // v2.z, n.x, n.y, n.z
+	vec4 e1e2;   // e1.x, e1.y, e1.z, e2.x
+	vec2 e2;     // e2.y, e2.z
+	uint mat_index;
+};
+
+struct Sphere2
+{
+	vec4 data; // o.x, o.y, o.z, radius
+	uint mat_index;
+};
+
+// SSBOs
+
+layout(std430, binding = 1) buffer SpheresSSBO
+{
+	uint num_spheres;
+	Sphere2 spheres[];
+};
+
+layout(std430, binding = 2) buffer ModelTrisSSBO
+{
+	uint num_tris;
+	Triangle triangles[];
+};
+
+layout(std430, binding = 3) buffer ModelLightTrisSSBO
+{
+	uint num_light_tris;
+	uint light_tri_indices[];
+};
 
 // Randomness
 
