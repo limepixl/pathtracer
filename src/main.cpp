@@ -15,11 +15,12 @@
 
 #define NUM_MAX_SPHERES 1024
 #define NUM_MAX_MODEL_TRIS 1024
+#define NUM_MAX_MATERIALS 16
 
 struct SphereGLSL
 {
-	Vec4f data; // o.x, o.y, o.z, radius
-	uint32 mat_index;
+	Vec4f data;          // o.x, o.y, o.z, radius
+	uint32 mat_index[4]; // mat_index, 0, 0, 0
 };
 
 struct TriangleGLSL
@@ -28,26 +29,38 @@ struct TriangleGLSL
 	Vec4f v1v2;   // v1.y, v1.z, v2.x, v2.y
 	Vec4f v2norm; // v2.z, n.x, n.y, n.z
 	Vec4f e1e2;   // e1.x, e1.y, e1.z, e2.x
-	Vec2f e2;     // e2.y, e2.z
-	uint32 mat_index;
+	Vec4f e2matX; // e2.y, e2.z, mat_index, empty
+};
+
+struct MaterialGLSL
+{
+	Vec4f type_diffuse;  // mat_type, diff.x, diff.y, diff.z
+	Vec4f specular_spec; // spec.x, spec.y, spec.z, n_spec
+	Vec4f Le;			 // Le.x, Le.y, Le.z, empy
 };
 
 struct SpheresSSBO
 {
-	uint32 num_spheres;
+	uint32 num_spheres[4];
 	SphereGLSL spheres[NUM_MAX_SPHERES];
 };
 
 struct ModelTrisSSBO
 {
-	uint32 num_tris;
+	uint32 num_tris[4];
 	TriangleGLSL triangles[NUM_MAX_MODEL_TRIS];
 };
 
 struct ModelLightTrisSSBO
 {
-	uint32 num_light_tris;
+	uint32 num_light_tris[4];
 	uint32 light_tri_indices[NUM_MAX_MODEL_TRIS];
+};
+
+struct MaterialsSSBO
+{
+	uint32 num_materials[4];
+	MaterialGLSL materials[NUM_MAX_MATERIALS];
 };
 
 int main(int argc, char *argv[])
@@ -324,10 +337,12 @@ int main(int argc, char *argv[])
 
 	// Set up data to be passed to SSBOs
 
-	SpheresSSBO spheres_ssbo_data {0, {}};
+	SpheresSSBO spheres_ssbo_data {{2}, {}};
+	spheres_ssbo_data.spheres[0] = {{0.0f, 0.0f, -5.0f, 1.0f}, {0}};
+	spheres_ssbo_data.spheres[1] = {{0.0f, -101.0f, -5.0f, 100.0f}, {0}};
 
-	ModelTrisSSBO model_tris_ssbo_data;
-	model_tris_ssbo_data.num_tris = tris.size;
+	ModelTrisSSBO model_tris_ssbo_data {{0}, {}};
+	model_tris_ssbo_data.num_tris[0] = tris.size;
 	for(uint32 i = 0; i < tris.size; i++)
 	{
 		const Triangle &current_tri = tris[i];
@@ -343,21 +358,26 @@ int main(int argc, char *argv[])
 		tmp.v1v2 = CreateVec4f(v1.y, v1.z, v2.x, v2.y);
 		tmp.v2norm = CreateVec4f(v2.z, n.x, n.y, n.z);
 		tmp.e1e2 = CreateVec4f(e1.x, e1.y, e1.z, e2.x);
-		tmp.e2 = CreateVec2f(e2.y, e2.z);
 
 		// TODO: Get actual mat index instead of pointer
-		tmp.mat_index = 0; // current_tri.mat;
+		tmp.e2matX = CreateVec4f(e2.y, e2.z, 0.0f, 0.0f);
 
 		model_tris_ssbo_data.triangles[i] = tmp;
 	}
 
-	ModelLightTrisSSBO light_tris_ssbo_data;
-	light_tris_ssbo_data.num_light_tris = emissive_tris.size;
-	memcpy(light_tris_ssbo_data.light_tri_indices, emissive_tris.data, emissive_tris.size);
+	ModelLightTrisSSBO light_tris_ssbo_data {{0}, {}};
+	light_tris_ssbo_data.num_light_tris[0] = emissive_tris.size;
+	memcpy(light_tris_ssbo_data.light_tri_indices, emissive_tris.data, emissive_tris.size * sizeof(uint32));
+
+	MaterialsSSBO materials_ssbo {{0}, {}};
+	materials_ssbo.num_materials[0] = 1;
+	materials_ssbo.materials[0] = {{0.0f, 0.8f, 0.8f, 0.8f}, 
+	                               {0.0f, 0.0f, 0.0f, 0.0f}, 
+								   {0.0f, 0.0f, 0.0f, 0.0f}};
 
 	// Set up SSBOs
-	GLuint ssbo[3];
-	glGenBuffers(3, ssbo);
+	GLuint ssbo[4];
+	glGenBuffers(4, ssbo);
 
 	// Sphere SSBO
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[0]);
@@ -371,6 +391,10 @@ int main(int argc, char *argv[])
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[2]);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(light_tris_ssbo_data), &light_tris_ssbo_data, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo[2]);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[3]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(materials_ssbo), &materials_ssbo, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo[3]);
 
 	glUseProgram(display.rb_shader_program);
 	glBindTextureUnit(0, display.render_buffer_texture);
@@ -409,6 +433,12 @@ int main(int argc, char *argv[])
 		// Full screen quad drawing
 		glUseProgram(display.rb_shader_program);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+
+		GLenum err;
+		while((err = glGetError()) != GL_NO_ERROR)
+		{
+			printf("OPENGL ERROR!\n");
+		}
 
 		// Frame time calculation
 		if(current_time > last_report + 1000)

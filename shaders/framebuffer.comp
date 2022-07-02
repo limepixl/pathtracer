@@ -19,8 +19,6 @@ const uint NUM_SAMPLES = 1;
 
 // Misc
 const float ENVIRONMENT_MAP_LE = 1.0;
-const uint MAX_NUM_SPHERES = 16;
-const uint MAX_NUM_MATERIALS = 16;
 
 uvec2 seed_vec;
 float fract_time;
@@ -33,35 +31,47 @@ struct Triangle
 	vec4 v1v2;   // v1.y, v1.z, v2.x, v2.y
 	vec4 v2norm; // v2.z, n.x, n.y, n.z
 	vec4 e1e2;   // e1.x, e1.y, e1.z, e2.x
-	vec2 e2;     // e2.y, e2.z
-	uint mat_index;
+	vec4 e2matX; // e2.y, e2.z, mat_index, empty
 };
 
-struct Sphere2
+struct Sphere
 {
-	vec4 data; // o.x, o.y, o.z, radius
-	uint mat_index;
+	vec4 sphere_data; // o.x, o.y, o.z, radius
+	uvec4 mat_index;
+};
+
+struct Material
+{
+	vec4 type_diffuse;  // mat_type, diff.x, diff.y, diff.z
+	vec4 specular_spec; // spec.x, spec.y, spec.z, n_spec
+	vec4 Le;            // Le.x, Le.y, Le.z, empy
 };
 
 // SSBOs
 
-layout(std430, binding = 1) buffer SpheresSSBO
+layout(std430, binding = 1) readonly buffer SpheresSSBO
 {
-	uint num_spheres;
-	Sphere2 spheres[];
-};
+	uvec4 num_spheres;
+	Sphere spheres[];
+} spheres_ssbo;
 
-layout(std430, binding = 2) buffer ModelTrisSSBO
+layout(std430, binding = 2) readonly buffer ModelTrisSSBO
 {
-	uint num_tris;
+	uvec4 num_tris;
 	Triangle triangles[];
-};
+} model_tris_ssbo;
 
-layout(std430, binding = 3) buffer ModelLightTrisSSBO
+layout(std430, binding = 3) readonly buffer ModelLightTrisSSBO
 {
-	uint num_light_tris;
+	uvec4 num_light_tris;
 	uint light_tri_indices[];
-};
+} light_tris_ssbo;
+
+layout(std430, binding = 4) readonly buffer MaterialsSSBO
+{
+	uvec4 num_materials;
+	Material materials[];
+} materials_ssbo;
 
 // Randomness
 
@@ -152,19 +162,6 @@ struct LambertianMaterial
 	vec3 diffuse; // BRDF
 };
 
-struct Sphere
-{
-	vec3 origin;
-	float radius;
-	uint material_index;
-};
-
-struct Scene
-{
-	Sphere spheres[MAX_NUM_SPHERES];
-	uint num_spheres;
-};
-
 struct HitData
 {
 	float t;
@@ -179,10 +176,10 @@ struct HitData
 
 float intersect_sphere(Ray ray, Sphere sphere)
 {
-	vec3 oc = ray.origin - sphere.origin;
+	vec3 oc = ray.origin - sphere.sphere_data.xyz;
 	float a = dot(ray.direction, ray.direction);
 	float b = 2.0 * dot(oc, ray.direction);
-	float c = dot(oc, oc) - sphere.radius * sphere.radius;
+	float c = dot(oc, oc) - sphere.sphere_data.w * sphere.sphere_data.w;
 	float discriminant = b * b - 4.0 * a * c;
 	if(discriminant >= 0)
 	{
@@ -220,37 +217,32 @@ float intersect_sphere(Ray ray, Sphere sphere)
 	return -1.0;
 }
 
-HitData intersect(Ray ray, Scene scene)
+HitData intersect(Ray ray)
 {
 	HitData result;
 	result.hit_anything = false;
 	result.t = TMAX;
 
-	for(uint i = 0; i < scene.num_spheres; i++)
+	for(uint i = 0; i < spheres_ssbo.num_spheres.x; i++)
 	{
-		float current_t = intersect_sphere(ray, scene.spheres[i]);
+		Sphere current_sphere = spheres_ssbo.spheres[i];
+		float current_t = intersect_sphere(ray, current_sphere);
 		if(current_t >= TMIN && current_t <= TMAX && current_t < result.t)
 		{
 			result.t = current_t;
 			result.hit_anything = true;
 			result.point = ray.origin + ray.direction * current_t;
-			result.normal = (result.point - scene.spheres[i].origin) / scene.spheres[i].radius;
-			result.material_index = scene.spheres[i].material_index;
+			result.normal = (result.point - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
+			result.material_index = current_sphere.mat_index.x;
 		}
 	}
 
 	return result;
 }
 
-// Shared variables
-
-shared Scene scene;
-shared LambertianMaterial materials[MAX_NUM_MATERIALS];
-shared uint num_materials;
-
 // Estimators
 
-vec3 estimator_path_tracing_lambertian(Ray ray, Scene scene)
+vec3 estimator_path_tracing_lambertian(Ray ray)
 {
 	vec3 color = vec3(0.0);
 
@@ -263,7 +255,7 @@ vec3 estimator_path_tracing_lambertian(Ray ray, Scene scene)
 
 	for (uint b = 0; b < BOUNCE_COUNT; b++)
 	{
-		HitData data = intersect(ray, scene);
+		HitData data = intersect(ray);
 		if(!data.hit_anything) // ray goes off into infinity
 		{
 			if (b <= BOUNCE_COUNT)
@@ -275,13 +267,13 @@ vec3 estimator_path_tracing_lambertian(Ray ray, Scene scene)
 		// color = (data.normal + vec3(1.0)) * 0.5;
 		// continue;
 
-		LambertianMaterial mat = materials[data.material_index];
+		Material mat = materials_ssbo.materials[data.material_index];
 
 		// add the light that the material emits
 		if (b <= BOUNCE_COUNT)
-			color += throughput_term * mat.Le;
+			color += throughput_term * mat.Le.xyz;
 
-		vec3 BRDF = PI * mat.diffuse;
+		vec3 BRDF = PI * mat.type_diffuse.yzw;
 
 		// update throughput
 		// The PI is here because we are sampling w.r.t the pdf
@@ -302,7 +294,7 @@ vec3 estimator_path_tracing_lambertian(Ray ray, Scene scene)
 	return color;
 }
 
-vec3 render_function(uvec2 screen_size, ivec2 pixel_coords, Scene scene)
+vec3 render_function(uvec2 screen_size, ivec2 pixel_coords)
 {
 	uint width = screen_size.x;
 	uint height = screen_size.y;
@@ -337,18 +329,18 @@ vec3 render_function(uvec2 screen_size, ivec2 pixel_coords, Scene scene)
 
 		Ray ray = Ray(eye, ray_direction);
 
-		vec3 calculated_color = estimator_path_tracing_lambertian(ray, scene);
+		vec3 calculated_color = estimator_path_tracing_lambertian(ray);
 
 		// INF and NaN check
-		// if(isnan(calculated_color.x) || 
-		//    isnan(calculated_color.y) || 
-		//    isnan(calculated_color.z))
-		// 	return vec3(1.0, 0.0, 0.0);
+		if(isnan(calculated_color.x) || 
+		   isnan(calculated_color.y) || 
+		   isnan(calculated_color.z))
+			return vec3(1.0, 0.0, 0.0);
 
-		// if(isinf(calculated_color.x) || 
-		//    isinf(calculated_color.y) || 
-		//    isinf(calculated_color.z))
-		// 	return vec3(1.0, 0.0, 0.0);
+		if(isinf(calculated_color.x) || 
+		   isinf(calculated_color.y) || 
+		   isinf(calculated_color.z))
+			return vec3(1.0, 0.0, 0.0);
 
 		color += calculated_color;
 	}
@@ -363,21 +355,6 @@ vec3 render_function(uvec2 screen_size, ivec2 pixel_coords, Scene scene)
 
 void main() 
 {
-	if(gl_LocalInvocationIndex == 0)
-	{
-		materials[num_materials++] = LambertianMaterial(vec3(0.0), vec3(0.8) / PI);
-		materials[num_materials++] = LambertianMaterial(vec3(0.0), vec3(0.8) / PI);
-
-		uint num_spheres = 0;
-		scene.spheres[num_spheres++] = Sphere(vec3(0.0, 0.0, -5.0), 1.0, 0);
-		scene.spheres[num_spheres++] = Sphere(vec3(0.0, -101.0, -5.0), 100.0, 1);
-		scene.num_spheres = num_spheres;
-	}
-
-	// Sync invocations to make sure shared vars are initialized within each work group
-	memoryBarrierShared();
-	barrier();
-
 	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 	
 	fract_time = fract(f_time);
@@ -386,11 +363,11 @@ void main()
 	uvec2 screen_size = imageSize(screen);
 	vec4 last_frame = imageLoad(screen, pixel_coords);
 
-	vec3 color = render_function(screen_size, pixel_coords, scene);
+	vec3 color = render_function(screen_size, pixel_coords);
 
 	// weigh current frame according to accumulated past
 	// frames and the current frame number
-	color = float(frame_count) / float(frame_count + 1) * last_frame.xyz + 1.0 / float(frame_count + 1) * color;
+	// color = float(frame_count) / float(frame_count + 1) * last_frame.xyz + 1.0 / float(frame_count + 1) * color;
 
 	vec4 final_color = vec4(color, 1.0);
 	imageStore(screen, pixel_coords, final_color);
