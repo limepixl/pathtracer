@@ -3,6 +3,7 @@ layout(local_size_x = 8, local_size_y = 4, local_size_z = 1) in;
 layout(rgba32f, binding = 0) uniform image2D screen;
 uniform float f_time;
 uniform uint u_time;
+uniform uint frame_num;
 
 const float EPSILON = 0.000001;
 const float TMIN = 0.001;
@@ -10,7 +11,7 @@ const float TMAX = 10000.0;
 const float ENVIRONMENT_MAP_LE = 1.0;
 const float PI = 3.14159265;
 const uint BOUNCE_COUNT = 5;
-const uint NUM_SAMPLES = 100;
+const uint NUM_SAMPLES = 1;
 
 uvec2 seed_vec;
 float fract_time;
@@ -98,7 +99,8 @@ struct LambertianMaterial
 	vec3 diffuse; // BRDF
 };
 
-LambertianMaterial materials[] = { LambertianMaterial(vec3(0.0), vec3(0.6) / PI)  };
+LambertianMaterial materials[] = { LambertianMaterial(vec3(0.0), vec3(0.6) / PI),
+                                   LambertianMaterial(vec3(0.0), vec3(0.6) / PI)  };
 
 struct Sphere
 {
@@ -229,7 +231,7 @@ vec3 estimator_path_tracing_lambertian(Ray ray, Scene scene)
 
 		// pdf(psi) = cos(theta) / PI
 		vec2 rand_vec = hash_uvec2_to_vec2(seed_vec);
-		seed_vec = pcg2d(seed_vec + uvec2(b));
+		seed_vec = pcg2d(seed_vec + uvec2(u_time));
 		vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec, data.normal);
 
 		// Intersection point and new ray
@@ -239,7 +241,7 @@ vec3 estimator_path_tracing_lambertian(Ray ray, Scene scene)
 	return color;
 }
 
-vec4 render_function(uvec2 screen_size, ivec2 pixel_coords)
+vec4 render_function(uvec2 screen_size, ivec2 pixel_coords, Scene scene)
 {
 	uint width = screen_size.x;
 	uint height = screen_size.y;
@@ -254,10 +256,6 @@ vec4 render_function(uvec2 screen_size, ivec2 pixel_coords)
 	vec3 eye = vec3(0.0, 0.0, 0.0);
 	vec3 grid_origin = eye - (grid_x * 0.5) - (grid_y * 0.5);
 	grid_origin.z = -2.0;
-
-	Scene scene;
-	scene.spheres[0] = Sphere(vec3(0.0, 0.0, -5.0), 1.0, 0);
-	scene.spheres[1] = Sphere(vec3(0.0, -101.0, -5.0), 100.0, 0);
 
 	int x = pixel_coords.x;
 	int y = pixel_coords.y;
@@ -305,12 +303,22 @@ vec4 render_function(uvec2 screen_size, ivec2 pixel_coords)
 void main() 
 {
 	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
+	
+	vec4 last_frame = imageLoad(screen, pixel_coords);
 
-	seed_vec = uvec2(pixel_coords);
 	fract_time = fract(f_time);
+	seed_vec = pcg2d(uvec2(pixel_coords) + uvec2(u_time));
+
+	Scene scene;
+	scene.spheres[0] = Sphere(vec3(0.0, 0.0, -5.0), 1.0, 0);
+	scene.spheres[1] = Sphere(vec3(0.0, -101.0, -5.0), 100.0, 1);
 	
 	uvec2 screen_size = imageSize(screen);
-	vec4 color = render_function(screen_size, pixel_coords);
+	vec4 color = render_function(screen_size, pixel_coords, scene);
+
+	// weigh current frame according to accumulated past
+	// frames and the current frame number
+	color = float(frame_num) / float(frame_num + 1) * last_frame + 1.0 / float(frame_num + 1) * color;
 
 	imageStore(screen, pixel_coords, color);
 }
