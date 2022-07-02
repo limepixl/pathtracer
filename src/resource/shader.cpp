@@ -43,9 +43,19 @@ uint32 LoadShaderFromFiles(const char *compute_source_path)
 	glShaderSource(compute_shader, 1, &(shader_source.data), NULL);
 	glCompileShader(compute_shader);
 
+	GLint buffer_length;
+	glGetShaderiv(compute_shader, GL_INFO_LOG_LENGTH, &buffer_length);
+	if(buffer_length > 1)
+	{
+		GLsizei log_length = 0;
+		GLchar message[1024];
+		glGetShaderInfoLog(compute_shader, buffer_length, &log_length, message);
+		printf("SHADER WARNING:\n%s\n", message);
+	}
+
 	GLint compiled;
 	glGetShaderiv(compute_shader, GL_COMPILE_STATUS, &compiled);
-	if (compiled != GL_TRUE)
+	if(compiled != GL_TRUE)
 	{
 		GLsizei log_length = 0;
 		GLchar message[1024];
