@@ -143,14 +143,15 @@ int main(int argc, char *argv[])
 	uint32 num_emissive_tris = 0;
 	for (uint32 i = 0; i < tris.size; i++)
 	{
-		if (tris[i].mat->Le.x >= 0.01f || tris[i].mat->Le.y >= 0.01f || tris[i].mat->Le.z >= 0.01f)
+		Material *current_mat = materials[tris[i].mat_index];
+		if (current_mat->Le.x >= 0.01f || current_mat->Le.y >= 0.01f || current_mat->Le.z >= 0.01f)
 		{
 			AppendToArray(emissive_tris, i);
 		}
 	}
 
 	Array<Sphere> spheres = CreateArray<Sphere>();
-	Scene scene = ConstructScene(spheres, tris, emissive_tris/*bvh_tree*/);
+	Scene scene = ConstructScene(spheres, tris, emissive_tris, materials/*bvh_tree*/);
 
 /*
 	// Each thread's handle and data to be used by it
@@ -337,9 +338,7 @@ int main(int argc, char *argv[])
 
 	// Set up data to be passed to SSBOs
 
-	SpheresSSBO spheres_ssbo_data {{2}, {}};
-	spheres_ssbo_data.spheres[0] = {{0.0f, 0.0f, -5.0f, 1.0f}, {0}};
-	spheres_ssbo_data.spheres[1] = {{0.0f, -101.0f, -5.0f, 100.0f}, {3}};
+	SpheresSSBO spheres_ssbo_data {{0}, {}};
 
 	ModelTrisSSBO model_tris_ssbo_data {{0}, {}};
 	model_tris_ssbo_data.num_tris[0] = tris.size;
@@ -349,9 +348,9 @@ int main(int argc, char *argv[])
 		const Vec3f &v0 = current_tri.v0;
 		const Vec3f &v1 = current_tri.v1;
 		const Vec3f &v2 = current_tri.v2;
-		const Vec3f &n = current_tri.normal;
 		const Vec3f &e1 = current_tri.edge1;
 		const Vec3f &e2 = current_tri.edge2;
+		Vec3f n = NormalizeVec3f(Cross(e1, e2));
 
 		TriangleGLSL tmp;
 		tmp.v0v1 = CreateVec4f(v0.x, v0.y, v0.z, v1.x);
@@ -360,7 +359,7 @@ int main(int argc, char *argv[])
 		tmp.e1e2 = CreateVec4f(e1.x, e1.y, e1.z, e2.x);
 
 		// TODO: Get actual mat index instead of pointer
-		tmp.e2matX = CreateVec4f(e2.y, e2.z, 0.0f, 0.0f);
+		tmp.e2matX = CreateVec4f(e2.y, e2.z, (float)current_tri.mat_index, 0.0f);
 
 		model_tris_ssbo_data.triangles[i] = tmp;
 	}

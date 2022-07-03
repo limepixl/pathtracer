@@ -145,7 +145,7 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 			// Materials
 			int32 mat_ID = shapes[shape].mesh.material_ids[face];
 			tinyobj::material_t mat = materials[mat_ID];
-			Material *triangle_mat = nullptr;
+			uint32 triangle_mat_index = 0;
 
 			bool unique = true;
 			for (int32 m = 0; m < num_loaded_materials; m++)
@@ -153,7 +153,7 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 				if (!strcmp(mat.name.c_str(), out_materials[m]->name))
 				{
 					unique = false;
-					triangle_mat = out_materials[m];
+					triangle_mat_index = (uint32)m;
 					break;
 				}
 			}
@@ -177,8 +177,7 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 											  mat.name.c_str());
 
 					AppendToArray(out_materials, tmp_mat);
-					num_loaded_materials++;
-					triangle_mat = tmp_mat;
+					triangle_mat_index = num_loaded_materials++;
 				}
 
 				// Blinn-Phong BRDF with Lambertian diffuse
@@ -193,8 +192,7 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 											  mat.name.c_str());
 
 					AppendToArray(out_materials, tmp_mat);
-					num_loaded_materials++;
-					triangle_mat = tmp_mat;
+					triangle_mat_index = num_loaded_materials++;;
 				}
 
 				// Reflection
@@ -210,8 +208,7 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 											  mat.name.c_str());
 
 					AppendToArray(out_materials, tmp_mat);
-					num_loaded_materials++;
-					triangle_mat = tmp_mat;
+					triangle_mat_index = num_loaded_materials++;;
 				}
 			}
 
@@ -219,9 +216,9 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 			Vec3f v0 = CreateVec3f(vertex0[0], vertex0[1], vertex0[2]);
 			Vec3f v1 = CreateVec3f(vertex1[0], vertex1[1], vertex1[2]);
 			Vec3f v2 = CreateVec3f(vertex2[0], vertex2[1], vertex2[2]);
-			Triangle tri = CreateTriangle(v0, v1, v2, normal, triangle_mat);
+			Triangle tri = CreateTriangle(v0, v1, v2, normal, triangle_mat_index);
 
-			if (triangle_mat->Le >= CreateVec3f(0.1f, 0.1f, 0.1f))
+			if (out_materials[triangle_mat_index]->Le >= CreateVec3f(0.1f, 0.1f, 0.1f))
 			{
 				emissive_tris.push_back((uint32)tris.size());
 			}
