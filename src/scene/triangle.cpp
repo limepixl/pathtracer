@@ -9,19 +9,19 @@ float Area(Triangle *tri)
 }
 
 // NOTE: expects CCW winding order
-Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Material *mat)
+Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, uint32 mat_index)
 {
 	Vec3f A = v1 - v0;
 	Vec3f B = v2 - v0;
 	Vec3f normal = NormalizeVec3f(Cross(A, B));
-	return { v0, v1, v2, normal, A, B, mat };
+	return { v0, v1, v2, normal, A, B, mat_index };
 }
 
-Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal, Material *mat)
+Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal, uint32 mat_index)
 {
 	Vec3f A = v1 - v0;
 	Vec3f B = v2 - v0;
-	return { v0, v1, v2, normal, A, B, mat };
+	return { v0, v1, v2, normal, A, B, mat_index };
 }
 
 // Moller–Trumbore ray-triangle intersection algorithm
@@ -57,7 +57,7 @@ bool TriangleIntersect(Ray ray, Triangle &tri, HitData *data, float tmax)
 		data->t = t;
 		data->point = ray.origin + ray.direction * t;
 		data->normal = tri.normal;
-		data->mat = tri.mat;
+		data->mat_index = tri.mat_index;
 		data->object_type = ObjectType::TRIANGLE;
 		return true;
 	}

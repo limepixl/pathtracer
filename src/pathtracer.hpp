@@ -43,7 +43,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngpt
 			break;
 		}
 
-		Material *mat = data.mat;
+		Material *mat = scene.materials[data.mat_index];
 
 		// add the light that the material emits
 		if (b <= BOUNCE_COUNT)
@@ -154,8 +154,8 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 			break;
 		}
 
-		Vec3f &BRDF = data.mat->diffuse; // convenience
-		Material *mat = data.mat;
+		Vec3f &BRDF = scene.materials[data.mat_index]->diffuse; // convenience
+		Material *mat = scene.materials[data.mat_index];
 
 		// (x->y dot Nx)
 		float cos_theta = Dot(data.normal, ray.direction);
@@ -187,7 +187,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 				// TODO: FIX THIS
 				Triangle light_source = scene.tris[scene.light_tris[picked_light_source]];
 
-				Material *light_source_mat = light_source.mat;
+				Material *light_source_mat = scene.materials[light_source.mat_index];
 				float light_area = Area(&light_source);
 				float pdf_pick_point_on_light = 1.0f / light_area;
 				Vec3f y = MapToTriangle(RandomVec2fPCG(rngptr), light_source);
@@ -330,7 +330,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 
 	Vec3f y = ray.origin + ray.direction * data.t + EPSILON * data.normal;
 	Vec3f normal_y = data.normal;
-	Material *mat_y = data.mat;
+	Material *mat_y = scene.materials[data.mat_index];
 
 	// Add light contribution from first bounce if it hit a light source
 	color += throughput_term * mat_y->Le;
@@ -358,7 +358,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 				int32 picked_light_source = (int32)(r % scene.light_tris.size);
 				Triangle light_source = scene.tris[scene.light_tris[picked_light_source]];
 
-				Material *light_source_mat = light_source.mat;
+				Material *light_source_mat = scene.materials[light_source.mat_index];
 				Vec3f y_nee = MapToTriangle(RandomVec2fPCG(rngptr), light_source);
 				float light_area = Area(&light_source);
 
@@ -502,7 +502,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 		}
 
 		y = ray.origin + ray.direction * data.t + EPSILON * normal_y;
-		mat_y = data.mat;
+		mat_y = scene.materials[data.mat_index];
 
 		float wBSDF = 1.0f;
 

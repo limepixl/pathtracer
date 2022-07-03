@@ -49,7 +49,7 @@ float Dot(Vec3f vec1, Vec3f vec2)
 	return (vec1.x * vec2.x) + (vec1.y * vec2.y) + (vec1.z * vec2.z);
 }
 
-Vec3f Cross(Vec3f &a, Vec3f &b)
+Vec3f Cross(const Vec3f &a, const Vec3f &b)
 {
 	float x = a.y * b.z - a.z * b.y;
 	float y = a.z * b.x - a.x * b.z;

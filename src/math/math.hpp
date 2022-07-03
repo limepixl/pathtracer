@@ -19,7 +19,7 @@ int16 Clamp(int16 value, int16 max);
 
 float Dot(Vec3f vec1, Vec3f vec2);
 
-Vec3f Cross(Vec3f &a, Vec3f &b);
+Vec3f Cross(const Vec3f &a, const Vec3f &b);
 
 float Max(float a, float b);
 double Max(double a, double b);

@@ -236,6 +236,49 @@ float intersect_sphere(Ray ray, Sphere sphere)
 	return -1.0;
 }
 
+// Moller–Trumbore ray-triangle intersection algorithm
+bool intersect_triangle(in Ray ray, in Triangle tri, out HitData data, in float tmax)
+{
+	vec3 edge1 = tri.e1e2.xyz;
+	vec3 edge2 = vec3(tri.e1e2.w, tri.e2matX.x, tri.e2matX.y);
+	vec3 pvec = cross(ray.direction, edge2);
+	float determinant = dot(edge1, pvec);
+
+	// Ray direction parallel to the triangle plane
+#if 0
+	if (Abs(determinant) < EPSILON)
+		return false;
+#else
+	if (determinant < EPSILON)
+		return false;
+#endif
+
+	float inv_determinant = 1.0 / determinant;
+	vec3 tvec = ray.origin - tri.v0v1.xyz;
+	float u = dot(tvec, pvec) * inv_determinant;
+	if ((u < 0.0f) || (u > 1.0f))
+		return false;
+
+	vec3 qvec = cross(tvec, edge1);
+	float v = inv_determinant * dot(ray.direction, qvec);
+	if ((v < 0.0) || (u + v > 1.0))
+		return false;
+
+	// Computing t
+	float t = inv_determinant * dot(edge2, qvec);
+	if (t > TMIN && t < tmax)
+	{
+		data.t = t;
+		data.point = ray.origin + ray.direction * t;
+		data.normal = tri.v2norm.yzw;
+		data.material_index = uint(tri.e2matX.z);
+		// data.object_type = ObjectType::TRIANGLE;
+		return true;
+	}
+
+	return false;
+}
+
 HitData intersect(Ray ray)
 {
 	HitData result;
@@ -253,6 +296,22 @@ HitData intersect(Ray ray)
 			result.point = ray.origin + ray.direction * current_t;
 			result.normal = (result.point - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
 			result.material_index = current_sphere.mat_index.x;
+		}
+	}
+
+	for(uint i = 0; i < model_tris_ssbo.num_tris.x; i++)
+	{
+		Triangle current_tri = model_tris_ssbo.triangles[i];
+
+		HitData current_data;
+		bool intersect = intersect_triangle(ray, current_tri, current_data, result.t);
+		if(intersect)
+		{
+			result.t = current_data.t;
+			result.hit_anything = true;
+			result.point = current_data.point;
+			result.normal = current_data.normal;
+			result.material_index = current_data.material_index;
 		}
 	}
 

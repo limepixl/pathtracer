@@ -16,7 +16,7 @@ struct HitData
 	Vec3f normal;
 	Vec3f point;
 
-	struct Material *mat;
+	uint32 mat_index;
 
 	uint32 object_index;
 	ObjectType object_type;
@@ -45,12 +45,14 @@ struct Scene
 	Array<Sphere> spheres;
 	Array<Triangle> tris;
 	Array<uint32> light_tris;
+	Array<struct Material *> materials;
 	// Array<BVHNode> bvh_tree;
 };
 
 Scene ConstructScene(Array<Sphere> spheres,
 					 Array<Triangle> modelTris,
-					 Array<uint32> light_tris//,
+					 Array<uint32> light_tris,
+					 Array<struct Material *> materials
 					 /*Array<BVHNode> bvh_tree*/);
 
 bool Intersect(Ray ray, Scene scene, HitData *data);
