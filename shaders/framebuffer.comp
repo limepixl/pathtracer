@@ -3,7 +3,7 @@ layout(local_size_x = 8, local_size_y = 4, local_size_z = 1) in;
 layout(rgba32f, binding = 0) uniform image2D screen;
 
 // Uniform variables
-uniform float f_time;
+uniform uint u_seed;
 uniform uint u_time;
 uniform uint frame_count;
 
@@ -14,14 +14,14 @@ const float PI = 3.14159265;
 // Ray constants
 const float TMIN = 0.001;
 const float TMAX = 10000.0;
-const uint BOUNCE_COUNT = 6;
+const uint BOUNCE_COUNT = 5;
 const uint NUM_SAMPLES = 1;
 
 // Misc
 const float ENVIRONMENT_MAP_LE = 1.0;
 
 uvec2 seed_vec;
-float fract_time;
+uint rng_state;
 
 // SSBO helper structs
 
@@ -74,39 +74,60 @@ layout(std430, binding = 4) readonly buffer MaterialsSSBO
 } materials_ssbo;
 
 // Randomness
+// Great thank you to markjarzynski on Shadertoy
+// for their excellent resource on GPU Hash
+// functions, created alongside their research.
+// https://www.shadertoy.com/view/XlGcRh
+
+uint seed2(uvec2 p) 
+{
+    return 19u * p.x + 47u * p.y + 101u;
+}
+
+uint seed3(uvec3 p) 
+{
+    return 19u * p.x + 47u * p.y + 101u * p.z + 131u;
+}
+
+// https://www.shadertoy.com/view/WttXWX
+uint triple32(uint x)
+{
+    x ^= x >> 17;
+    x *= 0xed5ad4bbU;
+    x ^= x >> 11;
+    x *= 0xac4c1b51U;
+    x ^= x >> 15;
+    x *= 0x31848babU;
+    x ^= x >> 14;
+    return x;
+}
 
 float hash_to_float(uint hash)
 {
-	return hash * (1.0 / float(0xffffffffu));
+	return float(hash) * uintBitsToFloat(0x2f800004u);
 }
 
 vec2 hash_uvec2_to_vec2(uvec2 hash)
 {
-	return vec2(hash) * (1.0 / float(0xffffffffu));
+	return vec2(float(hash)) * (1.0 / float(0xffffffffu));
 }
 
-uint pcg(uint v)
+uint pcg()
 {
-	uint state = v * 747796405u + 2891336453u;
-	uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
-	return (word >> 22u) ^ word;
+	uint state = rng_state;
+	rng_state = rng_state * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
 }
 
-uvec2 pcg2d(uvec2 v)
+float rand()
 {
-    v = v * 1664525u + 1013904223u;
+	return hash_to_float(pcg());
+}
 
-    v.x += v.y * 1664525u;
-    v.y += v.x * 1664525u;
-
-    v = v ^ (v>>16u);
-
-    v.x += v.y * 1664525u;
-    v.y += v.x * 1664525u;
-
-    v = v ^ (v>>16u);
-
-    return v;
+vec2 rand_vec2()
+{
+	return vec2(rand(), rand());
 }
 
 // Math
@@ -127,7 +148,7 @@ mat3 construct_tnb(vec3 n)
 	vec3 t; vec3 bt;
 	orthonormal_basis(n, t, bt);
 	mat3 res = mat3(t, n, bt);
-	return transpose(res);
+	return res;
 }
 
 vec3 map_to_unit_sphere(vec2 vec)
@@ -240,18 +261,13 @@ float intersect_sphere(Ray ray, Sphere sphere)
 bool intersect_triangle(in Ray ray, in Triangle tri, out HitData data, in float tmax)
 {
 	vec3 edge1 = tri.e1e2.xyz;
-	vec3 edge2 = vec3(tri.e1e2.w, tri.e2matX.x, tri.e2matX.y);
+	vec3 edge2 = vec3(tri.e1e2.w, tri.e2matX.xy);
 	vec3 pvec = cross(ray.direction, edge2);
 	float determinant = dot(edge1, pvec);
 
 	// Ray direction parallel to the triangle plane
-#if 0
-	if (Abs(determinant) < EPSILON)
-		return false;
-#else
 	if (determinant < EPSILON)
 		return false;
-#endif
 
 	float inv_determinant = 1.0 / determinant;
 	vec3 tvec = ray.origin - tri.v0v1.xyz;
@@ -346,6 +362,7 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 		// continue;
 
 		Material mat = materials_ssbo.materials[data.material_index];
+		vec3 diffuse = mat.type_diffuse.yzw;
 
 		// add the light that the material emits
 		if (b <= BOUNCE_COUNT)
@@ -354,7 +371,7 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 		// if the material is a diffuse lambertian
 		if(mat.type_diffuse.x == 0.0)
 		{
-			vec3 BRDF = PI * mat.type_diffuse.yzw;
+			vec3 BRDF = PI * diffuse;
 
 			// update throughput
 			// The PI is here because we are sampling w.r.t the pdf
@@ -364,8 +381,7 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 			throughput_term *= BRDF;
 
 			// pdf(psi) = cos(theta) / PI
-			vec2 rand_vec = hash_uvec2_to_vec2(seed_vec);
-			seed_vec = pcg2d(seed_vec + uvec2(u_time));
+			vec2 rand_vec = rand_vec2();
 			vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec, data.normal);
 
 			// Intersection point and new ray
@@ -392,22 +408,25 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 			throughput_term *= mat.specular_spec.xyz;
 		}
 		// if the material is a Phong material
-		else if(abs(mat.type_diffuse.x - 3.0) <= EPSILON)
+		else if(mat.type_diffuse.x == 3.0)
 		{
-			// TODO: fix the diffuse part
-			seed_vec = pcg2d(seed_vec + uvec2(u_time));
-			vec3 uvec = vec3(seed_vec.x);
-			if (all(lessThanEqual(uvec, mat.type_diffuse.yzw * PI)))
+			float u = rand();
+			vec3 uvec = vec3(u);
+
+			vec3 specular = mat.specular_spec.xyz;
+			float spec = mat.specular_spec.w;
+
+			if(all(lessThanEqual(uvec, diffuse * PI)))
 			{
-				throughput_term *= PI * mat.type_diffuse.yzw;
+				throughput_term *= PI * diffuse;
 
 				// pdf(psi) = cos(theta) / PI
-				seed_vec = pcg2d(seed_vec + uvec2(u_time));
-				vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(seed_vec, data.normal);
+				// seed_vec = pcg2d(seed_vec + uvec2(u_time));
+				vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(), data.normal);
 
 				ray = Ray(data.point + EPSILON * data.normal, dir);
 			}
-			else if (all(lessThanEqual(uvec, mat.type_diffuse.yzw * PI + mat.specular_spec.xyz)))
+			else if(all(lessThanEqual(uvec, diffuse * PI + specular)))
 			{
 				vec3 Nx = data.normal;
 				vec3 x = data.point + EPSILON * data.normal;
@@ -415,13 +434,13 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 				vec3 reflected_dir = normalize(reflect(-ray.direction, Nx));
 				mat3 tnb = construct_tnb(reflected_dir);
 
-				float inv = 1.0 / (mat.specular_spec.w + 1.0);
+				float inv = 1.0 / (spec + 1.0);
 
-				seed_vec = pcg2d(seed_vec + uvec2(u_time));
+				vec2 rand_vec = rand_vec2();
 
-				float cos_alpha = pow(seed_vec.x, inv);
-				float sin_alpha = sqrt(1.0f - cos_alpha * cos_alpha);
-				float phi = 2.0f * PI * seed_vec.y;
+				float cos_alpha = pow(rand_vec.x, inv);
+				float sin_alpha = sqrt(1.0 - cos_alpha * cos_alpha);
+				float phi = 2.0 * PI * rand_vec.y;
 
 				vec3 dir = vec3(sin_alpha * cos(phi), cos_alpha, sin_alpha * sin(phi));
 
@@ -430,10 +449,10 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 
 				float cos_theta_x = max(0.0, dot(dir, Nx));
 
-				float pdf_theta = ((mat.specular_spec.w + 1.0) / (2.0 * PI)) * pow(cos_alpha, mat.specular_spec.w);
-				float theta_term = pow(cos_alpha, mat.specular_spec.w) * ((mat.specular_spec.w + 2.0) / (2.0 * PI)) / pdf_theta;
+				float pdf_theta = ((spec + 1.0) / (2.0 * PI)) * pow(cos_alpha, spec);
+				float theta_term = pow(cos_alpha, spec) * ((spec + 2.0) / (2.0 * PI)) / pdf_theta;
 
-				throughput_term *= mat.specular_spec.xyz * cos_theta_x * theta_term;
+				throughput_term *= specular * cos_theta_x * theta_term;
 			}
 		}
 		else
@@ -468,8 +487,7 @@ vec3 render_function(uvec2 screen_size, ivec2 pixel_coords)
 	{
 		vec2 offset_to_pixel_center = vec2(0.5, 0.5);
 
-		vec2 uv_offset = hash_uvec2_to_vec2(seed_vec) - offset_to_pixel_center;
-		seed_vec = pcg2d(seed_vec + uvec2(u_time));
+		vec2 uv_offset = rand_vec2() - offset_to_pixel_center;
 
 		float u = (float(x) + uv_offset.x) / float(width);
 		float v = (float(y) + uv_offset.y) / float(height);
@@ -506,11 +524,10 @@ vec3 render_function(uvec2 screen_size, ivec2 pixel_coords)
 void main() 
 {
 	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
-	
-	fract_time = fract(f_time);
-	seed_vec = pcg2d(uvec2(pixel_coords) + uvec2(u_time));
-
 	uvec2 screen_size = imageSize(screen);
+	
+	rng_state = seed3(uvec3(pixel_coords, u_seed));
+
 	vec4 last_frame = imageLoad(screen, pixel_coords);
 
 	vec3 color = render_function(screen_size, pixel_coords);

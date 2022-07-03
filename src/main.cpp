@@ -339,6 +339,8 @@ int main(int argc, char *argv[])
 	// Set up data to be passed to SSBOs
 
 	SpheresSSBO spheres_ssbo_data {{0}, {}};
+	// spheres_ssbo_data.spheres[0] = { CreateVec4f(0.0f, 0.0f, -5.0f, 1.0f), {0} };
+	// spheres_ssbo_data.spheres[1] = { CreateVec4f(0.0f, -101.0f, -5.0f, 100.0f), {0} };
 
 	ModelTrisSSBO model_tris_ssbo_data {{0}, {}};
 	model_tris_ssbo_data.num_tris[0] = tris.size;
@@ -357,8 +359,6 @@ int main(int argc, char *argv[])
 		tmp.v1v2 = CreateVec4f(v1.y, v1.z, v2.x, v2.y);
 		tmp.v2norm = CreateVec4f(v2.z, n.x, n.y, n.z);
 		tmp.e1e2 = CreateVec4f(e1.x, e1.y, e1.z, e2.x);
-
-		// TODO: Get actual mat index instead of pointer
 		tmp.e2matX = CreateVec4f(e2.y, e2.z, (float)current_tri.mat_index, 0.0f);
 
 		model_tris_ssbo_data.triangles[i] = tmp;
@@ -417,6 +417,11 @@ int main(int argc, char *argv[])
 	uint32 last_report = 0;
 	uint32 frame_count = 0;
 
+	glUseProgram(display.compute_shader_program);
+	uint32 u_seed_location = glGetUniformLocation(display.compute_shader_program, "u_seed");
+	uint32 u_time_location = glGetUniformLocation(display.compute_shader_program, "u_time");
+	uint32 frame_count_location = glGetUniformLocation(display.compute_shader_program, "frame_count");
+
 	while(display.is_open)
 	{
 		SDL_Event e;
@@ -434,9 +439,12 @@ int main(int argc, char *argv[])
 
 		// Compute shader data and dispatch
 		glUseProgram(display.compute_shader_program);
-		glUniform1f(glGetUniformLocation(display.compute_shader_program, "f_time"), current_time / 1000.0f);
-		glUniform1ui(glGetUniformLocation(display.compute_shader_program, "u_time"), current_time);
-		glUniform1ui(glGetUniformLocation(display.compute_shader_program, "frame_count"), frame_count++);
+
+		// Update uniforms
+		glUniform1ui(u_seed_location, pcg32_random());
+		glUniform1ui(u_time_location, current_time);
+		glUniform1ui(frame_count_location, frame_count++);
+
 		glDispatchCompute(width / 8, height / 4, 1);
 		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
