@@ -44,6 +44,7 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 	// Initialize out materials
 	int32 num_loaded_materials = 0;
 	out_materials = CreateArray<Material *>(num_materials);
+	// printf("Loaded %llu materials!\n", materials.size());
 
 	// Keep track of emissive triangles so that we can keep them as
 	// light sources for NEE later on
