@@ -111,6 +111,25 @@ uvec2 pcg2d(uvec2 v)
 
 // Math
 
+// https://jcgt.org/published/0006/01/01/
+void orthonormal_basis(in vec3 n, out vec3 t, out vec3 bt)
+{
+	float s = sign(n.z);
+	float a = -1.0 / (s + n.z);
+	float b = n.x * n.y * a;
+
+	t = vec3(1.0 + s * n.x * n.x * a, s * b, -s * n.x);
+	bt = vec3(b, s + n.y * n.y * a, -n.y);
+}
+
+mat3 construct_tnb(vec3 n)
+{
+	vec3 t; vec3 bt;
+	orthonormal_basis(n, t, bt);
+	mat3 res = mat3(t, n, bt);
+	return transpose(res);
+}
+
 vec3 map_to_unit_sphere(vec2 vec)
 {
 	// First we map [0,1] to [0,2] and subtract one to map
@@ -273,22 +292,94 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 		if (b <= BOUNCE_COUNT)
 			color += throughput_term * mat.Le.xyz;
 
-		vec3 BRDF = PI * mat.type_diffuse.yzw;
+		// if the material is a diffuse lambertian
+		if(mat.type_diffuse.x == 0.0)
+		{
+			vec3 BRDF = PI * mat.type_diffuse.yzw;
 
-		// update throughput
-		// The PI is here because we are sampling w.r.t the pdf
-		// p(psi) = cos(theta) / PI       (cosine weighted sampling)
-		// This cosine term cancels out with the dot product in
-		// the throughput term and all that is left is the BRDF
-		throughput_term *= BRDF;
+			// update throughput
+			// The PI is here because we are sampling w.r.t the pdf
+			// p(psi) = cos(theta) / PI       (cosine weighted sampling)
+			// This cosine term cancels out with the dot product in
+			// the throughput term and all that is left is the BRDF
+			throughput_term *= BRDF;
 
-		// pdf(psi) = cos(theta) / PI
-		vec2 rand_vec = hash_uvec2_to_vec2(seed_vec);
-		seed_vec = pcg2d(seed_vec + uvec2(u_time));
-		vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec, data.normal);
+			// pdf(psi) = cos(theta) / PI
+			vec2 rand_vec = hash_uvec2_to_vec2(seed_vec);
+			seed_vec = pcg2d(seed_vec + uvec2(u_time));
+			vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec, data.normal);
 
-		// Intersection point and new ray
-		ray = Ray(data.point + EPSILON * data.normal, dir);
+			// Intersection point and new ray
+			ray = Ray(data.point + EPSILON * data.normal, dir);
+		}
+		// if the material is ideally reflective 
+		else if(mat.type_diffuse.x == 1.0)
+		{
+			vec3 reflected_dir = reflect(-ray.direction, data.normal);
+
+			// Intersection point and new ray
+			vec3 point = data.point;
+			ray = Ray(point + EPSILON * data.normal, reflected_dir);
+
+			// If we sample uniformly or with cosine weighted sampling, then
+			// we would need to calculate the BRDF every single direction in the
+			// hemisphere. If the direction is the reflected direction, then
+			// the BRDF is 1, otherwise it is 0. But that is wasteful. Instead,
+			// we *only* pick the reflected direction (not the case for glossy or
+			// otherwise un-ideal reflective materials) so the pdf is 1, and the
+			// BRDF is 1. Because of this, we have an instant solution without
+			// having to sample the hemisphere at all. The throughput term is then
+			// BRDF*(Nx dot wi) = (Nx dot wi) = cos_theta_x
+			throughput_term *= mat.specular_spec.xyz;
+		}
+		// if the material is a Phong material
+		else if(abs(mat.type_diffuse.x - 3.0) <= EPSILON)
+		{
+			// TODO: fix the diffuse part
+			seed_vec = pcg2d(seed_vec + uvec2(u_time));
+			vec3 uvec = vec3(seed_vec.x);
+			if (all(lessThanEqual(uvec, mat.type_diffuse.yzw * PI)))
+			{
+				throughput_term *= PI * mat.type_diffuse.yzw;
+
+				// pdf(psi) = cos(theta) / PI
+				seed_vec = pcg2d(seed_vec + uvec2(u_time));
+				vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(seed_vec, data.normal);
+
+				ray = Ray(data.point + EPSILON * data.normal, dir);
+			}
+			else if (all(lessThanEqual(uvec, mat.type_diffuse.yzw * PI + mat.specular_spec.xyz)))
+			{
+				vec3 Nx = data.normal;
+				vec3 x = data.point + EPSILON * data.normal;
+
+				vec3 reflected_dir = normalize(reflect(-ray.direction, Nx));
+				mat3 tnb = construct_tnb(reflected_dir);
+
+				float inv = 1.0 / (mat.specular_spec.w + 1.0);
+
+				seed_vec = pcg2d(seed_vec + uvec2(u_time));
+
+				float cos_alpha = pow(seed_vec.x, inv);
+				float sin_alpha = sqrt(1.0f - cos_alpha * cos_alpha);
+				float phi = 2.0f * PI * seed_vec.y;
+
+				vec3 dir = vec3(sin_alpha * cos(phi), cos_alpha, sin_alpha * sin(phi));
+
+				dir = tnb * dir;
+				ray = Ray(x, dir);
+
+				float cos_theta_x = max(0.0, dot(dir, Nx));
+
+				float pdf_theta = ((mat.specular_spec.w + 1.0) / (2.0 * PI)) * pow(cos_alpha, mat.specular_spec.w);
+				float theta_term = pow(cos_alpha, mat.specular_spec.w) * ((mat.specular_spec.w + 2.0) / (2.0 * PI)) / pdf_theta;
+
+				throughput_term *= mat.specular_spec.xyz * cos_theta_x * theta_term;
+			}
+		}
+		else
+			// UNSUPPORTED MATERIAL!
+			return vec3(1.0, 0.0, 0.0);
 	}
 
 	return color;
@@ -367,7 +458,7 @@ void main()
 
 	// weigh current frame according to accumulated past
 	// frames and the current frame number
-	// color = float(frame_count) / float(frame_count + 1) * last_frame.xyz + 1.0 / float(frame_count + 1) * color;
+	color = float(frame_count) / float(frame_count + 1) * last_frame.xyz + 1.0 / float(frame_count + 1) * color;
 
 	vec4 final_color = vec4(color, 1.0);
 	imageStore(screen, pixel_coords, final_color);

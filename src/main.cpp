@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
 
 	SpheresSSBO spheres_ssbo_data {{2}, {}};
 	spheres_ssbo_data.spheres[0] = {{0.0f, 0.0f, -5.0f, 1.0f}, {0}};
-	spheres_ssbo_data.spheres[1] = {{0.0f, -101.0f, -5.0f, 100.0f}, {0}};
+	spheres_ssbo_data.spheres[1] = {{0.0f, -101.0f, -5.0f, 100.0f}, {3}};
 
 	ModelTrisSSBO model_tris_ssbo_data {{0}, {}};
 	model_tris_ssbo_data.num_tris[0] = tris.size;
@@ -369,11 +369,22 @@ int main(int argc, char *argv[])
 	light_tris_ssbo_data.num_light_tris[0] = emissive_tris.size;
 	memcpy(light_tris_ssbo_data.light_tri_indices, emissive_tris.data, emissive_tris.size * sizeof(uint32));
 
-	MaterialsSSBO materials_ssbo {{0}, {}};
-	materials_ssbo.num_materials[0] = 1;
-	materials_ssbo.materials[0] = {{0.0f, 0.8f, 0.8f, 0.8f}, 
-	                               {0.0f, 0.0f, 0.0f, 0.0f}, 
-								   {0.0f, 0.0f, 0.0f, 0.0f}};
+	MaterialsSSBO materials_ssbo;
+	materials_ssbo.num_materials[0] = materials.size;
+	for(uint32 i = 0; i < materials.size; i++)
+	{
+		const Material *current_mat = materials[i];
+		const Vec3f &diff = current_mat->diffuse;
+		const Vec3f &spec = current_mat->specular;
+		const Vec3f &Le = current_mat->Le;
+
+		MaterialGLSL tmp;
+		tmp.type_diffuse = CreateVec4f((float)current_mat->type, diff.x, diff.y, diff.z);
+		tmp.specular_spec = CreateVec4f(spec.x, spec.y, spec.z, (float)current_mat->n_spec);
+		tmp.Le = CreateVec4f(Le.x, Le.y, Le.z, 0.0f);
+
+		materials_ssbo.materials[i] = tmp;
+	}
 
 	// Set up SSBOs
 	GLuint ssbo[4];
