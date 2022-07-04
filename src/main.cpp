@@ -395,21 +395,33 @@ int main(int argc, char *argv[])
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo[0]);
 	}
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[1]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, model_tris_ssbo_data.size * sizeof(TriangleGLSL), &(model_tris_ssbo_data[0]), GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo[1]);
+	if(model_tris_ssbo_data.size > 0)
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[1]);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, model_tris_ssbo_data.size * sizeof(TriangleGLSL), &(model_tris_ssbo_data[0]), GL_STATIC_DRAW);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo[1]);
+	}
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[2]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, emissive_tris.size * sizeof(uint32), &(emissive_tris[0]), GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo[2]);
+	if(emissive_tris.size > 0)
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[2]);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, emissive_tris.size * sizeof(uint32), &(emissive_tris[0]), GL_STATIC_DRAW);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo[2]);
+	}
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[3]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, materials_ssbo.size * sizeof(MaterialGLSL), &(materials_ssbo[0]), GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo[3]);
+	if(materials_ssbo.size > 0)
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[3]);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, materials_ssbo.size * sizeof(MaterialGLSL), &(materials_ssbo[0]), GL_STATIC_DRAW);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo[3]);
+	}
 
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[4]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, bvh_ssbo.size * sizeof(BVHNodeGLSL), &(bvh_ssbo[0]), GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ssbo[4]);
+	if(bvh_ssbo.size > 0)
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[4]);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, bvh_ssbo.size * sizeof(BVHNodeGLSL), &(bvh_ssbo[0]), GL_STATIC_DRAW);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ssbo[4]);
+	}
 
 	glUseProgram(display.rb_shader_program);
 	glBindTextureUnit(0, display.render_buffer_texture);
