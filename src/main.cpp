@@ -13,8 +13,6 @@
 #include <glad/glad.h>
 #include <SDL.h>
 
-#define NUM_MAX_SPHERES 1024
-#define NUM_MAX_MODEL_TRIS 1024
 #define NUM_MAX_MATERIALS 16
 
 struct SphereGLSL
@@ -39,28 +37,16 @@ struct MaterialGLSL
 	Vec4f Le;			 // Le.x, Le.y, Le.z, empy
 };
 
-struct SpheresSSBO
+struct AABBGLSL
 {
-	uint32 num_spheres[4];
-	SphereGLSL spheres[NUM_MAX_SPHERES];
+	Vec4f data1; // bmin.xyz, bmax.x
+	Vec2f data2; // bmax.yz
 };
 
-struct ModelTrisSSBO
+struct BVHNodeGLSL
 {
-	uint32 num_tris[4];
-	TriangleGLSL triangles[NUM_MAX_MODEL_TRIS];
-};
-
-struct ModelLightTrisSSBO
-{
-	uint32 num_light_tris[4];
-	uint32 light_tri_indices[NUM_MAX_MODEL_TRIS];
-};
-
-struct MaterialsSSBO
-{
-	uint32 num_materials[4];
-	MaterialGLSL materials[NUM_MAX_MATERIALS];
+	AABBGLSL node_AABB;
+	uint32 data[2]; // left/first_tri, num_tris
 };
 
 int main(int argc, char *argv[])
@@ -105,11 +91,11 @@ int main(int argc, char *argv[])
 	Mat4f model_matrix = CreateIdentityMat4f();
 
 	// for cornell box
-	model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), model_matrix); 
+	// model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), model_matrix); 
 
 	// for robot
-	// model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.5f, -4.f), model_matrix);
-	// model_matrix = ScaleMat4f(CreateVec3f(0.2f, 0.2f, 0.2f), model_matrix);
+	model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.5f, -4.f), model_matrix);
+	model_matrix = ScaleMat4f(CreateVec3f(0.2f, 0.2f, 0.2f), model_matrix);
 
 	for (uint32 i = 0; i < tris.size; i++)
 	{
@@ -120,7 +106,6 @@ int main(int argc, char *argv[])
 		tris[i].edge2 = tris[i].v2 - tris[i].v0;
 	}
 
-/*
 	// Construct BVH tree and sort triangle list according to it
 	Array<BVHNode> bvh_tree = CreateArray<BVHNode>(2 * tris.size - 1);
 	
@@ -136,7 +121,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	printf("Finished building BVH!\n");
-*/
+	printf("--- Number of BVH nodes: %lu\n", bvh_tree.size);
 
 	// Find all emissive triangles in scene
 	Array<uint32> emissive_tris = CreateArray<uint32>(tris.size);
@@ -338,12 +323,11 @@ int main(int argc, char *argv[])
 
 	// Set up data to be passed to SSBOs
 
-	SpheresSSBO spheres_ssbo_data {{0}, {}};
+	Array<SphereGLSL> spheres_ssbo_data = CreateArray<SphereGLSL>();
 	// spheres_ssbo_data.spheres[0] = { CreateVec4f(0.0f, 0.0f, -5.0f, 1.0f), {0} };
 	// spheres_ssbo_data.spheres[1] = { CreateVec4f(0.0f, -101.0f, -5.0f, 100.0f), {0} };
 
-	ModelTrisSSBO model_tris_ssbo_data {{0}, {}};
-	model_tris_ssbo_data.num_tris[0] = tris.size;
+	Array<TriangleGLSL> model_tris_ssbo_data = CreateArray<TriangleGLSL>(tris.size);
 	for(uint32 i = 0; i < tris.size; i++)
 	{
 		const Triangle &current_tri = tris[i];
@@ -361,15 +345,10 @@ int main(int argc, char *argv[])
 		tmp.e1e2 = CreateVec4f(e1.x, e1.y, e1.z, e2.x);
 		tmp.e2matX = CreateVec4f(e2.y, e2.z, (float)current_tri.mat_index, 0.0f);
 
-		model_tris_ssbo_data.triangles[i] = tmp;
+		AppendToArray(model_tris_ssbo_data, tmp);
 	}
 
-	ModelLightTrisSSBO light_tris_ssbo_data {{0}, {}};
-	light_tris_ssbo_data.num_light_tris[0] = emissive_tris.size;
-	memcpy(light_tris_ssbo_data.light_tri_indices, emissive_tris.data, emissive_tris.size * sizeof(uint32));
-
-	MaterialsSSBO materials_ssbo;
-	materials_ssbo.num_materials[0] = materials.size;
+	Array<MaterialGLSL> materials_ssbo = CreateArray<MaterialGLSL>(materials.size);
 	for(uint32 i = 0; i < materials.size; i++)
 	{
 		const Material *current_mat = materials[i];
@@ -382,29 +361,54 @@ int main(int argc, char *argv[])
 		tmp.specular_spec = CreateVec4f(spec.x, spec.y, spec.z, (float)current_mat->n_spec);
 		tmp.Le = CreateVec4f(Le.x, Le.y, Le.z, 0.0f);
 
-		materials_ssbo.materials[i] = tmp;
+		AppendToArray(materials_ssbo, tmp);
+	}
+
+	Array<BVHNodeGLSL> bvh_ssbo = CreateArray<BVHNodeGLSL>(bvh_tree.size);
+	for(uint32 i = 0; i < bvh_tree.size; i++)
+	{
+		const BVHNode &current_node = bvh_tree[i];
+		const AABB &current_aabb = current_node.node_AABB;
+
+		AABBGLSL aabb;
+		aabb.data1 = CreateVec4f(current_aabb.bmin.x, current_aabb.bmin.y, current_aabb.bmin.z, current_aabb.bmax.x);
+		aabb.data2 = CreateVec2f(current_aabb.bmax.y, current_aabb.bmax.z);
+
+		BVHNodeGLSL tmp;
+		tmp.node_AABB = aabb;
+		tmp.data[0] = current_node.first_tri;
+		tmp.data[1] = current_node.num_tris;
+
+		AppendToArray(bvh_ssbo, tmp);
 	}
 
 	// Set up SSBOs
-	GLuint ssbo[4];
-	glGenBuffers(4, ssbo);
+	GLuint ssbo[5];
+	glGenBuffers(5, ssbo);
 
 	// Sphere SSBO
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[0]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(spheres_ssbo_data), &spheres_ssbo_data, GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo[0]);
+	if(spheres_ssbo_data.size > 0)
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[0]);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, spheres_ssbo_data.size * sizeof(SphereGLSL), &(spheres_ssbo_data.data[0]), GL_STATIC_DRAW);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo[0]);
+	}
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[1]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(model_tris_ssbo_data), &model_tris_ssbo_data, GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, model_tris_ssbo_data.size * sizeof(TriangleGLSL), &(model_tris_ssbo_data[0]), GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo[1]);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[2]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(light_tris_ssbo_data), &light_tris_ssbo_data, GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, emissive_tris.size * sizeof(uint32), &(emissive_tris[0]), GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo[2]);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[3]);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(materials_ssbo), &materials_ssbo, GL_STATIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, materials_ssbo.size * sizeof(MaterialGLSL), &(materials_ssbo[0]), GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo[3]);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[4]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, bvh_ssbo.size * sizeof(BVHNodeGLSL), &(bvh_ssbo[0]), GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ssbo[4]);
 
 	glUseProgram(display.rb_shader_program);
 	glBindTextureUnit(0, display.render_buffer_texture);
