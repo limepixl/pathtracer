@@ -86,7 +86,7 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 include(CMakePrintHelpers)
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 
-	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -Wno-missing-braces -Wno-unused-variable -fno-omit-frame-pointer)
+	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -Wno-missing-braces -Wno-unused-variable)
 	if(UNIX)
 		target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
 	endif()
