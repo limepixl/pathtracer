@@ -93,6 +93,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 	target_compile_options(${PROJECT_NAME} PRIVATE -WX -W4 -wd4201 -wd4189 -wd4100 -wd4146)
+	target_link_libraries(${PROJECT_NAME} PUBLIC opengl32)
 endif()
 
 cmake_print_variables(CMAKE_CXX_COMPILER_ID)
@@ -103,4 +104,4 @@ cmake_print_variables(CMAKE_CXX_FLAGS_DEBUG)
 
 target_include_directories(${PROJECT_NAME} PUBLIC thirdparty/glad/include thirdparty/SDL2-2.0.22/include)
 target_link_directories(${PROJECT_NAME} PUBLIC thirdparty/SDL2-2.0.22/lib/x64)
-target_link_libraries(${PROJECT_NAME} PUBLIC SDL2main SDL2 opengl32)
+target_link_libraries(${PROJECT_NAME} PUBLIC SDL2main SDL2)

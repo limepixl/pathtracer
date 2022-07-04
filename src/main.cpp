@@ -40,13 +40,13 @@ struct MaterialGLSL
 struct AABBGLSL
 {
 	Vec4f data1; // bmin.xyz, bmax.x
-	Vec2f data2; // bmax.yz
+	Vec4f data2; // bmax.yz
 };
 
 struct BVHNodeGLSL
 {
 	AABBGLSL node_AABB;
-	uint32 data[2]; // left/first_tri, num_tris
+	uint32 data[4]; // left/first_tri, num_tris
 };
 
 int main(int argc, char *argv[])
@@ -91,11 +91,11 @@ int main(int argc, char *argv[])
 	Mat4f model_matrix = CreateIdentityMat4f();
 
 	// for cornell box
-	// model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), model_matrix); 
+	model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), model_matrix); 
 
 	// for robot
-	model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.5f, -4.f), model_matrix);
-	model_matrix = ScaleMat4f(CreateVec3f(0.2f, 0.2f, 0.2f), model_matrix);
+	// model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.5f, -4.f), model_matrix);
+	// model_matrix = ScaleMat4f(CreateVec3f(0.2f, 0.2f, 0.2f), model_matrix);
 
 	for (uint32 i = 0; i < tris.size; i++)
 	{
@@ -324,8 +324,8 @@ int main(int argc, char *argv[])
 	// Set up data to be passed to SSBOs
 
 	Array<SphereGLSL> spheres_ssbo_data = CreateArray<SphereGLSL>();
-	// spheres_ssbo_data.spheres[0] = { CreateVec4f(0.0f, 0.0f, -5.0f, 1.0f), {0} };
-	// spheres_ssbo_data.spheres[1] = { CreateVec4f(0.0f, -101.0f, -5.0f, 100.0f), {0} };
+	// AppendToArray(spheres_ssbo_data, { CreateVec4f(0.0f, 0.0f, -5.0f, 1.0f), {0} });
+	// AppendToArray(spheres_ssbo_data, { CreateVec4f(0.0f, -101.0f, -5.0f, 100.0f), {0} });
 
 	Array<TriangleGLSL> model_tris_ssbo_data = CreateArray<TriangleGLSL>(tris.size);
 	for(uint32 i = 0; i < tris.size; i++)
@@ -372,12 +372,13 @@ int main(int argc, char *argv[])
 
 		AABBGLSL aabb;
 		aabb.data1 = CreateVec4f(current_aabb.bmin.x, current_aabb.bmin.y, current_aabb.bmin.z, current_aabb.bmax.x);
-		aabb.data2 = CreateVec2f(current_aabb.bmax.y, current_aabb.bmax.z);
+		aabb.data2 = CreateVec4f(current_aabb.bmax.y, current_aabb.bmax.z, 0.0f, 0.0f);
 
 		BVHNodeGLSL tmp;
 		tmp.node_AABB = aabb;
 		tmp.data[0] = current_node.first_tri;
 		tmp.data[1] = current_node.num_tris;
+		tmp.data[2] = 0; tmp.data[3] = 0;
 
 		AppendToArray(bvh_ssbo, tmp);
 	}
