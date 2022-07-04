@@ -20,8 +20,8 @@ const uint NUM_SAMPLES = 1;
 // Misc
 const float ENVIRONMENT_MAP_LE = 1.0;
 
-uvec2 seed_vec;
-uint rng_state;
+uvec2 seed_vec = uvec2(0);
+uint rng_state = 0;
 
 // SSBO helper structs
 
@@ -50,13 +50,13 @@ struct Material
 struct AABB
 {
 	vec4 data1; // bmin.xyz, bmax.x
-	vec2 data2; // bmax.yz
+	vec4 data2; // bmax.yz
 };
 
 struct BVHNode
 {
 	AABB node_AABB;
-	uvec2 data; // left/first_tri, num_tris
+	uvec4 data; // left/first_tri, num_tris
 };
 
 // SSBOs
@@ -83,7 +83,7 @@ layout(std430, binding = 4) readonly buffer MaterialsSSBO
 
 layout(std430, binding = 5) readonly buffer BVHSSBO
 {
-	BVHNode nodes[];
+	BVHNode bvh_nodes[];
 } bvh_ssbo;
 
 // Randomness
@@ -355,7 +355,7 @@ bool intersect_bvh_stack(in Ray ray, inout HitData data)
 
 	while (stack_top + 1 > 0)
 	{
-		BVHNode node = bvh_ssbo.nodes[stack[stack_top--]];
+		BVHNode node = bvh_ssbo.bvh_nodes[stack[stack_top--]];
 		uint node_left = node.data[0];
 		uint num_node_tris = node.data[1];
 
@@ -366,8 +366,8 @@ bool intersect_bvh_stack(in Ray ray, inout HitData data)
 			bool is_leaf_node = num_node_tris > 0;
 			if (!is_leaf_node)
 			{
-				float dist1 = squared_dist(bvh_ssbo.nodes[node_left].node_AABB, ray.origin);
-				float dist2 = squared_dist(bvh_ssbo.nodes[node_left + 1].node_AABB, ray.origin);
+				float dist1 = squared_dist(bvh_ssbo.bvh_nodes[node_left].node_AABB, ray.origin);
+				float dist2 = squared_dist(bvh_ssbo.bvh_nodes[node_left + 1].node_AABB, ray.origin);
 
 				float squared_tmax = data.t * data.t;
 				if (dist1 <= dist2)
@@ -432,7 +432,7 @@ HitData intersect(Ray ray)
 		}
 	}
 
-	// for(uint i = 0; i < model_tris_ssbo.num_tris.x; i++)
+	// for(uint i = 0; i < model_tris_ssbo.triangles.length(); i++)
 	// {
 	// 	Triangle current_tri = model_tris_ssbo.triangles[i];
 
@@ -448,7 +448,8 @@ HitData intersect(Ray ray)
 	// 	}
 	// }
 
-	result.hit_anything = result.hit_anything || intersect_bvh_stack(ray, result);
+	bool hit_bvh = intersect_bvh_stack(ray, result);
+	result.hit_anything = result.hit_anything || hit_bvh;
 
 	return result;
 }
