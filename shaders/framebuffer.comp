@@ -4,12 +4,13 @@ layout(rgba32f, binding = 0) uniform image2D screen;
 
 // Uniform variables
 uniform uint u_seed;
-uniform uint u_time;
 uniform uint frame_count;
 
 // Math constants
-const float EPSILON = 0.00001;
+const float EPSILON = 0.000001;
 const float PI = 3.14159265;
+const float TWO_PI = 6.28318530;
+const float HALF_PI = 1.57079632;
 
 // Ray constants
 const float TMIN = 0.001;
@@ -92,37 +93,14 @@ layout(std430, binding = 5) readonly buffer BVHSSBO
 // functions, created alongside their research.
 // https://www.shadertoy.com/view/XlGcRh
 
-uint seed2(uvec2 p) 
-{
-    return 19u * p.x + 47u * p.y + 101u;
-}
-
 uint seed3(uvec3 p) 
 {
     return 19u * p.x + 47u * p.y + 101u * p.z + 131u;
 }
 
-// https://www.shadertoy.com/view/WttXWX
-uint triple32(uint x)
-{
-    x ^= x >> 17;
-    x *= 0xed5ad4bbU;
-    x ^= x >> 11;
-    x *= 0xac4c1b51U;
-    x ^= x >> 15;
-    x *= 0x31848babU;
-    x ^= x >> 14;
-    return x;
-}
-
 float hash_to_float(uint hash)
 {
 	return float(hash) * uintBitsToFloat(0x2f800004u);
-}
-
-vec2 hash_uvec2_to_vec2(uvec2 hash)
-{
-	return vec2(float(hash)) * (1.0 / float(0xffffffffu));
 }
 
 uint pcg()
@@ -145,26 +123,20 @@ vec2 rand_vec2()
 
 // Math
 
-// https://jcgt.org/published/0006/01/01/
-void orthonormal_basis(in vec3 n, out vec3 t, out vec3 bt)
+mat3 construct_tbn(vec3 n)
 {
-	float s = sign(n.z);
+	// Orthonormal basis
+	float s = n.z < 0.0 ? -1.0 : 1.0;
 	float a = -1.0 / (s + n.z);
 	float b = n.x * n.y * a;
 
-	t = vec3(1.0 + s * n.x * n.x * a, s * b, -s * n.x);
-	bt = vec3(b, s + n.y * n.y * a, -n.y);
+	vec3 t = vec3(1.0 + s * n.x * n.x * a, s * b, -s * n.x);
+	vec3 bt = vec3(b, s + n.y * n.y * a, -n.y);
+
+	return mat3(t, n, bt);
 }
 
-mat3 construct_tnb(vec3 n)
-{
-	vec3 t; vec3 bt;
-	orthonormal_basis(n, t, bt);
-	mat3 res = mat3(t, n, bt);
-	return res;
-}
-
-vec3 map_to_unit_sphere(vec2 vec)
+vec3 map_to_unit_sphere(in vec2 vec)
 {
 	// First we map [0,1] to [0,2] and subtract one to map
 	// that to [-1, 1], which is the range of cosine.
@@ -172,33 +144,29 @@ vec3 map_to_unit_sphere(vec2 vec)
 
 	// We can directly map phi to [0, 2PI] from [0, 1] by just
 	// multiplying it with 2PI
-	float phi = 2.0 * PI * vec.y;
+	float phi = TWO_PI * vec.y;
 
 	// sin^2(x) = 1 - cos^2(x)
 	// sin(x) = sqrt(1 - cos^2(x))
 	float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
 
-	float sin_phi = sin(phi);
-	float cos_phi = cos(phi);
-
 	// Just a conversion between spherical and Cartesian coordinates
-	return vec3(sin_theta * cos_phi, cos_theta, sin_theta * sin_phi);
+	return vec3(sin_theta * cos(phi), cos_theta, sin_theta * sin(phi));
 }
 
-vec3 map_to_unit_hemisphere_cosine_weighted_criver(vec2 uv, vec3 normal)
+vec3 map_to_unit_hemisphere_cosine_weighted_criver(in vec2 uv, in vec3 normal)
 {
-	vec3 p = map_to_unit_sphere(uv);
-	return normalize(p + normal);
+	return map_to_unit_sphere(uv) + normal;
 }
 
 vec3 sky_color(vec3 dir)
 {
 	vec3 normalized_dir = normalize(dir);
-	float t = 0.5 * (normalized_dir.y + 1.0);
+	float t = 0.5 * normalized_dir.y + 0.5;
 
 	vec3 start_color = vec3(1.0, 1.0, 1.0);
-	vec3 end_color = vec3(0.5, 0.7, 1.0);
-	return (1.0 - t) * start_color + t * end_color;
+	vec3 end_color = vec3(0.546, 0.824, 0.925);
+	return start_color - t * start_color + t * end_color;
 }
 
 // Structs
@@ -237,7 +205,6 @@ float intersect_sphere(Ray ray, Sphere sphere)
 	float discriminant = b * b - 4.0 * a * c;
 	if(discriminant >= 0)
 	{
-		float sqrt_discriminant = sqrt(discriminant);
 		if(abs(discriminant) <= EPSILON)
 		{
 			float t = -b / (2.0 * a);
@@ -248,6 +215,7 @@ float intersect_sphere(Ray ray, Sphere sphere)
 		}
 		else
 		{
+			float sqrt_discriminant = sqrt(discriminant);
 			float t1 = (-b + sqrt_discriminant) / (2.0 * a);
 			float t2 = (-b - sqrt_discriminant) / (2.0 * a);
 			if(t1 > t2)
@@ -272,8 +240,9 @@ float intersect_sphere(Ray ray, Sphere sphere)
 }
 
 // Moller–Trumbore ray-triangle intersection algorithm
-bool intersect_triangle(in Ray ray, in Triangle tri, out HitData data, in float tmax)
+bool intersect_triangle(in Ray ray, in uint tri_index, out HitData data, in float tmax)
 {
+	Triangle tri = model_tris_ssbo.triangles[tri_index];
 	vec3 edge1 = tri.e1e2.xyz;
 	vec3 edge2 = vec3(tri.e1e2.w, tri.e2matX.xy);
 	vec3 pvec = cross(ray.direction, edge2);
@@ -286,7 +255,7 @@ bool intersect_triangle(in Ray ray, in Triangle tri, out HitData data, in float 
 	float inv_determinant = 1.0 / determinant;
 	vec3 tvec = ray.origin - tri.v0v1.xyz;
 	float u = dot(tvec, pvec) * inv_determinant;
-	if ((u < 0.0f) || (u > 1.0f))
+	if ((u < 0.0) || (u > 1.0))
 		return false;
 
 	vec3 qvec = cross(tvec, edge1);
@@ -316,20 +285,20 @@ bool AABBIntersect(in Ray ray, in AABB aabb, in float t)
 	vec3 bmin = aabb.data1.xyz;
 	vec3 bmax = vec3(aabb.data1.w, aabb.data2.xy);
 
-	float tx1 = (bmin.x - ray.origin.x) * ray.inv_dir.x;
-	float tx2 = (bmax.x - ray.origin.x) * ray.inv_dir.x;
+	float tx1 = bmin.x * ray.inv_dir.x - ray.origin.x * ray.inv_dir.x;
+	float tx2 = bmax.x * ray.inv_dir.x - ray.origin.x * ray.inv_dir.x;
 
 	float tmin = min(tx1, tx2);
 	float tmax = max(tx1, tx2);
 
-	float ty1 = (bmin.y - ray.origin.y) * ray.inv_dir.y;
-	float ty2 = (bmax.y - ray.origin.y) * ray.inv_dir.y;
+	float ty1 = bmin.y * ray.inv_dir.y - ray.origin.y * ray.inv_dir.y;
+	float ty2 = bmax.y * ray.inv_dir.y - ray.origin.y * ray.inv_dir.y;
 
 	tmin = max(tmin, min(ty1, ty2));
 	tmax = min(tmax, max(ty1, ty2));
 
-	float tz1 = (bmin.z - ray.origin.z) * ray.inv_dir.z;
-	float tz2 = (bmax.z - ray.origin.z) * ray.inv_dir.z;
+	float tz1 = bmin.z * ray.inv_dir.z - ray.origin.z * ray.inv_dir.z;
+	float tz2 = bmax.z * ray.inv_dir.z - ray.origin.z * ray.inv_dir.z;
 
 	tmin = max(tmin, min(tz1, tz2));
 	tmax = min(tmax, max(tz1, tz2));
@@ -355,36 +324,49 @@ bool intersect_bvh_stack(in Ray ray, inout HitData data)
 
 	while (stack_top + 1 > 0)
 	{
-		BVHNode node = bvh_ssbo.bvh_nodes[stack[stack_top--]];
+		BVHNode node = bvh_ssbo.bvh_nodes[stack[stack_top]];
+		stack_top--;
 		uint node_left = node.data[0];
 		uint num_node_tris = node.data[1];
 
 		// Check if ray intersects root node
-		bool bvh_hit = AABBIntersect(ray, node.node_AABB, data.t);
-		if (bvh_hit)
+		if (AABBIntersect(ray, node.node_AABB, data.t))
 		{
-			bool is_leaf_node = num_node_tris > 0;
-			if (!is_leaf_node)
+			if (num_node_tris == 0)
 			{
 				float dist1 = squared_dist(bvh_ssbo.bvh_nodes[node_left].node_AABB, ray.origin);
 				float dist2 = squared_dist(bvh_ssbo.bvh_nodes[node_left + 1].node_AABB, ray.origin);
 
 				float squared_tmax = data.t * data.t;
+
+				// TODO: simplify if statements here
 				if (dist1 <= dist2)
 				{
 					if (dist2 < squared_tmax)
-						stack[++stack_top] = node_left + 1;
+					{
+						stack_top++;
+						stack[stack_top] = node_left + 1;
+					}
 
 					if (dist1 < squared_tmax)
-						stack[++stack_top] = node_left;
+					{
+						stack_top++;
+						stack[stack_top] = node_left;
+					}
 				}
 				else
 				{
 					if (dist1 < squared_tmax)
-						stack[++stack_top] = node_left;
+					{
+						stack_top++;
+						stack[stack_top] = node_left;
+					}
 
 					if (dist2 < squared_tmax)
-						stack[++stack_top] = node_left + 1;
+					{
+						stack_top++;
+						stack[stack_top] = node_left + 1;
+					}
 				}
 			}
 			else
@@ -393,8 +375,7 @@ bool intersect_bvh_stack(in Ray ray, inout HitData data)
 				for (uint i = 0; i < num_node_tris; i++)
 				{
 					HitData current_data;
-					Triangle current = model_tris_ssbo.triangles[node_left + i];
-					bool intersect = intersect_triangle(ray, current, current_data, data.t);
+					bool intersect = intersect_triangle(ray, node_left + i, current_data, data.t);
 					if (intersect && current_data.t < data.t)
 					{
 						// Found closer hit, store it.
@@ -432,24 +413,7 @@ HitData intersect(Ray ray)
 		}
 	}
 
-	// for(uint i = 0; i < model_tris_ssbo.triangles.length(); i++)
-	// {
-	// 	Triangle current_tri = model_tris_ssbo.triangles[i];
-
-	// 	HitData current_data;
-	// 	bool intersect = intersect_triangle(ray, current_tri, current_data, result.t);
-	// 	if(intersect)
-	// 	{
-	// 		result.t = current_data.t;
-	// 		result.hit_anything = true;
-	// 		result.point = current_data.point;
-	// 		result.normal = current_data.normal;
-	// 		result.material_index = current_data.material_index;
-	// 	}
-	// }
-
-	bool hit_bvh = intersect_bvh_stack(ray, result);
-	result.hit_anything = result.hit_anything || hit_bvh;
+	result.hit_anything = result.hit_anything || intersect_bvh_stack(ray, result);
 
 	return result;
 }
@@ -482,23 +446,20 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 		// continue;
 
 		Material mat = materials_ssbo.materials[data.material_index];
-		vec3 diffuse = mat.type_diffuse.yzw;
 
 		// add the light that the material emits
 		if (b <= BOUNCE_COUNT)
 			color += throughput_term * mat.Le.xyz;
 
 		// if the material is a diffuse lambertian
-		if(mat.type_diffuse.x == 0.0)
+		if(round(mat.type_diffuse.x) == 0.0)
 		{
-			vec3 BRDF = PI * diffuse;
-
 			// update throughput
 			// The PI is here because we are sampling w.r.t the pdf
 			// p(psi) = cos(theta) / PI       (cosine weighted sampling)
 			// This cosine term cancels out with the dot product in
 			// the throughput term and all that is left is the BRDF
-			throughput_term *= BRDF;
+			throughput_term *= PI * mat.type_diffuse.yzw;
 
 			// pdf(psi) = cos(theta) / PI
 			vec2 rand_vec = rand_vec2();
@@ -508,9 +469,9 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 			ray = Ray(data.point + EPSILON * data.normal, dir, 1.0 / dir);
 		}
 		// if the material is ideally reflective 
-		else if(mat.type_diffuse.x == 1.0)
+		else if(round(mat.type_diffuse.x) == 1.0)
 		{
-			vec3 reflected_dir = reflect(-ray.direction, data.normal);
+			vec3 reflected_dir = reflect(ray.direction, data.normal);
 
 			// Intersection point and new ray
 			vec3 point = data.point;
@@ -528,31 +489,31 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 			throughput_term *= mat.specular_spec.xyz;
 		}
 		// if the material is a Phong material
-		else if(mat.type_diffuse.x == 3.0)
+		else if(round(mat.type_diffuse.x) == 3.0)
 		{
-			float u = rand();
-			vec3 uvec = vec3(u);
+			vec3 uvec = vec3(rand());
 
+			vec3 diffuse = mat.type_diffuse.yzw;
 			vec3 specular = mat.specular_spec.xyz;
 			float spec = mat.specular_spec.w;
+			vec3 pi_diffuse = PI * diffuse;
 
-			if(all(lessThanEqual(uvec, diffuse * PI)))
+			if(all(lessThanEqual(uvec, pi_diffuse)))
 			{
 				throughput_term *= PI * diffuse;
 
 				// pdf(psi) = cos(theta) / PI
-				// seed_vec = pcg2d(seed_vec + uvec2(u_time));
 				vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(), data.normal);
 
 				ray = Ray(data.point + EPSILON * data.normal, dir, 1.0 / dir);
 			}
-			else if(all(lessThanEqual(uvec, diffuse * PI + specular)))
+			else if(all(lessThanEqual(uvec, pi_diffuse + specular)))
 			{
 				vec3 Nx = data.normal;
 				vec3 x = data.point + EPSILON * data.normal;
 
-				vec3 reflected_dir = normalize(reflect(-ray.direction, Nx));
-				mat3 tnb = construct_tnb(reflected_dir);
+				vec3 reflected_dir = normalize(reflect(ray.direction, Nx));
+				mat3 tbn = construct_tbn(reflected_dir);
 
 				float inv = 1.0 / (spec + 1.0);
 
@@ -560,17 +521,20 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 
 				float cos_alpha = pow(rand_vec.x, inv);
 				float sin_alpha = sqrt(1.0 - cos_alpha * cos_alpha);
-				float phi = 2.0 * PI * rand_vec.y;
+				float phi = TWO_PI * rand_vec.y;
 
 				vec3 dir = vec3(sin_alpha * cos(phi), cos_alpha, sin_alpha * sin(phi));
 
-				dir = tnb * dir;
+				dir = tbn * dir;
 				ray = Ray(x, dir, 1.0 / dir);
 
 				float cos_theta_x = max(0.0, dot(dir, Nx));
 
-				float pdf_theta = ((spec + 1.0) / (2.0 * PI)) * pow(cos_alpha, spec);
-				float theta_term = pow(cos_alpha, spec) * ((spec + 2.0) / (2.0 * PI)) / pdf_theta;
+				float pow_cosalpha_spec = pow(cos_alpha, spec);
+				// float pdf_theta = ((spec + 1.0) / (2.0 * PI)) * pow(cos_alpha, spec);
+				float pdf_theta = spec * HALF_PI * pow_cosalpha_spec + HALF_PI * pow_cosalpha_spec;
+				// float theta_term = pow(cos_alpha, spec) * ((spec + 2.0) / (2.0 * PI)) / pdf_theta;
+				float theta_term = pow_cosalpha_spec * spec * HALF_PI / pdf_theta + PI * pow_cosalpha_spec / pdf_theta;
 
 				throughput_term *= specular * cos_theta_x * theta_term;
 			}
@@ -602,38 +566,27 @@ vec3 render_function(uvec2 screen_size, ivec2 pixel_coords)
 	int x = pixel_coords.x;
 	int y = pixel_coords.y;
 
-	vec3 color = vec3(0.0);
-	for(uint s = 0; s < NUM_SAMPLES; s++)
-	{
-		vec2 offset_to_pixel_center = vec2(0.5, 0.5);
+	vec2 offset_to_pixel_center = vec2(0.5, 0.5);
 
-		vec2 uv_offset = rand_vec2() - offset_to_pixel_center;
+	vec2 uv_offset = rand_vec2() - offset_to_pixel_center;
 
-		float u = (float(x) + uv_offset.x) / float(width);
-		float v = (float(y) + uv_offset.y) / float(height);
+	float u = (float(x) + uv_offset.x) / float(width);
+	float v = (float(y) + uv_offset.y) / float(height);
 
-		vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
-		vec3 ray_direction = normalize(point_on_grid - eye);
+	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
+	vec3 ray_direction = normalize(point_on_grid - eye);
 
-		Ray ray = Ray(eye, ray_direction, 1.0 / ray_direction);
+	Ray ray = Ray(eye, ray_direction, 1.0 / ray_direction);
 
-		vec3 calculated_color = estimator_path_tracing_lambertian(ray);
+	vec3 color = estimator_path_tracing_lambertian(ray);
 
-		// INF and NaN check
-		if(isnan(calculated_color.x) || 
-		   isnan(calculated_color.y) || 
-		   isnan(calculated_color.z))
-			return vec3(1.0, 0.0, 0.0);
+	// INF and NaN check
+	if(any(isnan(color)))
+		return vec3(1.0, 1.0, 0.0);
 
-		if(isinf(calculated_color.x) || 
-		   isinf(calculated_color.y) || 
-		   isinf(calculated_color.z))
-			return vec3(1.0, 0.0, 0.0);
+	if(any(isinf(color)))
+		return vec3(1.0, 0.0, 0.0);
 
-		color += calculated_color;
-	}
-
-	color /= float(NUM_SAMPLES);
 	color.x = sqrt(color.x);
 	color.y = sqrt(color.y);
 	color.z = sqrt(color.z);
