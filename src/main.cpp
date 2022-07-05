@@ -436,7 +436,6 @@ int main(int argc, char *argv[])
 
 	glUseProgram(display.compute_shader_program);
 	uint32 u_seed_location = glGetUniformLocation(display.compute_shader_program, "u_seed");
-	uint32 u_time_location = glGetUniformLocation(display.compute_shader_program, "u_time");
 	uint32 frame_count_location = glGetUniformLocation(display.compute_shader_program, "frame_count");
 
 	while(display.is_open)
@@ -459,7 +458,6 @@ int main(int argc, char *argv[])
 
 		// Update uniforms
 		glUniform1ui(u_seed_location, pcg32_random());
-		glUniform1ui(u_time_location, current_time);
 		glUniform1ui(frame_count_location, frame_count++);
 
 		glDispatchCompute(width / 8, height / 4, 1);
