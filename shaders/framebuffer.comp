@@ -16,7 +16,6 @@ const float HALF_PI = 1.57079632;
 const float TMIN = 0.001;
 const float TMAX = 10000.0;
 const uint BOUNCE_COUNT = 5;
-const uint NUM_SAMPLES = 1;
 
 // Misc
 const float ENVIRONMENT_MAP_LE = 1.0;
@@ -123,7 +122,7 @@ vec2 rand_vec2()
 
 // Math
 
-mat3 construct_tbn(vec3 n)
+mat3 construct_tnb(vec3 n)
 {
 	// Orthonormal basis
 	float s = n.z < 0.0 ? -1.0 : 1.0;
@@ -156,7 +155,7 @@ vec3 map_to_unit_sphere(in vec2 vec)
 
 vec3 map_to_unit_hemisphere_cosine_weighted_criver(in vec2 uv, in vec3 normal)
 {
-	return map_to_unit_sphere(uv) + normal;
+	return normalize(map_to_unit_sphere(uv) + normal);
 }
 
 vec3 sky_color(vec3 dir)
@@ -287,7 +286,6 @@ bool AABBIntersect(in Ray ray, in AABB aabb, in float t)
 
 	float tx1 = bmin.x * ray.inv_dir.x - ray.origin.x * ray.inv_dir.x;
 	float tx2 = bmax.x * ray.inv_dir.x - ray.origin.x * ray.inv_dir.x;
-
 	float tmin = min(tx1, tx2);
 	float tmax = max(tx1, tx2);
 
@@ -452,7 +450,7 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 			color += throughput_term * mat.Le.xyz;
 
 		// if the material is a diffuse lambertian
-		if(round(mat.type_diffuse.x) == 0.0)
+		if(mat.type_diffuse.x <= EPSILON)
 		{
 			// update throughput
 			// The PI is here because we are sampling w.r.t the pdf
@@ -469,7 +467,7 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 			ray = Ray(data.point + EPSILON * data.normal, dir, 1.0 / dir);
 		}
 		// if the material is ideally reflective 
-		else if(round(mat.type_diffuse.x) == 1.0)
+		else if(abs(mat.type_diffuse.x - 1.0) <= EPSILON)
 		{
 			vec3 reflected_dir = reflect(ray.direction, data.normal);
 
@@ -489,7 +487,7 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 			throughput_term *= mat.specular_spec.xyz;
 		}
 		// if the material is a Phong material
-		else if(round(mat.type_diffuse.x) == 3.0)
+		else if(abs(mat.type_diffuse.x - 3.0) <= EPSILON)
 		{
 			vec3 uvec = vec3(rand());
 
@@ -500,7 +498,7 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 
 			if(all(lessThanEqual(uvec, pi_diffuse)))
 			{
-				throughput_term *= PI * diffuse;
+				throughput_term *= pi_diffuse;
 
 				// pdf(psi) = cos(theta) / PI
 				vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(), data.normal);
@@ -509,11 +507,10 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 			}
 			else if(all(lessThanEqual(uvec, pi_diffuse + specular)))
 			{
-				vec3 Nx = data.normal;
 				vec3 x = data.point + EPSILON * data.normal;
 
-				vec3 reflected_dir = normalize(reflect(ray.direction, Nx));
-				mat3 tbn = construct_tbn(reflected_dir);
+				vec3 reflected_dir = normalize(reflect(ray.direction, data.normal));
+				mat3 tnb = construct_tnb(reflected_dir);
 
 				float inv = 1.0 / (spec + 1.0);
 
@@ -525,10 +522,10 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 
 				vec3 dir = vec3(sin_alpha * cos(phi), cos_alpha, sin_alpha * sin(phi));
 
-				dir = tbn * dir;
+				dir = tnb * dir;
 				ray = Ray(x, dir, 1.0 / dir);
 
-				float cos_theta_x = max(0.0, dot(dir, Nx));
+				float cos_theta_x = max(0.0, dot(dir, data.normal));
 
 				float pow_cosalpha_spec = pow(cos_alpha, spec);
 				// float pdf_theta = ((spec + 1.0) / (2.0 * PI)) * pow(cos_alpha, spec);
@@ -582,14 +579,10 @@ vec3 render_function(uvec2 screen_size, ivec2 pixel_coords)
 
 	// INF and NaN check
 	if(any(isnan(color)))
-		return vec3(1.0, 1.0, 0.0);
+		return vec3(1.0, 0.0, 1.0);
 
 	if(any(isinf(color)))
-		return vec3(1.0, 0.0, 0.0);
-
-	color.x = sqrt(color.x);
-	color.y = sqrt(color.y);
-	color.z = sqrt(color.z);
+		return vec3(0.0, 0.0, 1.0);
 
 	return color;
 }
