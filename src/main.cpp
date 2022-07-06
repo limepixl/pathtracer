@@ -80,6 +80,7 @@ int main(int argc, char *argv[])
 	Array<Material *> materials = CreateArray<Material *>();
 
 	if (!LoadModelFromObj("CornellBox-Suzanne.obj", "../res/", tris, materials))
+	// if (!LoadModelFromObj("robot.obj", "../res/", tris, materials))
 	{
 		// DeallocateArray(bitmap_buffer);
 		return -1;
@@ -453,6 +454,8 @@ int main(int argc, char *argv[])
 
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "COMPUTE");
+
 		// Compute shader data and dispatch
 		glUseProgram(display.compute_shader_program);
 
@@ -460,12 +463,20 @@ int main(int argc, char *argv[])
 		glUniform1ui(u_seed_location, pcg32_random());
 		glUniform1ui(frame_count_location, frame_count++);
 
-		glDispatchCompute(width / 8, height / 4, 1);
-		glMemoryBarrier(GL_ALL_BARRIER_BITS);
+		const uint32 num_groups_x = width / 8;
+		const uint32 num_groups_y = height / 4;
+		glDispatchCompute(num_groups_x, num_groups_y, 1);
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+		glPopDebugGroup();
+
+		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "DISPLAY RESULT");
 
 		// Full screen quad drawing
 		glUseProgram(display.rb_shader_program);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+
+		glPopDebugGroup();
 
 		GLenum err;
 		while((err = glGetError()) != GL_NO_ERROR)

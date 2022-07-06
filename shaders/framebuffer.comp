@@ -99,7 +99,9 @@ uint seed3(uvec3 p)
 
 float hash_to_float(uint hash)
 {
-	return float(hash) * uintBitsToFloat(0x2f800004u);
+	// hash * 1 / MAX_UINT
+	// TODO: find out why result is sometimes bigger than 1
+	return min(1.0, float(hash) * uintBitsToFloat(0x2f800004u));
 }
 
 uint pcg()
@@ -538,7 +540,7 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 		}
 		else
 			// UNSUPPORTED MATERIAL!
-			return vec3(1.0, 0.0, 0.0);
+			return vec3(0.0, 0.0, 0.0);
 	}
 
 	return color;
@@ -554,7 +556,7 @@ vec3 render_function(uvec2 screen_size, ivec2 pixel_coords)
 	float grid_width = aspect_ratio * grid_height;
 
 	vec3 grid_x = vec3(grid_width, 0.0, 0.0);
-	vec3 grid_y = vec3(0.0, -grid_height, 0.0);
+	vec3 grid_y = vec3(0.0, grid_height, 0.0);
 
 	vec3 eye = vec3(0.0, 0.0, 0.0);
 	vec3 grid_origin = eye - (grid_x * 0.5) - (grid_y * 0.5);
@@ -575,16 +577,7 @@ vec3 render_function(uvec2 screen_size, ivec2 pixel_coords)
 
 	Ray ray = Ray(eye, ray_direction, 1.0 / ray_direction);
 
-	vec3 color = estimator_path_tracing_lambertian(ray);
-
-	// INF and NaN check
-	if(any(isnan(color)))
-		return vec3(1.0, 0.0, 1.0);
-
-	if(any(isinf(color)))
-		return vec3(0.0, 0.0, 1.0);
-
-	return color;
+	return estimator_path_tracing_lambertian(ray);
 }
 
 void main() 
@@ -594,14 +587,12 @@ void main()
 	
 	rng_state = seed3(uvec3(pixel_coords, u_seed));
 
-	vec4 last_frame = imageLoad(screen, pixel_coords);
-
 	vec3 color = render_function(screen_size, pixel_coords);
 
 	// weigh current frame according to accumulated past
 	// frames and the current frame number
+	vec4 last_frame = imageLoad(screen, pixel_coords);
 	color = float(frame_count) / float(frame_count + 1) * last_frame.xyz + 1.0 / float(frame_count + 1) * color;
 
-	vec4 final_color = vec4(color, 1.0);
-	imageStore(screen, pixel_coords, final_color);
+	imageStore(screen, pixel_coords, vec4(color, 1.0));
 }
