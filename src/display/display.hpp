@@ -12,7 +12,7 @@ struct Display
 	bool is_open;
 
 	// Render buffer data
-	uint32 vao, ebo;
+	uint32 vao;
 	uint32 render_buffer_texture;
 	uint32 rb_shader_program;
 	uint32 compute_shader_program;

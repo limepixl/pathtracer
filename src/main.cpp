@@ -60,6 +60,18 @@ int main(int argc, char *argv[])
 	Display display = CreateDisplay("Pathtracer", width, height);
 	InitRenderBuffer(display);
 
+	// Query limits
+	GLint data1, data2, data3;
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &data1);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &data2);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &data3);
+	printf("Max size of work group (x, y, z): %d %d %d\n", data1, data2, data3);
+	glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &data1);
+	printf("Max Uniform Buffer Object (UBO) size (in bytes): %d\n", data1);
+	glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &data1);
+	printf("%d\n", data1);
+
+/*
 	// Memory allocation for bitmap buffer
 	// Array<uint8> bitmap_buffer = CreateArray<uint8>(width * height * 3);
 
@@ -75,7 +87,7 @@ int main(int argc, char *argv[])
 	// Lower left corner of virtual grid
 	// Vec3f grid_origin = eye - (grid_x / 2.0f) - (grid_y / 2.0f);
 	// grid_origin.z = -2.0f;
-
+*/
 	Array<Triangle> tris = CreateArray<Triangle>();
 	Array<Material *> materials = CreateArray<Material *>();
 
@@ -392,35 +404,35 @@ int main(int argc, char *argv[])
 	if(spheres_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[0]);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, spheres_ssbo.size * sizeof(SphereGLSL), &(spheres_ssbo.data[0]), GL_STATIC_DRAW);
+		glBufferStorage(GL_SHADER_STORAGE_BUFFER, spheres_ssbo.size * sizeof(SphereGLSL), &(spheres_ssbo.data[0]), 0);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo[0]);
 	}
 
 	if(model_tris_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[1]);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, model_tris_ssbo.size * sizeof(TriangleGLSL), &(model_tris_ssbo[0]), GL_STATIC_DRAW);
+		glBufferStorage(GL_SHADER_STORAGE_BUFFER, model_tris_ssbo.size * sizeof(TriangleGLSL), &(model_tris_ssbo[0]), 0);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo[1]);
 	}
 
 	if(emissive_tris.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[2]);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, emissive_tris.size * sizeof(uint32), &(emissive_tris[0]), GL_STATIC_DRAW);
+		glBufferStorage(GL_SHADER_STORAGE_BUFFER, emissive_tris.size * sizeof(uint32), &(emissive_tris[0]), 0);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo[2]);
 	}
 
 	if(materials_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[3]);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, materials_ssbo.size * sizeof(MaterialGLSL), &(materials_ssbo[0]), GL_STATIC_DRAW);
+		glBufferStorage(GL_SHADER_STORAGE_BUFFER, materials_ssbo.size * sizeof(MaterialGLSL), &(materials_ssbo[0]), 0);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo[3]);
 	}
 
 	if(bvh_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[4]);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, bvh_ssbo.size * sizeof(BVHNodeGLSL), &(bvh_ssbo[0]), GL_STATIC_DRAW);
+		glBufferStorage(GL_SHADER_STORAGE_BUFFER, bvh_ssbo.size * sizeof(BVHNodeGLSL), &(bvh_ssbo[0]), 0);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ssbo[4]);
 	}
 
@@ -436,8 +448,7 @@ int main(int argc, char *argv[])
 	uint32 frame_count = 0;
 
 	glUseProgram(display.compute_shader_program);
-	uint32 u_seed_location = glGetUniformLocation(display.compute_shader_program, "u_seed");
-	uint32 frame_count_location = glGetUniformLocation(display.compute_shader_program, "frame_count");
+	uint32 frame_data_location = glGetUniformLocation(display.compute_shader_program, "u_frame_data");
 
 	while(display.is_open)
 	{
@@ -458,13 +469,10 @@ int main(int argc, char *argv[])
 
 		// Compute shader data and dispatch
 		glUseProgram(display.compute_shader_program);
-
-		// Update uniforms
-		glUniform1ui(u_seed_location, pcg32_random());
-		glUniform1ui(frame_count_location, frame_count++);
+		glUniform2ui(frame_data_location, pcg32_random(), frame_count++);
 
 		const uint32 num_groups_x = (width + 7) / 8;
-		const uint32 num_groups_y = (height + 7) / 8;
+		const uint32 num_groups_y = (height + 3) / 4;
 		glDispatchCompute(num_groups_x, num_groups_y, 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -474,7 +482,7 @@ int main(int argc, char *argv[])
 
 		// Full screen quad drawing
 		glUseProgram(display.rb_shader_program);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		glPopDebugGroup();
 
