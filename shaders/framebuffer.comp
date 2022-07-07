@@ -1,31 +1,30 @@
 #version 460 core
-layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(local_size_x = 8, local_size_y = 4, local_size_z = 1) in;
 layout(rgba32f, binding = 0) uniform image2D screen;
 
 // Uniform variables
-uniform uint u_seed;
-uniform uint frame_count;
+uniform uvec2 u_frame_data; // seed, frame#
 
 // Math constants
-const float EPSILON = 0.000001;
-const float PI = 3.14159265;
-const float TWO_PI = 6.28318530;
-const float HALF_PI = 1.57079632;
+#define EPSILON 		0.000001
+#define PI 				3.14159265
+#define TWO_PI  		6.28318530
+#define HALF_PI 		1.57079632
 
 // Ray constants
-const float TMIN = 0.001;
-const float TMAX = 10000.0;
-const uint BOUNCE_COUNT = 5;
-const uint NUM_SHADOW_RAYS = 1;
+#define TMIN            0.001
+#define TMAX            10000.0
+#define BOUNCE_COUNT    5
+#define NUM_SHADOW_RAYS 1
 
 // Misc
-const float ENVIRONMENT_MAP_LE = 1.0;
+#define ENVIRONMENT_MAP_LE 1.0
 
-uvec2 seed_vec = uvec2(0);
 uint rng_state = 0;
 
 // SSBO helper structs
 
+// size: 80
 struct Triangle
 {
 	vec4 v0v1;   // v0.x, v0.y, v0.z, v1.x
@@ -35,12 +34,14 @@ struct Triangle
 	vec4 e2matX; // e2.y, e2.z, mat_index, empty
 };
 
+// size: 32
 struct Sphere
 {
 	vec4 sphere_data; // o.x, o.y, o.z, radius
 	uvec4 mat_index;
 };
 
+// size: 48
 struct Material
 {
 	vec4 type_diffuse;  // mat_type, diff.x, diff.y, diff.z
@@ -48,12 +49,14 @@ struct Material
 	vec4 Le;            // Le.x, Le.y, Le.z, empy
 };
 
+// size: 32
 struct AABB
 {
 	vec4 data1; // bmin.xyz, bmax.x
 	vec4 data2; // bmax.yz
 };
 
+// size: 48
 struct BVHNode
 {
 	AABB node_AABB;
@@ -62,27 +65,27 @@ struct BVHNode
 
 // SSBOs
 
-layout(std430, binding = 1) readonly buffer SpheresSSBO
+layout(std140, binding = 1) readonly buffer SpheresSSBO
 {
 	Sphere spheres[];
 } spheres_ssbo;
 
-layout(std430, binding = 2) readonly buffer ModelTrisSSBO
+layout(std140, binding = 2) readonly buffer ModelTrisSSBO
 {
 	Triangle triangles[];
 } model_tris_ssbo;
 
-layout(std430, binding = 3) readonly buffer ModelLightTrisSSBO
+layout(std140, binding = 3) readonly buffer ModelLightTrisSSBO
 {
 	uint light_tri_indices[];
 };
 
-layout(std430, binding = 4) readonly buffer MaterialsSSBO
+layout(std140, binding = 4) readonly buffer MaterialsSSBO
 {
 	Material materials[];
 } materials_ssbo;
 
-layout(std430, binding = 5) readonly buffer BVHSSBO
+layout(std140, binding = 5) readonly buffer BVHSSBO
 {
 	BVHNode bvh_nodes[];
 } bvh_ssbo;
@@ -745,14 +748,14 @@ void main()
 	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 	uvec2 screen_size = imageSize(screen);
 	
-	rng_state = seed3(uvec3(pixel_coords, u_seed));
+	rng_state = seed3(uvec3(pixel_coords, u_frame_data.x));
 
 	vec3 color = render_function(screen_size, pixel_coords);
 
 	// weigh current frame according to accumulated past
 	// frames and the current frame number
 	vec4 last_frame = imageLoad(screen, pixel_coords);
-	color = float(frame_count) / float(frame_count + 1) * last_frame.xyz + 1.0 / float(frame_count + 1) * color;
+	color = float(u_frame_data.y) / float(u_frame_data.y + 1) * last_frame.xyz + 1.0 / float(u_frame_data.y + 1) * color;
 
 	imageStore(screen, pixel_coords, vec4(color, 1.0));
 }
