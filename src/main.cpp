@@ -324,11 +324,11 @@ int main(int argc, char *argv[])
 
 	// Set up data to be passed to SSBOs
 
-	Array<SphereGLSL> spheres_ssbo_data = CreateArray<SphereGLSL>();
-	// AppendToArray(spheres_ssbo_data, { CreateVec4f(0.0f, 0.0f, -5.0f, 1.0f), {0} });
-	// AppendToArray(spheres_ssbo_data, { CreateVec4f(0.0f, -101.0f, -5.0f, 100.0f), {0} });
+	Array<SphereGLSL> spheres_ssbo = CreateArray<SphereGLSL>();
+	// AppendToArray(spheres_ssbo, { CreateVec4f(0.0f, 0.0f, -5.0f, 1.0f), {0} });
+	// AppendToArray(spheres_ssbo, { CreateVec4f(0.0f, -101.0f, -5.0f, 100.0f), {0} });
 
-	Array<TriangleGLSL> model_tris_ssbo_data = CreateArray<TriangleGLSL>(tris.size);
+	Array<TriangleGLSL> model_tris_ssbo = CreateArray<TriangleGLSL>(tris.size);
 	for(uint32 i = 0; i < tris.size; i++)
 	{
 		const Triangle &current_tri = tris[i];
@@ -346,7 +346,7 @@ int main(int argc, char *argv[])
 		tmp.e1e2 = CreateVec4f(e1.x, e1.y, e1.z, e2.x);
 		tmp.e2matX = CreateVec4f(e2.y, e2.z, (float)current_tri.mat_index, 0.0f);
 
-		AppendToArray(model_tris_ssbo_data, tmp);
+		AppendToArray(model_tris_ssbo, tmp);
 	}
 
 	Array<MaterialGLSL> materials_ssbo = CreateArray<MaterialGLSL>(materials.size);
@@ -389,17 +389,17 @@ int main(int argc, char *argv[])
 	glGenBuffers(5, ssbo);
 
 	// Sphere SSBO
-	if(spheres_ssbo_data.size > 0)
+	if(spheres_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[0]);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, spheres_ssbo_data.size * sizeof(SphereGLSL), &(spheres_ssbo_data.data[0]), GL_STATIC_DRAW);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, spheres_ssbo.size * sizeof(SphereGLSL), &(spheres_ssbo.data[0]), GL_STATIC_DRAW);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo[0]);
 	}
 
-	if(model_tris_ssbo_data.size > 0)
+	if(model_tris_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[1]);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, model_tris_ssbo_data.size * sizeof(TriangleGLSL), &(model_tris_ssbo_data[0]), GL_STATIC_DRAW);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, model_tris_ssbo.size * sizeof(TriangleGLSL), &(model_tris_ssbo[0]), GL_STATIC_DRAW);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo[1]);
 	}
 
@@ -509,7 +509,12 @@ int main(int argc, char *argv[])
 	}
 
 	DeallocateArray(materials);
-	// DeallocateArray(bvh_tree);
+	DeallocateArray(bvh_tree);
+
+	DeallocateArray(model_tris_ssbo);
+	DeallocateArray(bvh_ssbo);
+	DeallocateArray(spheres_ssbo);
+	DeallocateArray(materials_ssbo);
 
 	CloseDisplay(display);
 
