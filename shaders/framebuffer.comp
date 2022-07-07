@@ -97,11 +97,22 @@ uint seed3(uvec3 p)
     return 19u * p.x + 47u * p.y + 101u * p.z + 131u;
 }
 
-float hash_to_float(uint hash)
+float hash_to_float(in highp uint hash)
 {
-	// hash * 1 / MAX_UINT
-	// TODO: find out why result is sometimes bigger than 1
-	return min(1.0, float(hash) * uintBitsToFloat(0x2f800004u));
+	// hash * (1 / MAX_UINT)
+	return float(hash) / float(0xfffffff0u);
+}
+
+float floatConstruct(uint m) 
+{
+    const uint ieeeMantissa = 0x007FFFFFu; // binary32 mantissa bitmask
+    const uint ieeeOne      = 0x3F800000u; // 1.0 in IEEE binary32
+
+    m &= ieeeMantissa;                     // Keep only mantissa bits (fractional part)
+    m |= ieeeOne;                          // Add fractional part to 1.0
+
+    float  f = uintBitsToFloat( m );       // Range [1:2]
+    return f - 1.0;                        // Range [0:1]
 }
 
 uint pcg()
@@ -112,9 +123,10 @@ uint pcg()
     return (word >> 22u) ^ word;
 }
 
+// Make sure to generate a value in (0,1) rather than [0,1]
 float rand()
 {
-	return hash_to_float(pcg());
+	return max(EPSILON, min(1.0 - EPSILON, floatConstruct(pcg())));
 }
 
 vec2 rand_vec2()
@@ -451,6 +463,8 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 		if (b <= BOUNCE_COUNT)
 			color += throughput_term * mat.Le.xyz;
 
+		vec3 pi_diffuse = PI * mat.type_diffuse.yzw;
+
 		// if the material is a diffuse lambertian
 		if(mat.type_diffuse.x <= EPSILON)
 		{
@@ -459,7 +473,7 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 			// p(psi) = cos(theta) / PI       (cosine weighted sampling)
 			// This cosine term cancels out with the dot product in
 			// the throughput term and all that is left is the BRDF
-			throughput_term *= PI * mat.type_diffuse.yzw;
+			throughput_term *= pi_diffuse;
 
 			// pdf(psi) = cos(theta) / PI
 			vec2 rand_vec = rand_vec2();
@@ -493,10 +507,8 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 		{
 			vec3 uvec = vec3(rand());
 
-			vec3 diffuse = mat.type_diffuse.yzw;
 			vec3 specular = mat.specular_spec.xyz;
 			float spec = mat.specular_spec.w;
-			vec3 pi_diffuse = PI * diffuse;
 
 			if(all(lessThanEqual(uvec, pi_diffuse)))
 			{
@@ -511,7 +523,9 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 			{
 				vec3 x = data.point + EPSILON * data.normal;
 
-				vec3 reflected_dir = normalize(reflect(ray.direction, data.normal));
+				vec3 reflected_dir = reflect(ray.direction, data.normal);
+				reflected_dir = normalize(reflected_dir);
+
 				mat3 tnb = construct_tnb(reflected_dir);
 
 				float inv = 1.0 / (spec + 1.0);
@@ -524,23 +538,23 @@ vec3 estimator_path_tracing_lambertian(Ray ray)
 
 				vec3 dir = vec3(sin_alpha * cos(phi), cos_alpha, sin_alpha * sin(phi));
 
-				dir = tnb * dir;
+				dir = normalize(tnb * dir);
 				ray = Ray(x, dir, 1.0 / dir);
 
 				float cos_theta_x = max(0.0, dot(dir, data.normal));
 
-				float pow_cosalpha_spec = pow(cos_alpha, spec);
-				// float pdf_theta = ((spec + 1.0) / (2.0 * PI)) * pow(cos_alpha, spec);
-				float pdf_theta = spec * HALF_PI * pow_cosalpha_spec + HALF_PI * pow_cosalpha_spec;
-				// float theta_term = pow(cos_alpha, spec) * ((spec + 2.0) / (2.0 * PI)) / pdf_theta;
-				float theta_term = pow_cosalpha_spec * spec * HALF_PI / pdf_theta + PI * pow_cosalpha_spec / pdf_theta;
+				// float pow_cosalpha_spec = pow(cos_alpha, spec);
+				float pdf_theta = ((spec + 1.0) / (2.0 * PI)) * pow(cos_alpha, spec);
+				// float pdf_theta = spec * HALF_PI * pow_cosalpha_spec + HALF_PI * pow_cosalpha_spec;
+				float theta_term = pow(cos_alpha, spec) * ((spec + 2.0) / (2.0 * PI)) / pdf_theta;
+				// float theta_term = pow_cosalpha_spec * spec * HALF_PI / pdf_theta + PI * pow_cosalpha_spec / pdf_theta;
 
 				throughput_term *= specular * cos_theta_x * theta_term;
 			}
 		}
 		else
 			// UNSUPPORTED MATERIAL!
-			return vec3(0.0, 0.0, 0.0);
+			return vec3(1.0, 0.0, 0.0);
 	}
 
 	return color;
