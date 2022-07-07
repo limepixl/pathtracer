@@ -1,5 +1,5 @@
 #version 460 core
-layout(local_size_x = 8, local_size_y = 4, local_size_z = 1) in;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 layout(rgba32f, binding = 0) uniform image2D screen;
 
 // Uniform variables
@@ -104,18 +104,6 @@ float hash_to_float(in highp uint hash)
 	return float(hash) / float(0xfffffff0u);
 }
 
-float floatConstruct(uint m) 
-{
-    const uint ieeeMantissa = 0x007FFFFFu; // binary32 mantissa bitmask
-    const uint ieeeOne      = 0x3F800000u; // 1.0 in IEEE binary32
-
-    m &= ieeeMantissa;                     // Keep only mantissa bits (fractional part)
-    m |= ieeeOne;                          // Add fractional part to 1.0
-
-    float  f = uintBitsToFloat( m );       // Range [1:2]
-    return f - 1.0;                        // Range [0:1]
-}
-
 uint pcg()
 {
 	uint state = rng_state;
@@ -192,12 +180,6 @@ struct Ray
 	vec3 inv_dir;
 };
 
-struct LambertianMaterial
-{
-	vec3 Le; // emitted radiance
-	vec3 diffuse; // BRDF
-};
-
 struct HitData
 {
 	float t;
@@ -254,7 +236,7 @@ float intersect_sphere(Ray ray, Sphere sphere)
 }
 
 // Moller–Trumbore ray-triangle intersection algorithm
-bool intersect_triangle(in Ray ray, in uint tri_index, out HitData data, in float tmax)
+bool intersect_triangle(Ray ray, uint tri_index, out HitData data, float tmax)
 {
 	Triangle tri = model_tris_ssbo.triangles[tri_index];
 	vec3 edge1 = tri.e1e2.xyz;
@@ -294,11 +276,8 @@ bool intersect_triangle(in Ray ray, in uint tri_index, out HitData data, in floa
 
 // Slab method
 // https://tavianator.com/2011/ray_box.html
-bool AABBIntersect(in Ray ray, in AABB aabb, in float t)
+bool intersect_aabb(Ray ray, in vec3 bmin, in vec3 bmax, in float t)
 {
-	vec3 bmin = aabb.data1.xyz;
-	vec3 bmax = vec3(aabb.data1.w, aabb.data2.xy);
-
 	float tx1 = bmin.x * ray.inv_dir.x - ray.origin.x * ray.inv_dir.x;
 	float tx2 = bmax.x * ray.inv_dir.x - ray.origin.x * ray.inv_dir.x;
 	float tmin = min(tx1, tx2);
@@ -343,44 +322,14 @@ bool intersect_bvh_stack(in Ray ray, inout HitData data)
 		uint num_node_tris = node.data[1];
 
 		// Check if ray intersects root node
-		if (AABBIntersect(ray, node.node_AABB, data.t))
+		if(intersect_aabb(ray, node.node_AABB.data1.xyz, vec3(node.node_AABB.data1.w, node.node_AABB.data2.xy), data.t))
 		{
-			if (num_node_tris == 0)
+			if(num_node_tris == 0)
 			{
-				float dist1 = squared_dist(bvh_ssbo.bvh_nodes[node_left].node_AABB, ray.origin);
-				float dist2 = squared_dist(bvh_ssbo.bvh_nodes[node_left + 1].node_AABB, ray.origin);
-
-				float squared_tmax = data.t * data.t;
-
-				// TODO: simplify if statements here
-				if (dist1 <= dist2)
-				{
-					if (dist2 < squared_tmax)
-					{
-						stack_top++;
-						stack[stack_top] = node_left + 1;
-					}
-
-					if (dist1 < squared_tmax)
-					{
-						stack_top++;
-						stack[stack_top] = node_left;
-					}
-				}
-				else
-				{
-					if (dist1 < squared_tmax)
-					{
-						stack_top++;
-						stack[stack_top] = node_left;
-					}
-
-					if (dist2 < squared_tmax)
-					{
-						stack_top++;
-						stack[stack_top] = node_left + 1;
-					}
-				}
+				stack_top++;
+				stack[stack_top] = node_left;
+				stack_top++;
+				stack[stack_top] = node_left + 1;
 			}
 			else
 			{
@@ -451,12 +400,8 @@ vec3 estimator_path_tracing_naive(Ray ray)
 		{
 			if (b <= BOUNCE_COUNT)
 				color += throughput_term * sky_color(ray.direction) * ENVIRONMENT_MAP_LE;
-			break;
+			return color;
 		}
-
-		// DEBUG NORMALS
-		// color = (data.normal + vec3(1.0)) * 0.5;
-		// continue;
 
 		Material mat = materials_ssbo.materials[data.material_index];
 
@@ -553,9 +498,6 @@ vec3 estimator_path_tracing_naive(Ray ray)
 				throughput_term *= specular * cos_theta_x * theta_term;
 			}
 		}
-		else
-			// UNSUPPORTED MATERIAL!
-			return vec3(1.0, 0.0, 0.0);
 	}
 
 	return color;
@@ -679,11 +621,7 @@ vec3 estimator_path_tracing_nee(Ray ray)
 
 					// We can sample the light from both sides, it doesn't have to
 					// be a one-sided light source.
-// #if TWO_SIDED_LIGHT
-					// float32 cos_theta_y = Abs(Dot(shadow_data.normal, shadowRayDir));
-// #else
 					float cos_theta_y = max(0.0, dot(shadow_data.normal, -shadow_ray_dir));
-// #endif
 
 					float G = cos_theta_x * cos_theta_y / squared_dist;
 

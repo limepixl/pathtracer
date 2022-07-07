@@ -463,8 +463,8 @@ int main(int argc, char *argv[])
 		glUniform1ui(u_seed_location, pcg32_random());
 		glUniform1ui(frame_count_location, frame_count++);
 
-		const uint32 num_groups_x = width / 8;
-		const uint32 num_groups_y = height / 4;
+		const uint32 num_groups_x = (width + 7) / 8;
+		const uint32 num_groups_y = (height + 7) / 8;
 		glDispatchCompute(num_groups_x, num_groups_y, 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
