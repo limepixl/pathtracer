@@ -64,10 +64,6 @@ int main(int argc, char *argv[])
 	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &data2);
 	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &data3);
 	printf("Max size of work group (x, y, z): %d %d %d\n", data1, data2, data3);
-	glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &data1);
-	printf("Max Uniform Buffer Object (UBO) size (in bytes): %d\n", data1);
-	glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &data1);
-	printf("%d\n", data1);
 
 /*
 	// Memory allocation for bitmap buffer
@@ -96,7 +92,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	printf("Loaded %lu triangles!\n", tris.size);
+	printf("--- Number of triangles: %lu!\n", tris.size);
 
 	// Apply model matrix to tris
 	Mat4f model_matrix = CreateIdentityMat4f();

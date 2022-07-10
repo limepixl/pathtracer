@@ -21,7 +21,7 @@ constexpr uint8 BOUNCE_COUNT = 5;
 constexpr uint16 NUM_SAMPLES = 1;
 constexpr uint8 NUM_SHADOW_RAYS = 1;
 
-constexpr uint8 BVH_NUM_LEAF_TRIS = 10;
+constexpr uint8 BVH_NUM_LEAF_TRIS = 12;
 
 constexpr float TMIN = 0.001f;
 constexpr float TMAX = 10000.0f;
