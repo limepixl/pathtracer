@@ -57,7 +57,7 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 	}
 
 	// Turn off VSync
-	// SDL_GL_SetSwapInterval(0);
+	SDL_GL_SetSwapInterval(0);
 
 	return result;
 }
@@ -92,27 +92,27 @@ bool InitRenderBuffer(Display &window)
 	glBindVertexArray(window.vao);
 
 	GLuint vbo[2];
-	glGenBuffers(2, vbo);
+	glCreateBuffers(2, vbo);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
+	glNamedBufferStorage(vbo[0], sizeof(vertices), vertices, 0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+	glEnableVertexAttribArray(0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(uvs), uvs, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(1);
+	glNamedBufferStorage(vbo[1], sizeof(uvs), uvs, 0);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+	glEnableVertexAttribArray(1);
 
 	// Set up the texture
 	glCreateTextures(GL_TEXTURE_2D, 1, &window.render_buffer_texture);
-	glBindTexture(GL_TEXTURE_2D, window.render_buffer_texture);
-	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTextureStorage2D(window.render_buffer_texture, 1, GL_RGBA32F, window.width, window.height);
 	glBindImageTexture(0, window.render_buffer_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+	glBindTextureUnit(0, window.render_buffer_texture);
 
 	window.rb_shader_program = LoadShaderFromFiles("../shaders/framebuffer.vert", "../shaders/framebuffer.frag");	
 	window.compute_shader_program = LoadShaderFromFiles("../shaders/framebuffer.comp");

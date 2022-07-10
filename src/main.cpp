@@ -13,8 +13,6 @@
 #include <glad/glad.h>
 #include <SDL.h>
 
-#define NUM_MAX_MATERIALS 16
-
 struct SphereGLSL
 {
 	Vec4f data;          // o.x, o.y, o.z, radius
@@ -398,46 +396,45 @@ int main(int argc, char *argv[])
 
 	// Set up SSBOs
 	GLuint ssbo[5];
-	glGenBuffers(5, ssbo);
+	glCreateBuffers(5, ssbo);
 
 	// Sphere SSBO
 	if(spheres_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[0]);
-		glBufferStorage(GL_SHADER_STORAGE_BUFFER, spheres_ssbo.size * sizeof(SphereGLSL), &(spheres_ssbo.data[0]), 0);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo[0]);
+		glNamedBufferStorage(ssbo[0], spheres_ssbo.size * sizeof(SphereGLSL), &(spheres_ssbo.data[0]), 0);
 	}
 
 	if(model_tris_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[1]);
-		glBufferStorage(GL_SHADER_STORAGE_BUFFER, model_tris_ssbo.size * sizeof(TriangleGLSL), &(model_tris_ssbo[0]), 0);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo[1]);
+		glNamedBufferStorage(ssbo[1], model_tris_ssbo.size * sizeof(TriangleGLSL), &(model_tris_ssbo[0]), 0);
 	}
 
 	if(emissive_tris.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[2]);
-		glBufferStorage(GL_SHADER_STORAGE_BUFFER, emissive_tris.size * sizeof(uint32), &(emissive_tris[0]), 0);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo[2]);
+		glNamedBufferStorage(ssbo[2], emissive_tris.size * sizeof(uint32), &(emissive_tris[0]), 0);
 	}
 
 	if(materials_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[3]);
-		glBufferStorage(GL_SHADER_STORAGE_BUFFER, materials_ssbo.size * sizeof(MaterialGLSL), &(materials_ssbo[0]), 0);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo[3]);
+		glNamedBufferStorage(ssbo[3], materials_ssbo.size * sizeof(MaterialGLSL), &(materials_ssbo[0]), 0);
 	}
 
 	if(bvh_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[4]);
-		glBufferStorage(GL_SHADER_STORAGE_BUFFER, bvh_ssbo.size * sizeof(BVHNodeGLSL), &(bvh_ssbo[0]), 0);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ssbo[4]);
+		glNamedBufferStorage(ssbo[4], bvh_ssbo.size * sizeof(BVHNodeGLSL), &(bvh_ssbo[0]), 0);
 	}
 
 	glUseProgram(display.rb_shader_program);
-	glBindTextureUnit(0, display.render_buffer_texture);
 	glUniform1i(glGetUniformLocation(display.rb_shader_program, "tex"), 0);
 
 	glUseProgram(display.compute_shader_program);
@@ -471,8 +468,8 @@ int main(int argc, char *argv[])
 		glUseProgram(display.compute_shader_program);
 		glUniform2ui(frame_data_location, pcg32_random(), frame_count++);
 
-		const uint32 num_groups_x = (width + 7) / 8;
-		const uint32 num_groups_y = (height + 3) / 4;
+		const uint32 num_groups_x = width / 8;
+		const uint32 num_groups_y = height / 4;
 		glDispatchCompute(num_groups_x, num_groups_y, 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
