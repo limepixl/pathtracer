@@ -43,7 +43,7 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 
 	// Initialize out materials
 	int32 num_loaded_materials = 0;
-	out_materials = CreateArray<Material *>(num_materials);
+	out_materials = Array<Material *>(num_materials);
 	// printf("Loaded %llu materials!\n", materials.size());
 
 	// Keep track of emissive triangles so that we can keep them as
@@ -228,7 +228,7 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 		}
 	}
 
-	out_tris = CreateArray<Triangle>((unsigned int)tris.size());
+	out_tris = Array<Triangle>((unsigned int)tris.size());
 	for (uint32 i = 0; i < tris.size(); i++)
 		AppendToArray(out_tris, tris[i]);
 

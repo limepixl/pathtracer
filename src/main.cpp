@@ -75,11 +75,11 @@ int main(int argc, char *argv[])
 	// Vec3f grid_origin = eye - (grid_x / 2.0f) - (grid_y / 2.0f);
 	// grid_origin.z = -2.0f;
 */
-	Array<Triangle> tris = CreateArray<Triangle>();
-	Array<Material *> materials = CreateArray<Material *>();
+	Array<Triangle> tris;
+	Array<Material *> materials;
 
 	if (!LoadModelFromObj("CornellBox-Suzanne.obj", "../../res/", tris, materials))
-	// if (!LoadModelFromObj("robot.obj", "../../res/", tris, materials))
+	 //if (!LoadModelFromObj("robot.obj", "../../res/", tris, materials))
 	{
 		// DeallocateArray(bitmap_buffer);
 		return -1;
@@ -94,8 +94,8 @@ int main(int argc, char *argv[])
 	model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), model_matrix); 
 
 	// for robot
-	// model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.5f, -4.f), model_matrix);
-	// model_matrix = ScaleMat4f(CreateVec3f(0.2f, 0.2f, 0.2f), model_matrix);
+	 //model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.5f, -4.f), model_matrix);
+	 //model_matrix = ScaleMat4f(CreateVec3f(0.2f, 0.2f, 0.2f), model_matrix);
 
 	for (uint32 i = 0; i < tris.size; i++)
 	{
@@ -104,10 +104,11 @@ int main(int argc, char *argv[])
 		tris[i].v2 = model_matrix * tris[i].v2;
 		tris[i].edge1 = tris[i].v1 - tris[i].v0;
 		tris[i].edge2 = tris[i].v2 - tris[i].v0;
+		tris[i].normal = NormalizeVec3f(Cross(tris[i].edge1, tris[i].edge2));
 	}
 
 	// Construct BVH tree and sort triangle list according to it
-	Array<BVHNode> bvh_tree = CreateArray<BVHNode>(2 * tris.size - 1);
+	Array<BVHNode> bvh_tree(2 * tris.size - 1);
 	
 	BVHNode root_node {};
 	root_node.first_tri = 0;
@@ -117,14 +118,13 @@ int main(int argc, char *argv[])
 	// if (!ConstructBVHObjectMedian(tris.data, tris.size, bvh_tree, 0))
 	{
 		printf("Error in BVH construction!\n");
-		// DeallocateArray(bitmap_buffer);
 		return -1;
 	}
 	printf("Finished building BVH!\n");
 	printf("--- Number of BVH nodes: %lu\n", bvh_tree.size);
 
 	// Find all emissive triangles in scene
-	Array<uint32> emissive_tris = CreateArray<uint32>(tris.size);
+	Array<uint32> emissive_tris(tris.size);
 	uint32 num_emissive_tris = 0;
 	for (uint32 i = 0; i < tris.size; i++)
 	{
@@ -135,8 +135,8 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	Array<Sphere> spheres = CreateArray<Sphere>();
-	Scene scene = ConstructScene(spheres, tris, emissive_tris, materials/*bvh_tree*/);
+	//Array<Sphere> spheres;
+	//Scene scene = ConstructScene(spheres, tris, emissive_tris, materials/*bvh_tree*/);
 
 /*
 	// Each thread's handle and data to be used by it
@@ -323,11 +323,11 @@ int main(int argc, char *argv[])
 
 	// Set up data to be passed to SSBOs
 
-	Array<SphereGLSL> spheres_ssbo = CreateArray<SphereGLSL>();
+	Array<SphereGLSL> spheres_ssbo;
 	// AppendToArray(spheres_ssbo, { CreateVec4f(0.0f, 0.0f, -5.0f, 1.0f), {0} });
 	// AppendToArray(spheres_ssbo, { CreateVec4f(0.0f, -101.0f, -5.0f, 100.0f), {0} });
 
-	Array<TriangleGLSL> model_tris_ssbo = CreateArray<TriangleGLSL>(tris.size);
+	Array<TriangleGLSL> model_tris_ssbo(tris.size);
 	for(uint32 i = 0; i < tris.size; i++)
 	{
 		const Triangle &current_tri = tris[i];
@@ -336,7 +336,7 @@ int main(int argc, char *argv[])
 		const Vec3f &v2 = current_tri.v2;
 		const Vec3f &e1 = current_tri.edge1;
 		const Vec3f &e2 = current_tri.edge2;
-		Vec3f n = NormalizeVec3f(Cross(e1, e2));
+		const Vec3f &n = current_tri.normal;
 
 		TriangleGLSL tmp;
 		tmp.v0v1 = CreateVec4f(v0.x, v0.y, v0.z, v1.x);
@@ -347,8 +347,9 @@ int main(int argc, char *argv[])
 
 		AppendToArray(model_tris_ssbo, tmp);
 	}
+	DeallocateArray(tris);
 
-	Array<MaterialGLSL> materials_ssbo = CreateArray<MaterialGLSL>(materials.size);
+	Array<MaterialGLSL> materials_ssbo(materials.size);
 	for(uint32 i = 0; i < materials.size; i++)
 	{
 		const Material *current_mat = materials[i];
@@ -364,7 +365,13 @@ int main(int argc, char *argv[])
 		AppendToArray(materials_ssbo, tmp);
 	}
 
-	Array<BVHNodeGLSL> bvh_ssbo = CreateArray<BVHNodeGLSL>(bvh_tree.size);
+	for (uint32 i = 0; i < materials.size; i++)
+	{
+		free(materials[i]);
+	}
+	DeallocateArray(materials);
+
+	Array<BVHNodeGLSL> bvh_ssbo(bvh_tree.size);
 	for(uint32 i = 0; i < bvh_tree.size; i++)
 	{
 		const BVHNode &current_node = bvh_tree[i];
@@ -382,6 +389,7 @@ int main(int argc, char *argv[])
 
 		AppendToArray(bvh_ssbo, tmp);
 	}
+	DeallocateArray(bvh_tree);
 
 	// Set up SSBOs
 	GLuint ssbo[5];
@@ -494,16 +502,6 @@ int main(int argc, char *argv[])
 
 		SDL_GL_SwapWindow(display.window_handle);
 	}
-
-	// DeallocateArray(bitmap_buffer);
-	DeallocateArray(tris);
-	for (uint32 i = 0; i < materials.size; i++)
-	{
-		free(materials[i]);
-	}
-
-	DeallocateArray(materials);
-	DeallocateArray(bvh_tree);
 
 	DeallocateArray(model_tris_ssbo);
 	DeallocateArray(bvh_ssbo);

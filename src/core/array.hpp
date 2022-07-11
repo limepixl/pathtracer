@@ -19,42 +19,34 @@ struct Array
 		}
 		return data[i];
 	}
+
+	Array(unsigned int size, T *data = nullptr)
+	{
+		internal_size = size;
+
+		if (data == nullptr)
+		{
+			this->size = 0;
+			this->data = new T[size];
+		}
+		else
+		{
+			this->size = size;
+			this->data = data;
+		}
+	}
+
+	Array()
+	{
+		size = ARRAY_STARTING_SIZE;
+		internal_size = ARRAY_STARTING_SIZE;
+		data = nullptr;
+		if (size > 0)
+		{
+			data = new T[size];
+		}
+	}
 };
-
-template <typename T>
-Array<T> CreateArray(unsigned int size, T *data = nullptr)
-{
-	Array<T> res {};
-	res.internal_size = size;
-
-	if (data == nullptr)
-	{
-		res.size = 0;
-		res.data = new T[size];
-	}
-	else
-	{
-		res.size = size;
-		res.data = data;
-	}
-
-	return res;
-}
-
-template <typename T>
-Array<T> CreateArray()
-{
-	Array<T> res {};
-	res.size = ARRAY_STARTING_SIZE;
-	res.internal_size = ARRAY_STARTING_SIZE;
-	res.data = nullptr;
-	if (res.size > 0)
-	{
-		res.data = new T[res.size];
-	}
-
-	return res;
-}
 
 template <typename T>
 void AppendToArray(Array<T> &arr, T element)

@@ -91,8 +91,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 																		 -Wno-gnu-anonymous-struct 
 																		 -Wno-c++98-compat-pedantic
 																		 -Wno-old-style-cast
-																		 -Wno-nested-anon-types
-	)
+																		 -Wno-nested-anon-types)
 	if(UNIX)
 		target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
 	endif()
