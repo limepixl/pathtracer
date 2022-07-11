@@ -513,6 +513,7 @@ vec3 map_to_triangle(vec2 vec, Triangle tri)
 	return p + tri.v0v1.xyz;
 }
 
+// NOTE: BROKEN FOR DIFFUSE PHONG REFLECTION
 vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 {
 	vec3 color = vec3(0.0);
@@ -539,22 +540,23 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 		float cos_theta = dot(data.normal, rd);
 
 		// add light that is emitted from surface (but stop right afterwards)
-		if (bounce <= BOUNCE_COUNT && mat.Le.x >= 0.1)
+		if (bounce <= BOUNCE_COUNT && mat.Le.x >= 0.5)
 		{
 			// TODO: only add if the ray was added by a single lonely bounce from
 			// the mirror instead of just the last bounce being the mirror?
-			bool last_bounce_reflected = (old_mat_changed && old_mat.type_diffuse.x == 3.0 && 
+			bool last_bounce_reflected = (old_mat_changed && 
+										  abs(old_mat.type_diffuse.x - 3.0) < EPSILON && 
 										  all(equal(old_mat.type_diffuse.yzw, vec3(0.0))) && 
 										  any(greaterThan(old_mat.specular_spec, vec4(0.01))));
 			if (bounce == 0 || last_bounce_reflected)
-				return mat.Le.xyz;
+				color = mat.Le.xyz;
 
 			return color;
 		}
 		// If there is at least 1 light source in the scene and the material
 		// of the surface we hit is diffuse, we can use NEE.
 		else if (light_tri_indices.length() > 0 && 
-		        (mat.type_diffuse.x == 0.0 || (mat.type_diffuse.x == 3.0 && mat.specular_spec.xyz == vec3(0.0))))
+		        (abs(mat.type_diffuse.x) < EPSILON || (abs(mat.type_diffuse.x - 3.0) < EPSILON && mat.specular_spec.xyz == vec3(0.0))))
 		{
 			// sample light sources for direct illumination
 			vec3 direct_illumination = vec3(0.0);
@@ -611,7 +613,7 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 					// be a one-sided light source.
 					float cos_theta_y = max(0.0, dot(shadow_data.normal, -shadow_rd));
 
-					float G = cos_theta_x * cos_theta_y / squared_dist;
+					float G = (cos_theta_x * cos_theta_y) / squared_dist;
 
 					direct_illumination += light_source_mat.Le.xyz * BRDF * G / pdf_light_area;
 					// if (direct_illumination.x != direct_illumination.x || direct_illumination.y != direct_illumination.y || direct_illumination.z != direct_illumination.z)
@@ -633,7 +635,7 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			// throughput_term *= PI * BRDF;
 
 			ro = data.point + EPSILON * data.normal;
-			rd =  map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), data.normal);
+			rd = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), data.normal);
 		}
 		else if (abs(mat.type_diffuse.x - 1.0) < EPSILON)
 		{
@@ -722,7 +724,7 @@ vec3 render_function(uvec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
 	vec3 ray_direction = normalize(point_on_grid - eye);
 
-	return estimator_path_tracing_naive(eye, ray_direction, rng_state);
+	return estimator_path_tracing_nee(eye, ray_direction, rng_state);
 }
 
 void main() 

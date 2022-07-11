@@ -34,7 +34,7 @@ uint32 LoadShaderFromFiles(const char *compute_source_path)
 		exit(-1);
 	}
 
-	Array<char> shader_source = CreateArray<char>(file_length + 1);
+	Array<char> shader_source(file_length + 1);
 	shader_source.size = file_length + 1;
 	fread(shader_source.data, file_length * sizeof(char), 1, compute_file);
 	shader_source[file_length] = '\0';
@@ -115,7 +115,7 @@ uint32 LoadShaderFromFiles(const char *vertex_source_path,
 		exit(-1);
 	}
 
-	Array<char> shader_source = CreateArray<char>(file_length + 1);
+	Array<char> shader_source(file_length + 1);
 	shader_source.size = file_length + 1;
 	fread(shader_source.data, file_length * sizeof(char), 1, vertex_file);
 	shader_source[file_length] = '\0';
@@ -154,7 +154,7 @@ uint32 LoadShaderFromFiles(const char *vertex_source_path,
 		exit(-1);
 	}
 
-	shader_source = CreateArray<char>(file_length + 1);
+	shader_source = Array<char>(file_length + 1);
 	shader_source.size = file_length + 1;
 	fread(shader_source.data, file_length * sizeof(char), 1, fragment_file);
 	shader_source[file_length] = '\0';

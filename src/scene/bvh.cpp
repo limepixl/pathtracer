@@ -275,7 +275,7 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 			// Compute cost (Sweep SAH method)
 			// Cost function:   C(L, R) = ( N(L) * S(L) + N(R) * S(R) ) / S(P)
 
-			Array<float> partition_costs = CreateArray<float>(num_tris - 1);
+			Array<float> partition_costs(num_tris - 1);
 			partition_costs.size = num_tris - 1;
 
 			AABB V_L, V_R;
