@@ -1,4 +1,3 @@
-#define _CRT_RAND_S
 #include "math.hpp"
 #include "../scene/triangle.hpp"
 #include <cmath>
@@ -124,7 +123,7 @@ Vec3f Step(Vec3f edge, Vec3f x)
 
 float Ceil(float num)
 {
-	if (num - (int32)num > 0.0f)
+	if (num - (float)((int32)num) > 0.0f)
 		return float((int32)num + 1);
 
 	return num;

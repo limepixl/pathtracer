@@ -37,7 +37,7 @@ AABB ConstructAABBFromTris(Triangle *tris, uint32 num_tris)
 	return aabb;
 }
 
-void ExpandAABBWithTri(AABB &aabb, Triangle &tri)
+static void ExpandAABBWithTri(AABB &aabb, Triangle &tri)
 {
 	Vec3f offset_vec = CreateVec3f(0.01f);
 
@@ -162,7 +162,7 @@ static int axis = 0;
 
 // Returns negative integer if a < b, a positive integer if a > b
 // and 0 if a == b. Used for qsort in ConstructBVH() below.
-int compare_tris(const void *a, const void *b)
+static int compare_tris(const void *a, const void *b)
 {
 	Triangle arg1 = *(const Triangle *)a;
 	Triangle arg2 = *(const Triangle *)b;
@@ -202,7 +202,7 @@ int compare_tris(const void *a, const void *b)
 	}
 }
 
-float SurfaceAreaOfAABB(AABB aabb)
+static float SurfaceAreaOfAABB(AABB aabb)
 {
 	Vec3f dims = aabb.bmax - aabb.bmin;
 	// * 2.0f is not needed for comparison purposes
@@ -231,7 +231,7 @@ bool ConstructBVHObjectMedian(Triangle *tris, uint32 num_tris, Array<BVHNode> &b
 		BVHNode left_child {};
 		left_child.first_tri = current_node.first_tri;
 		left_child.num_tris = left_child_num_tris;
-		uint32 left_index = bvh_tree.size;
+		uint32 left_index = (uint32)bvh_tree.size;
 		AppendToArray(bvh_tree, left_child);
 
 		BVHNode right_child {};
@@ -291,7 +291,7 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 				ExpandAABBWithTri(V_R, new_tri);
 				float S_R = SurfaceAreaOfAABB(V_R);
 
-				float res_R = S_R * i;
+				float res_R = S_R * (float)i;
 				partition_costs[num_tris - i - 1] = res_R;
 			}
 
@@ -302,7 +302,7 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 				ExpandAABBWithTri(V_L, new_tri);
 
 				float S_L = SurfaceAreaOfAABB(V_L);
-				float res_L = S_L * i;
+				float res_L = S_L * (float)i;
 				partition_costs[i - 1] += res_L;
 			}
 
@@ -357,7 +357,7 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 		// Sort triangles along the optimal axis
 		if (optimal_axis != 2)
 		{
-			axis = optimal_axis;
+			axis = (int32)optimal_axis;
 			qsort(tris, num_tris, sizeof(Triangle), compare_tris);
 		}
 
@@ -368,7 +368,7 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 		BVHNode left_child {};
 		left_child.first_tri = current_node.first_tri;
 		left_child.num_tris = left_child_num_tris;
-		uint32 left_index = bvh_tree.size;
+		uint32 left_index = (uint32)bvh_tree.size;
 		AppendToArray(bvh_tree, left_child);
 
 		BVHNode right_child {};

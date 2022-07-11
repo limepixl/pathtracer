@@ -19,7 +19,7 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 
 	// Load the default OGL library and get all function
 	// definitions via GLAD down below.
-	SDL_GL_LoadLibrary(NULL);
+	SDL_GL_LoadLibrary(nullptr);
 
 	// OpenGL context version and profile
 	SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
@@ -38,7 +38,7 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 	result.window_handle = SDL_CreateWindow(title,
 											SDL_WINDOWPOS_CENTERED,
 											SDL_WINDOWPOS_CENTERED,
-											width, height,
+											(int32)width, (int32)height,
 											SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
 
 	if (result.window_handle == nullptr)
@@ -101,12 +101,12 @@ bool InitRenderBuffer(Display &window)
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 	glNamedBufferStorage(vbo[0], sizeof(vertices), vertices, 0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)nullptr);
 	glEnableVertexAttribArray(0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 	glNamedBufferStorage(vbo[1], sizeof(uvs), uvs, 0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)nullptr);
 	glEnableVertexAttribArray(1);
 
 	// Set up the texture
