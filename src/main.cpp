@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	printf("--- Number of triangles: %lu!\n", tris.size);
+	printf("--- Number of triangles: %llu!\n", tris.size);
 
 	// Apply model matrix to tris
 	Mat4f model_matrix = CreateIdentityMat4f();
@@ -114,14 +114,14 @@ int main(int argc, char *argv[])
 	root_node.first_tri = 0;
 	AppendToArray(bvh_tree, root_node);
 	
-	if (!ConstructBVHSweepSAH(tris.data, tris.size, bvh_tree, 0))
-	// if (!ConstructBVHObjectMedian(tris.data, tris.size, bvh_tree, 0))
+	if (!ConstructBVHSweepSAH(tris._data, (uint32)tris.size, bvh_tree, 0))
+	// if (!ConstructBVHObjectMedian(tris.data, (uint32)tris.size, bvh_tree, 0))
 	{
 		printf("Error in BVH construction!\n");
 		return -1;
 	}
 	printf("Finished building BVH!\n");
-	printf("--- Number of BVH nodes: %lu\n", bvh_tree.size);
+	printf("--- Number of BVH nodes: %llu\n", bvh_tree.size);
 
 	// Find all emissive triangles in scene
 	Array<uint32> emissive_tris(tris.size);
@@ -400,7 +400,7 @@ int main(int argc, char *argv[])
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[0]);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo[0]);
-		glNamedBufferStorage(ssbo[0], spheres_ssbo.size * sizeof(SphereGLSL), &(spheres_ssbo.data[0]), 0);
+		glNamedBufferStorage(ssbo[0], spheres_ssbo.size * sizeof(SphereGLSL), &(spheres_ssbo._data[0]), 0);
 	}
 
 	if(model_tris_ssbo.size > 0)
@@ -442,7 +442,7 @@ int main(int argc, char *argv[])
 	uint32 frame_count = 0;
 
 	glUseProgram(display.compute_shader_program);
-	uint32 frame_data_location = glGetUniformLocation(display.compute_shader_program, "u_frame_data");
+	uint32 frame_data_location = (uint32)glGetUniformLocation(display.compute_shader_program, "u_frame_data");
 
 	while(display.is_open)
 	{

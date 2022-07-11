@@ -132,12 +132,12 @@ Vec2f operator-(const Vec2f &lhs, const Vec2f &rhs)
 	return { lhs.x - rhs.x, lhs.y - rhs.y };
 }
 
-Vec2f operator+(const Vec2f lhs, const Vec2f rhs)
-{
-	return { lhs.x + rhs.x, lhs.y + rhs.y };
-}
+//Vec2f operator+(const Vec2f lhs, const Vec2f rhs)
+//{
+//	return { lhs.x + rhs.x, lhs.y + rhs.y };
+//}
 
-Vec2f operator*(const float lhs, const Vec2f rhs)
-{
-	return { lhs * rhs.x, lhs * rhs.y };
-}
+//Vec2f operator*(const float lhs, const Vec2f rhs)
+//{
+//	return { lhs * rhs.x, lhs * rhs.y };
+//}

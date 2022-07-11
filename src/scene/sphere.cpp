@@ -24,7 +24,7 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data, float &tmax)
 	if (discriminant >= 0)
 	{
 		float sqrtDiscriminant = sqrtf(discriminant);
-		if (discriminant == 0) // 2 equal real solutions
+		if (Abs(discriminant) < EPSILON) // 2 equal real solutions
 		{
 			float t = -b / (2.0f * a);
 			if (t > TMIN && t < tmax)

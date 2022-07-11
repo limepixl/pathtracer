@@ -91,7 +91,10 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 																		 -Wno-gnu-anonymous-struct 
 																		 -Wno-c++98-compat-pedantic
 																		 -Wno-old-style-cast
-																		 -Wno-nested-anon-types)
+																		 -Wno-nested-anon-types
+																		 -Wno-reserved-macro-identifier
+																		 -Wno-nonportable-system-include-path
+																		 -Wno-undef)
 	if(UNIX)
 		target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
 	endif()
@@ -107,7 +110,7 @@ cmake_print_variables(CMAKE_CXX_FLAGS)
 cmake_print_variables(CMAKE_CXX_FLAGS_RELEASE)
 cmake_print_variables(CMAKE_CXX_FLAGS_DEBUG)
 
-target_include_directories(${PROJECT_NAME} PUBLIC thirdparty/glad/include thirdparty/SDL2-2.0.22/include)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC thirdparty/glad/include thirdparty/SDL2-2.0.22/include thirdparty/tinyobjloader)
 target_link_directories(${PROJECT_NAME} PUBLIC thirdparty/SDL2-2.0.22/lib/x64)
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL2main SDL2)
 

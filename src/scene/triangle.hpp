@@ -11,8 +11,6 @@ struct Triangle
 	Vec3f edge1, edge2;
 
 	uint32 mat_index;
-
-	~Triangle() = default;
 };
 
 float Area(Triangle *tri);

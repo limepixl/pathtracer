@@ -17,7 +17,7 @@ uint32 LoadShaderFromFiles(const char *compute_source_path)
 	// Load shader from file
 	
 	FILE *compute_file = fopen(compute_source_path, "rb");
-	if(compute_file == NULL)
+	if(compute_file == nullptr)
 	{
 		printf("ERROR (SHADER): Failed to load shader file at path: %s\n", compute_source_path);
 		exit(-1);
@@ -34,13 +34,13 @@ uint32 LoadShaderFromFiles(const char *compute_source_path)
 		exit(-1);
 	}
 
-	Array<char> shader_source(file_length + 1);
-	shader_source.size = file_length + 1;
-	fread(shader_source.data, file_length * sizeof(char), 1, compute_file);
-	shader_source[file_length] = '\0';
+	Array<char> shader_source((uint64)file_length + 1);
+	shader_source.size = (uint64)file_length + 1;
+	fread(shader_source._data, (uint32)file_length * sizeof(char), 1, compute_file);
+	shader_source[(uint32)file_length] = '\0';
 
 	GLuint compute_shader = glCreateShader(GL_COMPUTE_SHADER);
-	glShaderSource(compute_shader, 1, &(shader_source.data), NULL);
+	glShaderSource(compute_shader, 1, &(shader_source._data), nullptr);
 	glCompileShader(compute_shader);
 
 	GLint buffer_length;
@@ -98,7 +98,7 @@ uint32 LoadShaderFromFiles(const char *vertex_source_path,
 	// Load shaders from files
 	
 	FILE *vertex_file = fopen(vertex_source_path, "rb");
-	if(vertex_file == NULL)
+	if(vertex_file == nullptr)
 	{
 		printf("ERROR (SHADER): Failed to load shader file at path: %s\n", vertex_source_path);
 		exit(-1);
@@ -115,13 +115,13 @@ uint32 LoadShaderFromFiles(const char *vertex_source_path,
 		exit(-1);
 	}
 
-	Array<char> shader_source(file_length + 1);
-	shader_source.size = file_length + 1;
-	fread(shader_source.data, file_length * sizeof(char), 1, vertex_file);
-	shader_source[file_length] = '\0';
+	Array<char> shader_source((uint64)file_length + 1);
+	shader_source.size = (uint64)file_length + 1;
+	fread(shader_source._data, (uint32)file_length * sizeof(char), 1, vertex_file);
+	shader_source[(uint32)file_length] = '\0';
 
 	GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertex_shader, 1, &(shader_source.data), NULL);
+	glShaderSource(vertex_shader, 1, &(shader_source._data), nullptr);
 	glCompileShader(vertex_shader);
 
 	GLint compiled;
@@ -138,7 +138,7 @@ uint32 LoadShaderFromFiles(const char *vertex_source_path,
 	DeallocateArray(shader_source);
 
 	FILE *fragment_file = fopen(fragment_source_path, "rb");
-	if(fragment_file == NULL)
+	if(fragment_file == nullptr)
 	{
 		printf("ERROR (SHADER): Failed to load shader file at path: %s\n", fragment_source_path);
 		exit(-1);
@@ -154,13 +154,13 @@ uint32 LoadShaderFromFiles(const char *vertex_source_path,
 		exit(-1);
 	}
 
-	shader_source = Array<char>(file_length + 1);
-	shader_source.size = file_length + 1;
-	fread(shader_source.data, file_length * sizeof(char), 1, fragment_file);
-	shader_source[file_length] = '\0';
+	shader_source = Array<char>((uint64)file_length + 1);
+	shader_source.size = (uint64)file_length + 1;
+	fread(shader_source._data, (uint32)file_length * sizeof(char), 1, fragment_file);
+	shader_source[(uint32)file_length] = '\0';
 
 	GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragment_shader, 1, &(shader_source.data), NULL);
+	glShaderSource(fragment_shader, 1, &(shader_source._data), nullptr);
 	glCompileShader(fragment_shader);
 
 	glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &compiled);

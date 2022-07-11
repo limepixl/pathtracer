@@ -7,9 +7,9 @@
 template <typename T>
 struct Array
 {
-	T *data;
-	unsigned long size;
-	unsigned long internal_size; // the size of the allocated memory
+	T *_data;
+	unsigned long long size;
+	unsigned long long internal_size; // the size of the allocated memory
 
 	T &operator[](unsigned int i)
 	{
@@ -17,22 +17,22 @@ struct Array
 		{ 
 			printf("ERROR!\n"); 
 		}
-		return data[i];
+		return _data[i];
 	}
 
-	Array(unsigned int size, T *data = nullptr)
+	Array(unsigned long long count, T *data = nullptr)
 	{
-		internal_size = size;
+		internal_size = count;
 
 		if (data == nullptr)
 		{
 			this->size = 0;
-			this->data = new T[size];
+			this->_data = new T[count];
 		}
 		else
 		{
-			this->size = size;
-			this->data = data;
+			this->size = count;
+			this->_data = data;
 		}
 	}
 
@@ -40,10 +40,10 @@ struct Array
 	{
 		size = ARRAY_STARTING_SIZE;
 		internal_size = ARRAY_STARTING_SIZE;
-		data = nullptr;
+		_data = nullptr;
 		if (size > 0)
 		{
-			data = new T[size];
+			_data = new T[size];
 		}
 	}
 };
@@ -55,7 +55,7 @@ void AppendToArray(Array<T> &arr, T element)
 	if (arr.size == arr.internal_size)
 	{
 		// Increase old size by 1.5x (with some exceptions)
-		unsigned int old_size = arr.internal_size;
+		unsigned long long old_size = arr.internal_size;
 		if (old_size <= 1)
 			arr.internal_size += 2;
 		else
@@ -64,12 +64,12 @@ void AppendToArray(Array<T> &arr, T element)
 		// Allocate new buffer with new size and
 		// copy over the contents from the old buffer.
 		T *tmp_data = new T[arr.internal_size];
-		memcpy(tmp_data, arr.data, old_size * sizeof(T));
-		delete[] arr.data;
-		arr.data = tmp_data;
+		memcpy(tmp_data, arr._data, old_size * sizeof(T));
+		delete[] arr._data;
+		arr._data = tmp_data;
 	}
 
-	arr.data[arr.size] = element;
+	arr._data[arr.size] = element;
 	arr.size++;
 }
 
@@ -90,7 +90,7 @@ void PrependToArray(Array<T> &arr, T &element)
 	// Shift all elements to the right
 	T *tmp_data = new T[arr.internal_size];
 	if(arr.size < arr.internal_size)
-		memcpy(tmp_data + 1, arr.data, arr.size * sizeof(T));
+		memcpy(tmp_data + 1, arr._data, arr.size * sizeof(T));
 	else
 	{
 		printf("ERROR 123!\n");
@@ -98,8 +98,8 @@ void PrependToArray(Array<T> &arr, T &element)
 	
 	tmp_data[0] = element;
 
-	delete[] arr.data;
-	arr.data = tmp_data;
+	delete[] arr._data;
+	arr._data = tmp_data;
 	arr.size++;
 }
 
@@ -112,8 +112,8 @@ T PopFromArray(Array<T> &arr)
 		printf("ERROR: Popping from empty array!\n");
 	}
 
-	T result = arr.data[arr.size - 1];
-	arr.data[arr.size - 1] = {};
+	T result = arr._data[arr.size - 1];
+	arr._data[arr.size - 1] = {};
 	arr.size--;
 
 	return result;
@@ -122,7 +122,7 @@ T PopFromArray(Array<T> &arr)
 template <typename T>
 T &Back(Array<T> &arr)
 {
-	return arr.data[arr.size - 1];
+	return arr._data[arr.size - 1];
 }
 
 template <typename T>
@@ -131,17 +131,17 @@ void ClearArray(Array<T> &arr)
 	if (arr.size == 0)
 		return;
 
-	memset(arr.data, 0, arr.size * sizeof(T));
+	memset(arr._data, 0, arr.size * sizeof(T));
 	arr.size = 0;
 }
 
 template <typename T>
 void DeallocateArray(Array<T> &arr)
 {
-	if (arr.data != nullptr)
+	if (arr._data != nullptr)
 	{
-		delete[] arr.data;
-		arr.data = nullptr;
+		delete[] arr._data;
+		arr._data = nullptr;
 	}
 
 	arr.size = 0;

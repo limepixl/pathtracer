@@ -31,13 +31,13 @@ bool TriangleIntersect(Ray ray, Triangle &tri, HitData *data, float tmax)
 	float determinant = Dot(tri.edge1, pvec);
 
 	// Ray direction parallel to the triangle plane
-#if TWO_SIDED_LIGHT
-	if (Abs(determinant) < EPSILON)
-		return false;
-#else
+//#if TWO_SIDED_LIGHT
+//	if (Abs(determinant) < EPSILON)
+//		return false;
+//#else
 	if (determinant < EPSILON)
 		return false;
-#endif
+//#endif
 
 	float inv_determinant = 1.0f / determinant;
 	Vec3f tvec = ray.origin - tri.v0;
