@@ -1,8 +1,8 @@
 #include "display.hpp"
-#include <glad/glad.h>
+#include "../resource/shader.hpp"
 #include <SDL.h>
 #include <cstdio>
-#include "../resource/shader.hpp"
+#include <glad/glad.h>
 
 Display CreateDisplay(const char *title, uint32 width, uint32 height)
 {
@@ -11,7 +11,7 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 	result.height = height;
 	result.is_open = true;
 
-	if(SDL_Init(SDL_INIT_VIDEO))
+	if (SDL_Init(SDL_INIT_VIDEO))
 	{
 		printf("ERROR: Failed to initialize SDL.\n");
 		exit(-1);
@@ -36,12 +36,12 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 
 	// Window creation
 	result.window_handle = SDL_CreateWindow(title,
-										    SDL_WINDOWPOS_CENTERED,
-										    SDL_WINDOWPOS_CENTERED,
-										    width, height,
-										    SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+											SDL_WINDOWPOS_CENTERED,
+											SDL_WINDOWPOS_CENTERED,
+											width, height,
+											SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
 
-	if(result.window_handle == nullptr)
+	if (result.window_handle == nullptr)
 	{
 		printf("ERROR (WINDOW): Failed to create SDL Window!\n");
 		exit(-1);
@@ -50,11 +50,18 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 	// Create OpenGL context and attach to window
 	result.context = SDL_GL_CreateContext(result.window_handle);
 
-	if(!gladLoadGLLoader(SDL_GL_GetProcAddress))
+	if (!gladLoadGLLoader(SDL_GL_GetProcAddress))
 	{
 		printf("ERROR (WINDOW): Failed to initialize OpenGL context\n");
 		exit(-1);
 	}
+
+	// Query limits
+	GLint data1, data2, data3;
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &data1);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &data2);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &data3);
+	printf("Max size of work group (x, y, z): %d %d %d\n", data1, data2, data3);
 
 	// Turn off VSync
 	SDL_GL_SetSwapInterval(0);
@@ -67,8 +74,7 @@ bool InitRenderBuffer(Display &window)
 	glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 	glViewport(0, 0, window.width, window.height);
 
-	float vertices[] =
-	{
+	float vertices[] = {
 		-1.0f, -1.0f, 0.0f,
 		1.0f, -1.0f, 0.0f,
 		1.0f, 1.0f, 0.0f,
@@ -77,8 +83,7 @@ bool InitRenderBuffer(Display &window)
 		-1.0f, -1.0f, 0.0f
 	};
 
-	float uvs[] =
-	{
+	float uvs[] = {
 		0.0f, 0.0f,
 		1.0f, 0.0f,
 		1.0f, 1.0f,
@@ -114,8 +119,8 @@ bool InitRenderBuffer(Display &window)
 	glBindImageTexture(0, window.render_buffer_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 	glBindTextureUnit(0, window.render_buffer_texture);
 
-	window.rb_shader_program = LoadShaderFromFiles("../shaders/framebuffer.vert", "../shaders/framebuffer.frag");	
-	window.compute_shader_program = LoadShaderFromFiles("../shaders/framebuffer.comp");
+	window.rb_shader_program = LoadShaderFromFiles("../../shaders/framebuffer.vert", "../../shaders/framebuffer.frag");
+	window.compute_shader_program = LoadShaderFromFiles("../../shaders/framebuffer.comp");
 
 	return true;
 }

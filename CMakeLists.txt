@@ -15,7 +15,7 @@ endif()
 # List of project source and header files
 set(SOURCE_FILES 
 	src/main.cpp
-	src/threads.cpp
+	# src/threads.cpp
 	src/loader.cpp
 
 	src/scene/bvh.cpp
@@ -39,7 +39,7 @@ set(SOURCE_FILES
 )
 
 set(HEADER_FILES
-	src/threads.hpp
+	# src/threads.hpp
 	src/loader.hpp
 	src/defines.hpp
 	src/pathtracer.hpp
@@ -85,8 +85,14 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 include(CMakePrintHelpers)
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-
-	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -Wno-missing-braces -Wno-unused-variable)
+	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -Wno-missing-braces 
+																		 -Wno-unused-variable 
+																		 -Wno-c++98-compat 
+																		 -Wno-gnu-anonymous-struct 
+																		 -Wno-c++98-compat-pedantic
+																		 -Wno-old-style-cast
+																		 -Wno-nested-anon-types
+	)
 	if(UNIX)
 		target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
 	endif()
@@ -105,3 +111,5 @@ cmake_print_variables(CMAKE_CXX_FLAGS_DEBUG)
 target_include_directories(${PROJECT_NAME} PUBLIC thirdparty/glad/include thirdparty/SDL2-2.0.22/include)
 target_link_directories(${PROJECT_NAME} PUBLIC thirdparty/SDL2-2.0.22/lib/x64)
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL2main SDL2)
+
+configure_file(thirdparty/SDL2-2.0.22/lib/x64/SDL2.dll ${CMAKE_BINARY_DIR}/SDL2.dll COPYONLY)
