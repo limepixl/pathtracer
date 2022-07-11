@@ -58,13 +58,6 @@ int main(int argc, char *argv[])
 	Display display = CreateDisplay("Pathtracer", width, height);
 	InitRenderBuffer(display);
 
-	// Query limits
-	GLint data1, data2, data3;
-	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &data1);
-	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &data2);
-	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &data3);
-	printf("Max size of work group (x, y, z): %d %d %d\n", data1, data2, data3);
-
 /*
 	// Memory allocation for bitmap buffer
 	// Array<uint8> bitmap_buffer = CreateArray<uint8>(width * height * 3);
@@ -85,8 +78,8 @@ int main(int argc, char *argv[])
 	Array<Triangle> tris = CreateArray<Triangle>();
 	Array<Material *> materials = CreateArray<Material *>();
 
-	if (!LoadModelFromObj("CornellBox-Suzanne.obj", "../res/", tris, materials))
-	// if (!LoadModelFromObj("robot.obj", "../res/", tris, materials))
+	if (!LoadModelFromObj("CornellBox-Suzanne.obj", "../../res/", tris, materials))
+	// if (!LoadModelFromObj("robot.obj", "../../res/", tris, materials))
 	{
 		// DeallocateArray(bitmap_buffer);
 		return -1;
