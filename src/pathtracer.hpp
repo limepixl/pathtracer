@@ -428,13 +428,13 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 		else if (mat_x->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
 		{
 			// Pick the reflected direciton
-			Vec3f reflected_dir = Reflect(-ray.direction, normal_x);
+			Vec3f reflected_dir = NormalizeVec3f(Reflect(-ray.direction, normal_x));
 			ray = { x + EPSILON * normal_x, reflected_dir, 1.0f / reflected_dir };
 		}
 		else if (mat_x->type == MaterialType::MATERIAL_PHONG)
 		{
 			// Pick direction in the cosine lobe around reflected dir
-			Vec3f reflected_dir = Reflect(-ray.direction, normal_x);
+			Vec3f reflected_dir = NormalizeVec3f(Reflect(-ray.direction, normal_x));
 			Mat3f tnb = ConstructTNB(reflected_dir);
 
 			float inv = 1.0f / (mat_x->n_spec + 1.0f);
