@@ -256,6 +256,7 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 	BVHNode &current_node = bvh_tree[bvh_index];
 	current_node.node_AABB = ConstructAABBFromTris(tris, num_tris);
 	current_node.num_tris = num_tris;
+	current_node.axis = -1;
 
 	float S_P = SurfaceAreaOfAABB(current_node.node_AABB);
 
@@ -377,6 +378,7 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 		AppendToArray(bvh_tree, right_child);
 
 		current_node.left = left_index;
+		current_node.axis = (int16)axis;
 
 		// printf("Left child #tris: %d\n", left_child_num_tris);
 		// printf("Right child #tris: %d\n", right_child_num_tris);

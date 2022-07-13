@@ -1,0 +1,2 @@
+- Optimize compute shader
+- Implement a better BRDF that isn't Phong

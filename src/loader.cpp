@@ -8,6 +8,11 @@
 #include <tiny_obj_loader.h>
 #include <string>
 
+static inline bool compare_tinyobjvec3_with_vec3f(const tinyobj::real_t* vec1, const Vec3f& vec2)
+{
+	return Abs(vec1[0] - vec2.x) < EPSILON && Abs(vec1[1] - vec2.y) < EPSILON && Abs(vec1[2] - vec2.z) < EPSILON;
+}
+
 bool LoadModelFromObj(const char *file_name, const char *path,
 					  Array<struct Triangle> &out_tris,
 					  Array<struct Material *> &out_materials)
@@ -36,14 +41,13 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 	}
 
 	// int64 numVertices = (int64)(attrib.vertices.size() / 3);
-	uint64 num_normals = (uint64)(attrib.normals.size() / 3);
+	uint32 num_normals = (uint32)(attrib.normals.size() / 3);
 	// int64 numUVs = (int64)(attrib.texcoords.size() / 2);
 	uint32 num_materials = (uint32)(materials.size());
 	uint32 num_shapes = (uint32)(shapes.size());
 
 	// Initialize out materials
 	int32 num_loaded_materials = 0;
-	out_materials = Array<Material *>(num_materials);
 	// printf("Loaded %llu materials!\n", materials.size());
 
 	// Keep track of emissive triangles so that we can keep them as
@@ -151,11 +155,22 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 			bool unique = true;
 			for (uint32 m = 0; m < (uint32)num_loaded_materials; m++)
 			{
-				if (!strcmp(mat.name.c_str(), out_materials[m]->name))
+				//if (!strcmp(mat.name.c_str(), out_materials[m]->name))
 				{
-					unique = false;
-					triangle_mat_index = m;
-					break;
+					Vec3f diffuse = out_materials[m]->diffuse * PI;
+					Vec3f specular = out_materials[m]->specular;
+					Vec3f Le = out_materials[m]->Le;
+					float spec = out_materials[m]->n_spec;
+
+					if (spec == mat.shininess && 
+						compare_tinyobjvec3_with_vec3f(mat.diffuse, diffuse) &&
+						compare_tinyobjvec3_with_vec3f(mat.specular, specular) &&
+						compare_tinyobjvec3_with_vec3f(mat.emission, Le))
+					{
+						unique = false;
+						triangle_mat_index = m;
+						break;
+					}
 				}
 			}
 
@@ -181,36 +196,43 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 					triangle_mat_index = (uint32)num_loaded_materials++;
 				}
 
+				// TODO: replace with better BRDF
+				else
+				{
+					printf("UNSUPPORTED MATERIAL!\n");
+					exit(-1);
+				}
+
 				// Blinn-Phong BRDF with Lambertian diffuse
-				else if (mat.illum == 2)
-				{
-					Material *tmp_mat = (Material *)malloc(sizeof(Material));
-					*tmp_mat = CreateMaterial(MaterialType::MATERIAL_PHONG,
-											  diffuse,
-											  specular,
-											  mat.shininess,
-											  emission,
-											  mat.name.c_str());
+				//else if (mat.illum == 2)
+				//{
+				//	Material *tmp_mat = (Material *)malloc(sizeof(Material));
+				//	*tmp_mat = CreateMaterial(MaterialType::MATERIAL_PHONG,
+				//							  diffuse,
+				//							  specular,
+				//							  mat.shininess,
+				//							  emission,
+				//							  mat.name.c_str());
 
-					AppendToArray(out_materials, tmp_mat);
-					triangle_mat_index = (uint32)num_loaded_materials++;
-				}
+				//	AppendToArray(out_materials, tmp_mat);
+				//	triangle_mat_index = (uint32)num_loaded_materials++;
+				//}
 
-				// Reflection
-				// TODO: fix hack
-				else if (mat.illum == 5 || (mat.illum == 2 && specular == CreateVec3f(1.0f)))
-				{
-					Material *tmp_mat = (Material *)malloc(sizeof(Material));
-					*tmp_mat = CreateMaterial(MaterialType::MATERIAL_IDEAL_REFLECTIVE,
-											  diffuse,
-											  specular,
-											  mat.shininess,
-											  emission,
-											  mat.name.c_str());
+				//// Reflection
+				//// TODO: fix hack
+				//else if (mat.illum == 5 || (mat.illum == 2 && specular == CreateVec3f(1.0f)))
+				//{
+				//	Material *tmp_mat = (Material *)malloc(sizeof(Material));
+				//	*tmp_mat = CreateMaterial(MaterialType::MATERIAL_IDEAL_REFLECTIVE,
+				//							  diffuse,
+				//							  specular,
+				//							  mat.shininess,
+				//							  emission,
+				//							  mat.name.c_str());
 
-					AppendToArray(out_materials, tmp_mat);
-					triangle_mat_index = (uint32)num_loaded_materials++;
-				}
+				//	AppendToArray(out_materials, tmp_mat);
+				//	triangle_mat_index = (uint32)num_loaded_materials++;
+				//}
 			}
 
 			// Create triangle
@@ -233,5 +255,7 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 		AppendToArray(out_tris, tris[i]);
 
 	printf("Finished loading .obj model!\n");
+	printf("--- Number of triangles: %llu\n", out_tris.size);
+	printf("--- Number of materials: %llu\n", out_materials.size);
 	return true;
 }

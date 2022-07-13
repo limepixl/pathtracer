@@ -1,9 +1,6 @@
 #version 460 core
-layout(local_size_x = 8, local_size_y = 4, local_size_z = 1) in;
-layout(rgba32f, binding = 0) uniform image2D screen;
-
-// precision lowp float;
-// precision lowp int;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(rgba16f, binding = 0) uniform image2D screen;
 
 // Uniform variables
 uniform uvec2 u_frame_data; // seed, frame#
@@ -18,60 +15,49 @@ uniform uvec2 u_frame_data; // seed, frame#
 #define TMIN            0.001
 #define TMAX            10000.0
 #define BOUNCE_COUNT    5
-#define NUM_SHADOW_RAYS 1
+// #define NUM_SHADOW_RAYS 1
 
 // Misc
 #define ENVIRONMENT_MAP_LE 1.0
 
 // SSBO helper structs
 
-// size: 80
 struct Triangle
 {
-	vec4 v0v1;   // v0.x, v0.y, v0.z, v1.x
-	vec4 v1v2;   // v1.y, v1.z, v2.x, v2.y
-	vec4 v2norm; // v2.z, n.x, n.y, n.z
-	vec4 e1e2;   // e1.x, e1.y, e1.z, e2.x
-	vec4 e2matX; // e2.y, e2.z, mat_index, empty
+	vec4  data1;  // v0.x, v0.y, v0.z, n.x
+	vec4  data2;  // v1.x, v1.y, v1.z, n.y
+	vec4  data3;  // v2.x, v2.y, v2.z, n.z
+	uvec4 data4;  // mat_index, 0, 0, 0
 };
 
-// size: 32
 struct Sphere
 {
 	vec4 sphere_data; // o.x, o.y, o.z, radius
 	uvec4 mat_index;
 };
 
-// size: 48
 struct Material
 {
 	vec4 type_diffuse;  // mat_type, diff.x, diff.y, diff.z
 	vec4 specular_spec; // spec.x, spec.y, spec.z, n_spec
-	vec4 Le;            // Le.x, Le.y, Le.z, empy
+	vec4 Le;            // Le.x, Le.y, Le.z, empty
 };
 
-// size: 32
-struct AABB
-{
-	vec4 data1; // bmin.xyz, bmax.x
-	vec4 data2; // bmax.yz
-};
-
-// size: 48
 struct BVHNode
 {
-	AABB node_AABB;
-	uvec4 data; // left/first_tri, num_tris
+	vec4 data1; // bmin.x, bmin.y, bmin.z, left/first_tri
+	vec4 data2; // bmax.x, bmax.y, bmax.z, num_tris
+	vec4 data3; // axis, 0, 0, 0
 };
 
 // SSBOs
 
-layout(std140, binding = 1) readonly buffer SpheresSSBO
+layout(std430, binding = 1) readonly buffer SpheresSSBO
 {
 	Sphere spheres[];
 };
 
-layout(std140, binding = 2) readonly buffer ModelTrisSSBO
+layout(std430, binding = 2) readonly buffer ModelTrisSSBO
 {
 	Triangle triangles[];
 };
@@ -81,12 +67,12 @@ layout(std430, binding = 3) readonly buffer ModelLightTrisSSBO
 	uint light_tri_indices[];
 };
 
-layout(std140, binding = 4) readonly buffer MaterialsSSBO
+layout(std430, binding = 4) readonly buffer MaterialsSSBO
 {
 	Material materials[];
 };
 
-layout(std140, binding = 5) readonly buffer BVHSSBO
+layout(std430, binding = 5) readonly buffer BVHSSBO
 {
 	BVHNode bvh_nodes[];
 };
@@ -102,7 +88,7 @@ uint seed3(uvec3 p)
     return 19u * p.x + 47u * p.y + 101u * p.z + 131u;
 }
 
-float hash_to_float(in highp uint hash)
+float hash_to_float(in uint hash)
 {
 	// hash * (1 / MAX_UINT)
 	return float(hash) / float(0xfffffff0u);
@@ -169,10 +155,7 @@ vec3 sky_color(vec3 dir)
 {
 	vec3 normalized_dir = normalize(dir);
 	float t = 0.5 * normalized_dir.y + 0.5;
-
-	vec3 start_color = vec3(1.0, 1.0, 1.0);
-	vec3 end_color = vec3(0.546, 0.824, 0.925);
-	return start_color - t * start_color + t * end_color;
+	return mix(vec3(1.0), vec3(0.546, 0.824, 0.925), t);
 }
 
 // Structs
@@ -181,9 +164,7 @@ struct HitData
 {
 	float t;
 	vec3 normal;
-	vec3 point;
-	uint material_index;
-	uint object_index;
+	uvec2 mat_object_indices;
 };
 
 // Intersection
@@ -232,20 +213,20 @@ float intersect_sphere(vec3 ro, vec3 rd, Sphere sphere)
 }
 
 // Moller–Trumbore ray-triangle intersection algorithm
-bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, out HitData data, float tmax)
+bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data)
 {
 	Triangle tri = triangles[tri_index];
-	vec3 edge1 = tri.e1e2.xyz;
-	vec3 edge2 = vec3(tri.e1e2.w, tri.e2matX.xy);
+	vec3 edge1 = tri.data2.xyz - tri.data1.xyz;
+	vec3 edge2 = tri.data3.xyz - tri.data1.xyz;
 	vec3 pvec = cross(rd, edge2);
-	float determinant = dot(edge1, pvec);
+	float dt = dot(edge1, pvec);
 
 	// Ray direction parallel to the triangle plane
-	if (determinant < EPSILON)
+	if (dt < EPSILON)
 		return false;
 
-	float inv_determinant = 1.0 / determinant;
-	vec3 tvec = ro - tri.v0v1.xyz;
+	float inv_determinant = 1.0 / dt;
+	vec3 tvec = ro - tri.data1.xyz;
 	float u = dot(tvec, pvec) * inv_determinant;
 	if ((u < 0.0) || (u > 1.0))
 		return false;
@@ -257,13 +238,12 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, out HitData data, floa
 
 	// Computing t
 	float t = inv_determinant * dot(edge2, qvec);
-	if (t > TMIN && t < tmax)
+	if (t > TMIN && t < data.t)
 	{
 		data.t = t;
-		data.point = ro + rd * t;
-		data.normal = tri.v2norm.yzw;
-		data.material_index = uint(tri.e2matX.z);
-		data.object_index = tri_index;
+		data.normal = vec3(tri.data1.w, tri.data2.w, tri.data3.w);
+		data.mat_object_indices.x = tri.data4.x;
+		data.mat_object_indices.y = tri_index;
 		// data.object_type = ObjectType::TRIANGLE;
 		return true;
 	}
@@ -273,7 +253,7 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, out HitData data, floa
 
 // Slab method
 // https://tavianator.com/2011/ray_box.html
-bool intersect_aabb(vec3 ro, vec3 rd, in vec3 bmin, in vec3 bmax, in float t)
+bool intersect_aabb(in vec3 ro, in vec3 rd, in vec3 bmin, in vec3 bmax, in float t)
 {
 	vec3 inv_dir = 1.0 / rd;
 	float tx1 = bmin.x * inv_dir.x - ro.x * inv_dir.x;
@@ -296,54 +276,59 @@ bool intersect_aabb(vec3 ro, vec3 rd, in vec3 bmin, in vec3 bmax, in float t)
 	return tmax >= max(0.0, tmin) && tmin < t;
 }
 
-float squared_dist(in AABB aabb, in vec3 point)
-{
-	vec3 p = aabb.data1.xyz - point;
-	vec3 q = point - vec3(aabb.data1.w, aabb.data2.xy);
-	vec3 d = max(max(p, 0.0), q);
-	return dot(d, d);
-}
-
-bool intersect_bvh_stack(vec3 ro, vec3 rd, inout HitData data)
+bool intersect_bvh_stack(in vec3 ro, in vec3 rd, inout HitData data)
 {
 	bool hit_anything = false;
 
 	int stack_top = 0;
-	uint stack[12];
+	uint stack[16];
 	stack[0] = 0;
 
 	while (stack_top + 1 > 0)
 	{
-		BVHNode node = bvh_nodes[stack[stack_top]];
+		uint current_index = stack[stack_top];
 		stack_top--;
-		uint node_left = node.data[0];
-		uint num_node_tris = node.data[1];
+
+		BVHNode node = bvh_nodes[current_index];
 
 		// Check if ray intersects root node
-		vec3 bmin = node.node_AABB.data1.xyz;
-		vec3 bmax = vec3(node.node_AABB.data1.w, node.node_AABB.data2.xy);
-		if(intersect_aabb(ro, rd, bmin, bmax, data.t))
+		if(intersect_aabb(ro, rd, node.data1.xyz, node.data2.xyz, data.t))
 		{
+			uint node_left = uint(node.data1.w);
+			uint num_node_tris = uint(node.data2.w);
+
 			if(num_node_tris == 0)
 			{
+				// First check closer child and then farther child
+				int offset1 = int(rd.x > 0.0);
+				int offset2 = int(rd.x < 0.0);
+				if(int(node.data3.x) == 1)
+				{
+					offset1 = int(rd.y > 0.0);
+					offset2 = int(rd.y < 0.0);
+				}
+				else if(int(node.data3.x) == 2)
+				{
+					offset1 = int(rd.z > 0.0);
+					offset2 = int(rd.z < 0.0);
+				}
+				
 				stack_top++;
-				stack[stack_top] = node_left;
+				stack[stack_top] = node_left + offset1;
 				stack_top++;
-				stack[stack_top] = node_left + 1;
+				stack[stack_top] = node_left + offset2;
 			}
 			else
 			{
 				// If leaf node, test against triangles of node
 				for (uint i = 0; i < num_node_tris; i++)
 				{
-					HitData current_data;
-					if (intersect_triangle(ro, rd, node_left + i, current_data, data.t) && current_data.t < data.t)
+					if (intersect_triangle(ro, rd, node_left + i, data))
 					{
 						// Found closer hit, store it.
 						// current_data.object_index = node.first_tri + i;
 
 						hit_anything = true;
-						data = current_data;
 					}
 				}
 			}
@@ -366,9 +351,8 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 		{
 			hit_anything = true;
 			result.t = current_t;
-			result.point = ro + rd * current_t;
-			result.normal = (result.point - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
-			result.material_index = current_sphere.mat_index.x;
+			result.normal = (ro + (rd * current_t) - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
+			result.mat_object_indices.x = current_sphere.mat_index.x;
 		}
 	}
 
@@ -399,29 +383,28 @@ vec3 estimator_path_tracing_naive(inout vec3 ro, inout vec3 rd, in uint rng_stat
 			return color;
 		}
 
-		Material mat = materials[data.material_index];
+		Material mat = materials[data.mat_object_indices.x];
 
 		// add the light that the material emits
 		if (b <= BOUNCE_COUNT)
 			color += throughput_term * mat.Le.xyz;
 
-		vec3 pi_diffuse = PI * mat.type_diffuse.yzw;
-
 		// if the material is a diffuse lambertian
-		if(mat.type_diffuse.x <= EPSILON)
+		// if(mat.type_diffuse.x <= EPSILON)
 		{
 			// update throughput
 			// The PI is here because we are sampling w.r.t the pdf
 			// p(psi) = cos(theta) / PI       (cosine weighted sampling)
 			// This cosine term cancels out with the dot product in
 			// the throughput term and all that is left is the BRDF
-			throughput_term *= pi_diffuse;
+			throughput_term *= PI * mat.type_diffuse.yzw;
 
 			// Intersection point and new ray
-			ro = data.point + EPSILON * data.normal;
+			ro = ro + (rd * data.t) + (EPSILON * data.normal);
 			// pdf(psi) = cos(theta) / PI
 			rd = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), data.normal);
 		}
+/*
 		// if the material is ideally reflective 
 		else if(abs(mat.type_diffuse.x - 1.0) <= EPSILON)
 		{
@@ -448,15 +431,15 @@ vec3 estimator_path_tracing_naive(inout vec3 ro, inout vec3 rd, in uint rng_stat
 			vec3 specular = mat.specular_spec.xyz;
 			float spec = mat.specular_spec.w;
 
-			if(all(lessThanEqual(uvec, pi_diffuse)))
+			if(any(lessThanEqual(uvec, pi_diffuse)))
 			{
+				// pdf(psi) = cos(theta) / PI
 				throughput_term *= pi_diffuse;
 
 				ro = data.point + EPSILON * data.normal;
-				// pdf(psi) = cos(theta) / PI
 				rd = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), data.normal);
 			}
-			else if(all(lessThanEqual(uvec, pi_diffuse + specular)))
+			else if(any(lessThanEqual(uvec, pi_diffuse + specular)))
 			{
 				vec3 reflected_dir = normalize(reflect(rd, data.normal));
 
@@ -486,6 +469,7 @@ vec3 estimator_path_tracing_naive(inout vec3 ro, inout vec3 rd, in uint rng_stat
 				throughput_term *= specular * cos_theta_x * theta_term;
 			}
 		}
+*/
 	}
 
 	return color;
@@ -493,8 +477,9 @@ vec3 estimator_path_tracing_naive(inout vec3 ro, inout vec3 rd, in uint rng_stat
 
 float area(Triangle tri)
 {
-	vec3 edge2 = vec3(tri.e1e2.w, tri.e2matX.xy);
-	return sqrt(dot(tri.e1e2.xyz, tri.e1e2.xyz) * dot(edge2, edge2)) * 0.5;
+	vec3 edge1 = tri.data2.xyz - tri.data1.xyz;
+	vec3 edge2 = tri.data3.xyz - tri.data1.xyz;
+	return sqrt(dot(edge1, edge1) * dot(edge2, edge2)) * 0.5;
 }
 
 vec3 map_to_triangle(vec2 vec, Triangle tri)
@@ -511,8 +496,8 @@ vec3 map_to_triangle(vec2 vec, Triangle tri)
 		v = 1.0 - v;
 	}
 
-	vec3 p = u * tri.e1e2.xyz + v * vec3(tri.e1e2.w, tri.e2matX.xy);;
-	return p + tri.v0v1.xyz;
+	vec3 p = u * (tri.data2.xyz - tri.data1.xyz) + v * (tri.data3.xyz - tri.data2.xyz);
+	return p + tri.data1.xyz;
 }
 
 // NOTE: BROKEN FOR DIFFUSE PHONG REFLECTION
@@ -535,7 +520,7 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			break;
 		}
 
-		Material mat = materials[data.material_index];
+		Material mat = materials[data.mat_object_indices.x];
 		vec3 BRDF = mat.type_diffuse.yzw;
 
 		// (x->y dot Nx)
@@ -546,10 +531,14 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 		{
 			// TODO: only add if the ray was added by a single lonely bounce from
 			// the mirror instead of just the last bounce being the mirror?
+			/*
 			bool last_bounce_reflected = (old_mat_changed && 
 										  abs(old_mat.type_diffuse.x - 3.0) < EPSILON && 
 										  all(equal(old_mat.type_diffuse.yzw, vec3(0.0))) && 
 										  any(greaterThan(old_mat.specular_spec, vec4(0.01))));
+			*/
+
+			bool last_bounce_reflected = false;
 			if (bounce == 0 || last_bounce_reflected)
 				color = mat.Le.xyz;
 
@@ -557,8 +546,7 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 		}
 		// If there is at least 1 light source in the scene and the material
 		// of the surface we hit is diffuse, we can use NEE.
-		else if (light_tri_indices.length() > 0 && 
-		        (abs(mat.type_diffuse.x) < EPSILON || (abs(mat.type_diffuse.x - 3.0) < EPSILON && mat.specular_spec.xyz == vec3(0.0))))
+		else if (light_tri_indices.length() > 0 && abs(mat.type_diffuse.x) < EPSILON) /*|| (abs(mat.type_diffuse.x - 3.0) < EPSILON && mat.specular_spec.xyz == vec3(0.0)))*/
 		{
 			// sample light sources for direct illumination
 			vec3 direct_illumination = vec3(0.0);
@@ -570,7 +558,7 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				int picked_light_source = int((mod(rand(rng_state), light_tri_indices.length())));
 				Triangle light_source = triangles[light_tri_indices[picked_light_source]];
 
-				Material light_source_mat = materials[uint(light_source.e2matX.z)];
+				Material light_source_mat = materials[light_source.data4.x];
 
 				// TODO: implement area functions for all primitives
 				float light_area = area(light_source);
@@ -581,7 +569,7 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				float pdf_light_area = pdf_pick_light * pdf_pick_point_on_light;
 
 				// Just for clarity
-				vec3 x = data.point + EPSILON * data.normal;
+				vec3 x = ro + rd * data.t + EPSILON * data.normal;
 
 				// Send out a shadow ray in direction x->y
 				vec3 dist_vec = y - x;
@@ -603,7 +591,7 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				// }
 
 				// Visibility check means we have a clear line of sight!
-				if (shadow_hit_anything && y == shadow_data.point)
+				if (shadow_hit_anything && y == shadow_ro + shadow_rd * shadow_data.t)
 				{
 					float squared_dist = dot(dist_vec, dist_vec);
 
@@ -636,9 +624,10 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			throughput_term *= BRDF * cos_theta / pdf_cos_weighted_hemisphere;
 			// throughput_term *= PI * BRDF;
 
-			ro = data.point + EPSILON * data.normal;
+			ro = ro + rd * data.t + EPSILON * data.normal;
 			rd = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), data.normal);
 		}
+		/*
 		else if (abs(mat.type_diffuse.x - 1.0) < EPSILON)
 		{
 			vec3 reflected_dir = normalize(reflect(rd, data.normal));
@@ -690,6 +679,7 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			float theta_term = pow(cos_alpha, spec) * ((spec + 2.0) / (2.0 * PI)) / pdf_theta;
 			throughput_term *= mat.specular_spec.xyz * cos_theta_x * theta_term;
 		}
+		*/
 
 		old_mat = mat;
 		old_mat_changed = true;
@@ -719,7 +709,7 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 
 	vec3 y = ro + rd * data.t + EPSILON * data.normal;
 	vec3 normal_y = data.normal;
-	Material mat_y = materials[data.material_index];
+	Material mat_y = materials[data.mat_object_indices.x];
 
 	// Add light contribution from first bounce if it hit a light source
 	color += throughput_term * mat_y.Le.xyz;
@@ -734,7 +724,7 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 		// If there is at least 1 light source in the scene, and the material of the
 		// surface is diffuse, we can calculate the direct light contribution (NEE)
 		bool can_use_NEE = light_tri_indices.length() > 0;
-		can_use_NEE = can_use_NEE && (abs(mat_x.type_diffuse.x) < EPSILON || (abs(mat_x.type_diffuse.x - 3.0) < EPSILON && all(lessThan(mat_x.specular_spec.xyz, vec3(EPSILON)))));
+		can_use_NEE = can_use_NEE && abs(mat_x.type_diffuse.x) < EPSILON /*|| (abs(mat_x.type_diffuse.x - 3.0) < EPSILON && all(lessThan(mat_x.specular_spec.xyz, vec3(EPSILON)))))*/;
 		can_use_NEE = can_use_NEE && all(lessThan(mat_x.Le.xyz, vec3(EPSILON)));
 
 		if (can_use_NEE)
@@ -749,17 +739,17 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				int picked_light_source = int((mod(r, light_tri_indices.length())));
 				Triangle light_source = triangles[light_tri_indices[uint(picked_light_source)]];
 
-				Material light_source_mat = materials[uint(light_source.e2matX.z)];
+				Material light_source_mat = materials[light_source.data4.x];
 				vec3 y_nee = map_to_triangle(rand_vec2(rng_state), light_source);
 				float light_area = area(light_source);
 
 				// Just for clarity
-				vec3 x_nee = x;
+				// vec3 x_nee = x;
 
 				// Send out a shadow ray in direction x->y
-				vec3 dist_vec = y_nee - x_nee;
+				vec3 dist_vec = y_nee - x;
 				vec3 shadow_rd = normalize(dist_vec);
-				vec3 shadow_ro = x_nee;
+				vec3 shadow_ro = x;
 
 				float squared_dist = dot(dist_vec, dist_vec);
 
@@ -776,7 +766,7 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				//}
 
 				// Visibility check means we have a clear line of sight!
-				if (shadow_hit_anything && all(lessThan(y_nee - shadow_data.point, vec3(EPSILON))))
+				if (shadow_hit_anything && all(lessThan(y_nee - shadow_ro + shadow_rd * shadow_data.t, vec3(EPSILON))))
 				{
 //#if TWO_SIDED_LIGHT
 					//float32 cos_theta_y = Dot(shadow_data.normal, -shadow_rd);
@@ -809,14 +799,14 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			}
 		}
 
-		if (abs(mat_x.type_diffuse.x) < EPSILON)
+		// if (abs(mat_x.type_diffuse.x) < EPSILON)
 		{
 			// Pick a new direction
-			vec2 random_vec2f = rand_vec2(rng_state);
-			vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(random_vec2f, normal_x);
+			vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), normal_x);
 			ro = x + EPSILON * normal_x;
 			rd = dir;
 		}
+		/*
 		else if (abs(mat_x.type_diffuse.x - 1.0) < EPSILON)
 		{
 			// Pick the reflected direciton
@@ -843,6 +833,7 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			ro = x;
 			rd = dir;
 		}
+		*/
 
 		float cos_theta_x = max(0.0, dot(normal_x, rd));
 
@@ -852,8 +843,10 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			// No intersection with scene, add env map contribution
 			if (b <= BOUNCE_COUNT)
 			{
-				if (mat_x.type_diffuse.x == 0.0)
+				// if (mat_x.type_diffuse.x == 0.0)
 					color += throughput_term * PI * mat_x.type_diffuse.yzw * sky_color(rd) * ENVIRONMENT_MAP_LE;
+
+				/*
 				else if (mat_x.type_diffuse.x == 1.0)
 					color += throughput_term * mat_x.specular_spec.xyz * sky_color(rd) * cos_theta_x * ENVIRONMENT_MAP_LE;
 				else if (mat_x.type_diffuse.x == 3.0)
@@ -861,7 +854,7 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 					float theta_term = 1.0 + 1.0 / (mat_x.specular_spec.w + 1.0);
 					color += throughput_term * mat_x.specular_spec.xyz * sky_color(rd) * cos_theta_x * theta_term * ENVIRONMENT_MAP_LE;
 				}
-
+				*/
 				break;
 			}
 		}
@@ -875,13 +868,14 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 		normal_y = data.normal;
 // #endif
 
-		float pdf_BSDF_sa = 0.0f;
-		if (mat_x.type_diffuse.x == 0.0)
-		{
+		// float pdf_BSDF_sa = 0.0f;
+		//if (mat_x.type_diffuse.x == 0.0)
+		// {
 			// Because the new ray direction is sampled using cosine weighted hemisphere
 			// sampling, the pdf is cos_theta / PI
-			pdf_BSDF_sa = cos_theta_y / PI;
-		}
+			float pdf_BSDF_sa = cos_theta_y / PI;
+		// }
+		/*
 		else if (mat_x.type_diffuse.x == 1.0)
 		{
 			// We only sample the single direction, so the pdf is 1 for that
@@ -895,9 +889,10 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			// because I importance sample the specular term
 			pdf_BSDF_sa = 1.0;
 		}
+		*/
 
 		y = ro + rd * data.t + EPSILON * normal_y;
-		mat_y = materials[data.material_index];
+		mat_y = materials[data.mat_object_indices.x];
 
 		float wBSDF = 1.0f;
 
@@ -908,7 +903,7 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			// the pdf for NEE
 			if (mat_y.Le.x > 0.1 && light_tri_indices.length() > 0)
 			{
-				float pdf_NEE_area = 0.0f;
+				// float pdf_NEE_area = 0.0f;
 				/*
 				switch (data.object_type)
 				{
@@ -925,7 +920,7 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				*/
 
 				// TODO: Replace this with the above
-				pdf_NEE_area = 1.0 / area(triangles[data.object_index]);
+				float pdf_NEE_area = 1.0 / area(triangles[data.mat_object_indices.y]);
 
 				pdf_NEE_area /= float(light_tri_indices.length());
 				float pdf_NEE_sa = pdf_NEE_area * data.t * data.t / cos_theta_y;
@@ -935,6 +930,7 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			if (b <= BOUNCE_COUNT)
 				color += throughput_term * mat_x.type_diffuse.yzw * mat_y.Le.xyz * PI * wBSDF;
 		}
+		/*
 		else if (b <= BOUNCE_COUNT && cos_theta_y > 0.0)
 		{
 			if (mat_x.type_diffuse.x == 3.0)
@@ -949,9 +945,11 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				color += throughput_term * (diffuse_part + specular_part) * mat_y.Le.xyz * cos_theta_y;
 			}
 		}
+		*/
 
-		if (mat_x.type_diffuse.x == 0.0)
+		//if (mat_x.type_diffuse.x == 0.0)
 			throughput_term *= PI * mat_x.type_diffuse.yzw;
+		/*
 		else if (mat_x.type_diffuse.x == 1.0)
 			throughput_term *= mat_x.specular_spec.xyz;
 		else if (mat_x.type_diffuse.x == 3.0)
@@ -959,6 +957,7 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			float theta_term = 1.0 + 1.0 / (mat_x.specular_spec.w + 1.0);
 			throughput_term *= mat_x.specular_spec.xyz * cos_theta_x * theta_term;
 		}
+		*/
 	}
 
 	return color;
@@ -966,12 +965,11 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 
 vec3 render_function(uvec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 {
-	uint width = screen_size.x;
-	uint height = screen_size.y;
-	float aspect_ratio = float(width) / height;
+	float width = float(screen_size.x);
+	float height = float(screen_size.y);
 
 	float grid_height = 2.0;
-	float grid_width = aspect_ratio * grid_height;
+	float grid_width = grid_height * width / height;
 
 	vec3 grid_x = vec3(grid_width, 0.0, 0.0);
 	vec3 grid_y = vec3(0.0, grid_height, 0.0);
@@ -983,38 +981,33 @@ vec3 render_function(uvec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	int x = pixel_coords.x;
 	int y = pixel_coords.y;
 
-	vec2 offset_to_pixel_center = vec2(0.5, 0.5);
-	vec2 uv_offset = rand_vec2(rng_state) - offset_to_pixel_center;
+	vec2 uv_offset = rand_vec2(rng_state) - vec2(0.5, 0.5);
 
-	float u = (float(x) + uv_offset.x) / float(width);
-	float v = (float(y) + uv_offset.y) / float(height);
+	float u = (float(x) + uv_offset.x) / width;
+	float v = (float(y) + uv_offset.y) / height;
 
 	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
 	vec3 ray_direction = normalize(point_on_grid - eye);
 
-	return estimator_path_tracing_mis(eye, ray_direction, rng_state);
+	return estimator_path_tracing_naive(eye, ray_direction, rng_state);
+	// return estimator_path_tracing_nee(eye, ray_direction, rng_state);
+	// return estimator_path_tracing_mis(eye, ray_direction, rng_state);
 }
 
 void main() 
 {
+	uvec2 screen_size = imageSize(screen);
+
 	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 
-	uvec2 screen_size = imageSize(screen);
-	vec4 last_frame = imageLoad(screen, pixel_coords);
-	
 	uint rng_state = seed3(uvec3(pixel_coords, u_frame_data.x));
 
 	vec3 color = render_function(screen_size, pixel_coords, rng_state);
 
-	memoryBarrierImage();
-	barrier();
-
 	// weigh current frame according to accumulated past
 	// frames and the current frame number
+	vec4 last_frame = imageLoad(screen, pixel_coords);
 	color = float(u_frame_data.y) / float(u_frame_data.y + 1) * last_frame.xyz + 1.0 / float(u_frame_data.y + 1) * color;
 
 	imageStore(screen, pixel_coords, vec4(color, 1.0));
-
-	memoryBarrierImage();
-	barrier();
 }
