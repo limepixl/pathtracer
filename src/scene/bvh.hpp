@@ -26,6 +26,7 @@ struct BVHNode
 		uint32 first_tri;
 	};
 	uint32 num_tris;
+	int32 axis;
 };
 
 AABB ConstructAABBFromTris(struct Triangle *tris, uint32 num_tris);

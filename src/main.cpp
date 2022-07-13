@@ -21,11 +21,10 @@ struct SphereGLSL
 
 struct TriangleGLSL
 {
-	Vec4f v0v1;   // v0.x, v0.y, v0.z, v1.x
-	Vec4f v1v2;   // v1.y, v1.z, v2.x, v2.y
-	Vec4f v2norm; // v2.z, n.x, n.y, n.z
-	Vec4f e1e2;   // e1.x, e1.y, e1.z, e2.x
-	Vec4f e2matX; // e2.y, e2.z, mat_index, empty
+	Vec4f data1;     // v0.x, v0.y, v0.z, n.x
+	Vec4f data2;     // v1.x, v1.y, v1.z, n.y
+	Vec4f data3;     // v2.x, v2.y, v2.z, n.z
+	uint32 data4[4]; // mat_index, 0, 0, 0
 };
 
 struct MaterialGLSL
@@ -35,16 +34,11 @@ struct MaterialGLSL
 	Vec4f Le;			 // Le.x, Le.y, Le.z, empy
 };
 
-struct AABBGLSL
-{
-	Vec4f data1; // bmin.xyz, bmax.x
-	Vec4f data2; // bmax.yz
-};
-
 struct BVHNodeGLSL
 {
-	AABBGLSL node_AABB;
-	uint32 data[4]; // left/first_tri, num_tris
+	Vec4f data1; // bmin.x, bmin.y, bmin.z, left/first_tri
+	Vec4f data2; // bmax.x, bmax.y, bmax.z, num_tris
+	Vec4f data3; // axis, 0, 0, 0
 };
 
 int main(int argc, char *argv[])
@@ -78,24 +72,22 @@ int main(int argc, char *argv[])
 	Array<Triangle> tris;
 	Array<Material *> materials;
 
-	if (!LoadModelFromObj("CornellBox-Suzanne.obj", "../../res/", tris, materials))
-	 //if (!LoadModelFromObj("robot.obj", "../../res/", tris, materials))
+	//if (!LoadModelFromObj("CornellBox-Original.obj", "../../res/", tris, materials))
+	 if (!LoadModelFromObj("robot.obj", "../../res/", tris, materials))
 	{
 		// DeallocateArray(bitmap_buffer);
 		return -1;
 	}
 
-	printf("--- Number of triangles: %llu!\n", tris.size);
-
 	// Apply model matrix to tris
 	Mat4f model_matrix = CreateIdentityMat4f();
 
 	// for cornell box
-	model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), model_matrix); 
+	//model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), model_matrix); 
 
 	// for robot
-	 //model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.5f, -4.f), model_matrix);
-	 //model_matrix = ScaleMat4f(CreateVec3f(0.2f, 0.2f, 0.2f), model_matrix);
+	 model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.5f, -4.f), model_matrix);
+	 model_matrix = ScaleMat4f(CreateVec3f(0.2f, 0.2f, 0.2f), model_matrix);
 
 	for (uint32 i = 0; i < tris.size; i++)
 	{
@@ -339,11 +331,10 @@ int main(int argc, char *argv[])
 		const Vec3f &n = current_tri.normal;
 
 		TriangleGLSL tmp;
-		tmp.v0v1 = CreateVec4f(v0.x, v0.y, v0.z, v1.x);
-		tmp.v1v2 = CreateVec4f(v1.y, v1.z, v2.x, v2.y);
-		tmp.v2norm = CreateVec4f(v2.z, n.x, n.y, n.z);
-		tmp.e1e2 = CreateVec4f(e1.x, e1.y, e1.z, e2.x);
-		tmp.e2matX = CreateVec4f(e2.y, e2.z, (float)current_tri.mat_index, 0.0f);
+		tmp.data1 = CreateVec4f(v0.x, v0.y, v0.z, n.x);
+		tmp.data2 = CreateVec4f(v1.x, v1.y, v1.z, n.y);
+		tmp.data3 = CreateVec4f(v2.x, v2.y, v2.z, n.z);
+		tmp.data4[0] = current_tri.mat_index;
 
 		AppendToArray(model_tris_ssbo, tmp);
 	}
@@ -377,15 +368,10 @@ int main(int argc, char *argv[])
 		const BVHNode &current_node = bvh_tree[i];
 		const AABB &current_aabb = current_node.node_AABB;
 
-		AABBGLSL aabb;
-		aabb.data1 = CreateVec4f(current_aabb.bmin.x, current_aabb.bmin.y, current_aabb.bmin.z, current_aabb.bmax.x);
-		aabb.data2 = CreateVec4f(current_aabb.bmax.y, current_aabb.bmax.z, 0.0f, 0.0f);
-
 		BVHNodeGLSL tmp;
-		tmp.node_AABB = aabb;
-		tmp.data[0] = current_node.first_tri;
-		tmp.data[1] = current_node.num_tris;
-		tmp.data[2] = 0; tmp.data[3] = 0;
+		tmp.data1 = CreateVec4f(current_aabb.bmin.x, current_aabb.bmin.y, current_aabb.bmin.z, (float)current_node.first_tri);
+		tmp.data2 = CreateVec4f(current_aabb.bmax.x, current_aabb.bmax.y, current_aabb.bmax.z, (float)current_node.num_tris);
+		tmp.data3 = CreateVec4f((float)current_node.axis, 0.0f, 0.0f, 0.0);
 
 		AppendToArray(bvh_ssbo, tmp);
 	}
@@ -466,7 +452,7 @@ int main(int argc, char *argv[])
 		glUniform2ui(frame_data_location, pcg32_random(), frame_count++);
 
 		const uint32 num_groups_x = width / 8;
-		const uint32 num_groups_y = height / 4;
+		const uint32 num_groups_y = height / 8;
 		glDispatchCompute(num_groups_x, num_groups_y, 1);
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 

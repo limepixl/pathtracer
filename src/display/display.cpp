@@ -32,7 +32,7 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
-	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
 
 	// Window creation
 	result.window_handle = SDL_CreateWindow(title,
@@ -111,12 +111,12 @@ bool InitRenderBuffer(Display &window)
 
 	// Set up the texture
 	glCreateTextures(GL_TEXTURE_2D, 1, &window.render_buffer_texture);
-	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTextureStorage2D(window.render_buffer_texture, 1, GL_RGBA32F, window.width, window.height);
-	glBindImageTexture(0, window.render_buffer_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+	glTextureStorage2D(window.render_buffer_texture, 1, GL_RGBA16F, window.width, window.height);
+	glBindImageTexture(0, window.render_buffer_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
 	glBindTextureUnit(0, window.render_buffer_texture);
 
 	window.rb_shader_program = LoadShaderFromFiles("../../shaders/framebuffer.vert", "../../shaders/framebuffer.frag");
