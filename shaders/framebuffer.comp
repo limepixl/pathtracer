@@ -12,7 +12,7 @@ uniform uvec2 u_frame_data; // seed, frame#
 #define HALF_PI 		1.57079632
 
 // Ray constants
-#define TMIN            0.001
+#define TMIN            0.0001
 #define TMAX            10000.0
 #define BOUNCE_COUNT    5
 // #define NUM_SHADOW_RAYS 1
@@ -763,7 +763,7 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				//}
 
 				// Visibility check means we have a clear line of sight!
-				if (shadow_hit_anything && all(lessThan(y_nee - shadow_ro + shadow_rd * shadow_data.t, vec3(EPSILON))))
+				if (shadow_hit_anything && all(lessThan(y_nee - (shadow_ro + shadow_rd * shadow_data.t), vec3(EPSILON))))
 				{
 //#if TWO_SIDED_LIGHT
 					//float32 cos_theta_y = Dot(shadow_data.normal, -shadow_rd);
@@ -980,9 +980,9 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
 	vec3 ray_direction = normalize(point_on_grid - eye);
 
-	return estimator_path_tracing_naive(eye, ray_direction, rng_state);
+	// return estimator_path_tracing_naive(eye, ray_direction, rng_state);
 	// return estimator_path_tracing_nee(eye, ray_direction, rng_state);
-	// return estimator_path_tracing_mis(eye, ray_direction, rng_state);
+	return estimator_path_tracing_mis(eye, ray_direction, rng_state);
 }
 
 void main() 
