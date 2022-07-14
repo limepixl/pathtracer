@@ -344,14 +344,14 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 			optimal_axis = 2;
 		}
 
-		// Check if splitting cost is bigger than not splitting
-		uint32 cost_parent = num_tris;
-		if ((float)cost_parent < min_cost)
-		{
-			// Skipped split of node
-			printf("Keeping node with %u tris!\n", current_node.num_tris);
-			return true;
-		}
+		//// Check if splitting cost is bigger than not splitting
+		//uint32 cost_parent = num_tris;
+		//if ((float)cost_parent < min_cost)
+		//{
+		//	// Skipped split of node
+		//	printf("Keeping node with %u tris!\n", current_node.num_tris);
+		//	return true;
+		//}
 
 		current_node.num_tris = 0;
 
