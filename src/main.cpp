@@ -21,17 +21,16 @@ struct SphereGLSL
 
 struct TriangleGLSL
 {
-	Vec4f data1;     // v0.x, v0.y, v0.z, n.x
-	Vec4f data2;     // v1.x, v1.y, v1.z, n.y
-	Vec4f data3;     // v2.x, v2.y, v2.z, n.z
-	uint32 data4[4]; // mat_index, 0, 0, 0
+	Vec4f data1;     // v0.x, v0.y, v0.z, mat_index
+	Vec4f data2;     // v1.x, v1.y, v1.z, 0
+	Vec4f data3;     // v2.x, v2.y, v2.z, 0
 };
 
 struct MaterialGLSL
 {
-	Vec4f type_diffuse;  // mat_type, diff.x, diff.y, diff.z
-	Vec4f specular_spec; // spec.x, spec.y, spec.z, n_spec
-	Vec4f Le;			 // Le.x, Le.y, Le.z, empy
+	Vec4f data1;  // diff.x, diff.y, diff.z, mat_type
+	Vec4f data2;  // spec.x, spec.y, spec.z, n_spec
+	Vec4f data3;  // Le.x, Le.y, Le.z, empty
 };
 
 struct BVHNodeGLSL
@@ -72,8 +71,8 @@ int main(int argc, char *argv[])
 	Array<Triangle> tris;
 	Array<Material *> materials;
 
-	//if (!LoadModelFromObj("CornellBox-Original.obj", "../../res/", tris, materials))
-	 if (!LoadModelFromObj("robot.obj", "../../res/", tris, materials))
+	if (!LoadModelFromObj("CornellBox-Original.obj", "../../res/", tris, materials))
+	 //if (!LoadModelFromObj("robot.obj", "../../res/", tris, materials))
 	{
 		// DeallocateArray(bitmap_buffer);
 		return -1;
@@ -83,11 +82,11 @@ int main(int argc, char *argv[])
 	Mat4f model_matrix = CreateIdentityMat4f();
 
 	// for cornell box
-	//model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), model_matrix); 
+	model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), model_matrix); 
 
 	// for robot
-	 model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.5f, -4.f), model_matrix);
-	 model_matrix = ScaleMat4f(CreateVec3f(0.2f, 0.2f, 0.2f), model_matrix);
+	 //model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.5f, -4.f), model_matrix);
+	 //model_matrix = ScaleMat4f(CreateVec3f(0.2f, 0.2f, 0.2f), model_matrix);
 
 	for (uint32 i = 0; i < tris.size; i++)
 	{
@@ -107,7 +106,6 @@ int main(int argc, char *argv[])
 	AppendToArray(bvh_tree, root_node);
 	
 	if (!ConstructBVHSweepSAH(tris._data, (uint32)tris.size, bvh_tree, 0))
-	// if (!ConstructBVHObjectMedian(tris.data, (uint32)tris.size, bvh_tree, 0))
 	{
 		printf("Error in BVH construction!\n");
 		return -1;
@@ -126,9 +124,6 @@ int main(int argc, char *argv[])
 			AppendToArray(emissive_tris, i);
 		}
 	}
-
-	//Array<Sphere> spheres;
-	//Scene scene = ConstructScene(spheres, tris, emissive_tris, materials/*bvh_tree*/);
 
 /*
 	// Each thread's handle and data to be used by it
@@ -331,10 +326,9 @@ int main(int argc, char *argv[])
 		const Vec3f &n = current_tri.normal;
 
 		TriangleGLSL tmp;
-		tmp.data1 = CreateVec4f(v0.x, v0.y, v0.z, n.x);
-		tmp.data2 = CreateVec4f(v1.x, v1.y, v1.z, n.y);
-		tmp.data3 = CreateVec4f(v2.x, v2.y, v2.z, n.z);
-		tmp.data4[0] = current_tri.mat_index;
+		tmp.data1 = CreateVec4f(v0.x, v0.y, v0.z, (float)current_tri.mat_index);
+		tmp.data2 = CreateVec4f(v1.x, v1.y, v1.z, 0.0f);
+		tmp.data3 = CreateVec4f(v2.x, v2.y, v2.z, 0.0f);
 
 		AppendToArray(model_tris_ssbo, tmp);
 	}
@@ -349,9 +343,9 @@ int main(int argc, char *argv[])
 		const Vec3f &Le = current_mat->Le;
 
 		MaterialGLSL tmp;
-		tmp.type_diffuse = CreateVec4f((float)current_mat->type, diff.x, diff.y, diff.z);
-		tmp.specular_spec = CreateVec4f(spec.x, spec.y, spec.z, (float)current_mat->n_spec);
-		tmp.Le = CreateVec4f(Le.x, Le.y, Le.z, 0.0f);
+		tmp.data1 = CreateVec4f(diff.x, diff.y, diff.z, (float)current_mat->type);
+		tmp.data2 = CreateVec4f(spec.x, spec.y, spec.z, (float)current_mat->n_spec);
+		tmp.data3 = CreateVec4f(Le.x, Le.y, Le.z, 0.0f);
 
 		AppendToArray(materials_ssbo, tmp);
 	}
@@ -385,36 +379,41 @@ int main(int argc, char *argv[])
 	if(spheres_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[0]);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo[0]);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo[0]);
 		glNamedBufferStorage(ssbo[0], spheres_ssbo.size * sizeof(SphereGLSL), &(spheres_ssbo._data[0]), 0);
+		DeallocateArray(spheres_ssbo);
 	}
 
 	if(model_tris_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[1]);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo[1]);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo[1]);
 		glNamedBufferStorage(ssbo[1], model_tris_ssbo.size * sizeof(TriangleGLSL), &(model_tris_ssbo[0]), 0);
+		DeallocateArray(model_tris_ssbo);
 	}
 
 	if(emissive_tris.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[2]);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo[2]);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo[2]);
 		glNamedBufferStorage(ssbo[2], emissive_tris.size * sizeof(uint32), &(emissive_tris[0]), 0);
+		DeallocateArray(emissive_tris);
 	}
 
 	if(materials_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[3]);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo[3]);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo[3]);
 		glNamedBufferStorage(ssbo[3], materials_ssbo.size * sizeof(MaterialGLSL), &(materials_ssbo[0]), 0);
+		DeallocateArray(materials_ssbo);
 	}
 
 	if(bvh_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[4]);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ssbo[4]);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo[4]);
 		glNamedBufferStorage(ssbo[4], bvh_ssbo.size * sizeof(BVHNodeGLSL), &(bvh_ssbo[0]), 0);
+		DeallocateArray(bvh_ssbo);
 	}
 
 	glUseProgram(display.rb_shader_program);
@@ -454,7 +453,7 @@ int main(int argc, char *argv[])
 		const uint32 num_groups_x = width / 8;
 		const uint32 num_groups_y = height / 8;
 		glDispatchCompute(num_groups_x, num_groups_y, 1);
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 		glPopDebugGroup();
 
@@ -489,10 +488,10 @@ int main(int argc, char *argv[])
 		SDL_GL_SwapWindow(display.window_handle);
 	}
 
-	DeallocateArray(model_tris_ssbo);
-	DeallocateArray(bvh_ssbo);
-	DeallocateArray(spheres_ssbo);
-	DeallocateArray(materials_ssbo);
+	//DeallocateArray(model_tris_ssbo);
+	//DeallocateArray(bvh_ssbo);
+	//DeallocateArray(spheres_ssbo);
+	//DeallocateArray(materials_ssbo);
 
 	CloseDisplay(display);
 

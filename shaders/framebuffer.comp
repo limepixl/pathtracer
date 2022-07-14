@@ -1,6 +1,6 @@
 #version 460 core
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
-layout(rgba16f, binding = 0) uniform image2D screen;
+layout(rgba32f, binding = 0) restrict uniform image2D screen;
 
 // Uniform variables
 uniform uvec2 u_frame_data; // seed, frame#
@@ -24,10 +24,9 @@ uniform uvec2 u_frame_data; // seed, frame#
 
 struct Triangle
 {
-	vec4  data1;  // v0.x, v0.y, v0.z, n.x
-	vec4  data2;  // v1.x, v1.y, v1.z, n.y
-	vec4  data3;  // v2.x, v2.y, v2.z, n.z
-	uvec4 data4;  // mat_index, 0, 0, 0
+	vec4  data1;  // v0.x, v0.y, v0.z, mat_index
+	vec4  data2;  // v1.x, v1.y, v1.z, 0
+	vec4  data3;  // v2.x, v2.y, v2.z, 0
 };
 
 struct Sphere
@@ -38,9 +37,9 @@ struct Sphere
 
 struct Material
 {
-	vec4 type_diffuse;  // mat_type, diff.x, diff.y, diff.z
-	vec4 specular_spec; // spec.x, spec.y, spec.z, n_spec
-	vec4 Le;            // Le.x, Le.y, Le.z, empty
+	vec4 data1; // diff.x, diff.y, diff.z, type
+	vec4 data2; // spec.x, spec.y, spec.z, n_spec
+	vec4 data3; // Le.x, Le.y, Le.z, empty
 };
 
 struct BVHNode
@@ -52,27 +51,27 @@ struct BVHNode
 
 // SSBOs
 
-layout(std430, binding = 1) readonly buffer SpheresSSBO
+layout(std430, binding = 0) readonly restrict buffer SpheresSSBO
 {
 	Sphere spheres[];
 };
 
-layout(std430, binding = 2) readonly buffer ModelTrisSSBO
+layout(std430, binding = 1) readonly restrict buffer ModelTrisSSBO
 {
 	Triangle triangles[];
 };
 
-layout(std430, binding = 3) readonly buffer ModelLightTrisSSBO
+layout(std430, binding = 2) readonly restrict buffer ModelLightTrisSSBO
 {
 	uint light_tri_indices[];
 };
 
-layout(std430, binding = 4) readonly buffer MaterialsSSBO
+layout(std430, binding = 3) readonly restrict buffer MaterialsSSBO
 {
 	Material materials[];
 };
 
-layout(std430, binding = 5) readonly buffer BVHSSBO
+layout(std430, binding = 4) readonly restrict buffer BVHSSBO
 {
 	BVHNode bvh_nodes[];
 };
@@ -83,7 +82,7 @@ layout(std430, binding = 5) readonly buffer BVHSSBO
 // functions, created alongside their research.
 // https://www.shadertoy.com/view/XlGcRh
 
-uint seed3(uvec3 p) 
+uint seed3(in uvec3 p) 
 {
     return 19u * p.x + 47u * p.y + 101u * p.z + 131u;
 }
@@ -115,7 +114,7 @@ vec2 rand_vec2(inout uint rng_state)
 
 // Math
 
-mat3 construct_tnb(vec3 n)
+mat3 construct_tnb(in vec3 n)
 {
 	// Orthonormal basis
 	float s = n.z < 0.0 ? -1.0 : 1.0;
@@ -178,7 +177,7 @@ float intersect_sphere(vec3 ro, vec3 rd, Sphere sphere)
 	float discriminant = b * b - 4.0 * a * c;
 	if(discriminant >= 0)
 	{
-		if(abs(discriminant) <= EPSILON)
+		if(discriminant <= EPSILON)
 		{
 			float t = -b / (2.0 * a);
 			if(t >= TMIN && t <= TMAX)
@@ -222,27 +221,23 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data)
 	float dt = dot(edge1, pvec);
 
 	// Ray direction parallel to the triangle plane
-	if (dt < EPSILON)
-		return false;
 
 	float inv_determinant = 1.0 / dt;
 	vec3 tvec = ro - tri.data1.xyz;
 	float u = dot(tvec, pvec) * inv_determinant;
-	if ((u < 0.0) || (u > 1.0))
+	if (dt < EPSILON || (u < 0.0) || (u > 1.0))
 		return false;
 
 	vec3 qvec = cross(tvec, edge1);
 	float v = inv_determinant * dot(rd, qvec);
-	if ((v < 0.0) || (u + v > 1.0))
-		return false;
 
 	// Computing t
 	float t = inv_determinant * dot(edge2, qvec);
-	if (t > TMIN && t < data.t)
+	if ((v >= 0.0) && (u + v <= 1.0) && t > TMIN && t < data.t )
 	{
 		data.t = t;
-		data.normal = vec3(tri.data1.w, tri.data2.w, tri.data3.w);
-		data.mat_object_indices.x = tri.data4.x;
+		data.normal = normalize(cross(edge1, edge2));
+		data.mat_object_indices.x = uint(tri.data1.w);
 		data.mat_object_indices.y = tri_index;
 		// data.object_type = ObjectType::TRIANGLE;
 		return true;
@@ -281,7 +276,7 @@ bool intersect_bvh_stack(in vec3 ro, in vec3 rd, inout HitData data)
 	bool hit_anything = false;
 
 	int stack_top = 0;
-	uint stack[16];
+	int stack[16];
 	stack[0] = 0;
 
 	while (stack_top + 1 > 0)
@@ -294,8 +289,8 @@ bool intersect_bvh_stack(in vec3 ro, in vec3 rd, inout HitData data)
 		// Check if ray intersects root node
 		if(intersect_aabb(ro, rd, node.data1.xyz, node.data2.xyz, data.t))
 		{
-			uint node_left = uint(node.data1.w);
-			uint num_node_tris = uint(node.data2.w);
+			int node_left = int(node.data1.w);
+			int num_node_tris = int(node.data2.w);
 
 			if(num_node_tris == 0)
 			{
@@ -343,6 +338,8 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 	bool hit_anything = false;
 	result.t = TMAX;
 
+	// TODO: find out why omitting this for loop (even with empty SSBO)
+	// results in lower frame times and higher register counts???
 	for(uint i = 0; i < spheres.length(); i++)
 	{
 		Sphere current_sphere = spheres[i];
@@ -356,7 +353,7 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 		}
 	}
 
-	return hit_anything || intersect_bvh_stack(ro, rd, result);
+	return intersect_bvh_stack(ro, rd, result);
 }
 
 // Estimators
@@ -375,11 +372,11 @@ vec3 estimator_path_tracing_naive(inout vec3 ro, inout vec3 rd, in uint rng_stat
 	for (uint b = 0; b < BOUNCE_COUNT; b++)
 	{
 		HitData data;
-		bool hit_anything = intersect(ro, rd, data);
-		if(!hit_anything) // ray goes off into infinity
+		if(!intersect(ro, rd, data)) // ray goes off into infinity
 		{
 			if (b <= BOUNCE_COUNT)
 				color += throughput_term * sky_color(rd) * ENVIRONMENT_MAP_LE;
+
 			return color;
 		}
 
@@ -387,17 +384,17 @@ vec3 estimator_path_tracing_naive(inout vec3 ro, inout vec3 rd, in uint rng_stat
 
 		// add the light that the material emits
 		if (b <= BOUNCE_COUNT)
-			color += throughput_term * mat.Le.xyz;
+			color += throughput_term * mat.data3.xyz;
 
 		// if the material is a diffuse lambertian
-		// if(mat.type_diffuse.x <= EPSILON)
+		// if(mat.data1.w <= EPSILON)
 		{
 			// update throughput
 			// The PI is here because we are sampling w.r.t the pdf
 			// p(psi) = cos(theta) / PI       (cosine weighted sampling)
 			// This cosine term cancels out with the dot product in
 			// the throughput term and all that is left is the BRDF
-			throughput_term *= PI * mat.type_diffuse.yzw;
+			throughput_term *= PI * mat.data1.xyz;
 
 			// Intersection point and new ray
 			ro = ro + (rd * data.t) + (EPSILON * data.normal);
@@ -406,7 +403,7 @@ vec3 estimator_path_tracing_naive(inout vec3 ro, inout vec3 rd, in uint rng_stat
 		}
 /*
 		// if the material is ideally reflective 
-		else if(abs(mat.type_diffuse.x - 1.0) <= EPSILON)
+		else if(abs(mat.data1.w - 1.0) <= EPSILON)
 		{
 			// Intersection point and new ray
 			ro = data.point + EPSILON * data.normal;
@@ -424,7 +421,7 @@ vec3 estimator_path_tracing_naive(inout vec3 ro, inout vec3 rd, in uint rng_stat
 			throughput_term *= mat.specular_spec.xyz;
 		}
 		// if the material is a Phong material
-		else if(abs(mat.type_diffuse.x - 3.0) <= EPSILON)
+		else if(abs(mat.data1.w - 3.0) <= EPSILON)
 		{
 			vec3 uvec = vec3(rand(rng_state));
 
@@ -521,32 +518,32 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 		}
 
 		Material mat = materials[data.mat_object_indices.x];
-		vec3 BRDF = mat.type_diffuse.yzw;
+		vec3 BRDF = mat.data1.xyz;
 
 		// (x->y dot Nx)
 		float cos_theta = dot(data.normal, rd);
 
 		// add light that is emitted from surface (but stop right afterwards)
-		if (bounce <= BOUNCE_COUNT && mat.Le.x >= 0.5)
+		if (bounce <= BOUNCE_COUNT && mat.data3.x >= 0.5)
 		{
 			// TODO: only add if the ray was added by a single lonely bounce from
 			// the mirror instead of just the last bounce being the mirror?
 			/*
 			bool last_bounce_reflected = (old_mat_changed && 
-										  abs(old_mat.type_diffuse.x - 3.0) < EPSILON && 
-										  all(equal(old_mat.type_diffuse.yzw, vec3(0.0))) && 
+										  abs(old_mat.data1.w - 3.0) < EPSILON && 
+										  all(equal(old_mat.data1.xyz, vec3(0.0))) && 
 										  any(greaterThan(old_mat.specular_spec, vec4(0.01))));
 			*/
 
 			bool last_bounce_reflected = false;
 			if (bounce == 0 || last_bounce_reflected)
-				color = mat.Le.xyz;
+				color = mat.data3.xyz;
 
 			return color;
 		}
 		// If there is at least 1 light source in the scene and the material
 		// of the surface we hit is diffuse, we can use NEE.
-		else if (light_tri_indices.length() > 0 && abs(mat.type_diffuse.x) < EPSILON) /*|| (abs(mat.type_diffuse.x - 3.0) < EPSILON && mat.specular_spec.xyz == vec3(0.0)))*/
+		else if (light_tri_indices.length() > 0 && abs(mat.data1.w) < EPSILON) /*|| (abs(mat.data1.w - 3.0) < EPSILON && mat.specular_spec.xyz == vec3(0.0)))*/
 		{
 			// sample light sources for direct illumination
 			vec3 direct_illumination = vec3(0.0);
@@ -558,7 +555,7 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				int picked_light_source = int((mod(rand(rng_state), light_tri_indices.length())));
 				Triangle light_source = triangles[light_tri_indices[picked_light_source]];
 
-				Material light_source_mat = materials[light_source.data4.x];
+				Material light_source_mat = materials[uint(light_source.data1.w)];
 
 				// TODO: implement area functions for all primitives
 				float light_area = area(light_source);
@@ -605,7 +602,7 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 
 					float G = (cos_theta_x * cos_theta_y) / squared_dist;
 
-					direct_illumination += light_source_mat.Le.xyz * BRDF * G / pdf_light_area;
+					direct_illumination += light_source_mat.data3.xyz * BRDF * G / pdf_light_area;
 					// if (direct_illumination.x != direct_illumination.x || direct_illumination.y != direct_illumination.y || direct_illumination.z != direct_illumination.z)
 					// {
 					// 	// NaN
@@ -628,7 +625,7 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			rd = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), data.normal);
 		}
 		/*
-		else if (abs(mat.type_diffuse.x - 1.0) < EPSILON)
+		else if (abs(mat.data1.w - 1.0) < EPSILON)
 		{
 			vec3 reflected_dir = normalize(reflect(rd, data.normal));
 
@@ -649,7 +646,7 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			// BRDF*(Nx dot wi) = (Nx dot wi) = cos_theta_x
 			// throughput_term *= Abs(cos_theta);
 		}
-		else if (abs(mat.type_diffuse.x - 3.0) < EPSILON)
+		else if (abs(mat.data1.w - 3.0) < EPSILON)
 		{
 			// TODO: support the diffuse part
 
@@ -712,7 +709,7 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 	Material mat_y = materials[data.mat_object_indices.x];
 
 	// Add light contribution from first bounce if it hit a light source
-	color += throughput_term * mat_y.Le.xyz;
+	color += throughput_term * mat_y.data3.xyz;
 
 	uint num_bounces = BOUNCE_COUNT + 1;
 	for (uint b = 1; b < num_bounces; b++)
@@ -724,8 +721,8 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 		// If there is at least 1 light source in the scene, and the material of the
 		// surface is diffuse, we can calculate the direct light contribution (NEE)
 		bool can_use_NEE = light_tri_indices.length() > 0;
-		can_use_NEE = can_use_NEE && abs(mat_x.type_diffuse.x) < EPSILON /*|| (abs(mat_x.type_diffuse.x - 3.0) < EPSILON && all(lessThan(mat_x.specular_spec.xyz, vec3(EPSILON)))))*/;
-		can_use_NEE = can_use_NEE && all(lessThan(mat_x.Le.xyz, vec3(EPSILON)));
+		can_use_NEE = can_use_NEE && abs(mat_x.data1.w) < EPSILON /*|| (abs(mat_x.data1.w - 3.0) < EPSILON && all(lessThan(mat_x.specular_spec.xyz, vec3(EPSILON)))))*/;
+		can_use_NEE = can_use_NEE && all(lessThan(mat_x.data3.xyz, vec3(EPSILON)));
 
 		if (can_use_NEE)
 		{
@@ -739,7 +736,7 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				int picked_light_source = int((mod(r, light_tri_indices.length())));
 				Triangle light_source = triangles[light_tri_indices[uint(picked_light_source)]];
 
-				Material light_source_mat = materials[light_source.data4.x];
+				Material light_source_mat = materials[uint(light_source.data1.w)];
 				vec3 y_nee = map_to_triangle(rand_vec2(rng_state), light_source);
 				float light_area = area(light_source);
 
@@ -793,13 +790,13 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 						// float32 wNEE = BalanceHeuristic(pdf_light_sa, pdf_BSDF_sa) / pdf_light_sa;
 						float wNEE = 1.0f / (pdf_light_sa + pdf_BSDF_sa);
 
-						color += light_source_mat.Le.xyz * mat_x.type_diffuse.yzw * cos_theta_x * throughput_term * wNEE;
+						color += light_source_mat.data3.xyz * mat_x.data1.xyz * cos_theta_x * throughput_term * wNEE;
 					}
 				}
 			}
 		}
 
-		// if (abs(mat_x.type_diffuse.x) < EPSILON)
+		// if (abs(mat_x.data1.w) < EPSILON)
 		{
 			// Pick a new direction
 			vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), normal_x);
@@ -807,14 +804,14 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			rd = dir;
 		}
 		/*
-		else if (abs(mat_x.type_diffuse.x - 1.0) < EPSILON)
+		else if (abs(mat_x.data1.w - 1.0) < EPSILON)
 		{
 			// Pick the reflected direciton
 			vec3 reflected_dir = normalize(reflect(rd, normal_x));
 			ro = x + EPSILON * normal_x;
 			rd = reflected_dir;
 		}
-		else if (abs(mat_x.type_diffuse.x - 3.0) < EPSILON)
+		else if (abs(mat_x.data1.w - 3.0) < EPSILON)
 		{
 			// Pick direction in the cosine lobe around reflected dir
 			vec3 reflected_dir = normalize(reflect(rd, normal_x));
@@ -843,13 +840,13 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			// No intersection with scene, add env map contribution
 			if (b <= BOUNCE_COUNT)
 			{
-				// if (mat_x.type_diffuse.x == 0.0)
-					color += throughput_term * PI * mat_x.type_diffuse.yzw * sky_color(rd) * ENVIRONMENT_MAP_LE;
+				// if (mat_x.data1.w == 0.0)
+					color += throughput_term * PI * mat_x.data1.xyz * sky_color(rd) * ENVIRONMENT_MAP_LE;
 
 				/*
-				else if (mat_x.type_diffuse.x == 1.0)
+				else if (mat_x.data1.w == 1.0)
 					color += throughput_term * mat_x.specular_spec.xyz * sky_color(rd) * cos_theta_x * ENVIRONMENT_MAP_LE;
-				else if (mat_x.type_diffuse.x == 3.0)
+				else if (mat_x.data1.w == 3.0)
 				{
 					float theta_term = 1.0 + 1.0 / (mat_x.specular_spec.w + 1.0);
 					color += throughput_term * mat_x.specular_spec.xyz * sky_color(rd) * cos_theta_x * theta_term * ENVIRONMENT_MAP_LE;
@@ -869,20 +866,20 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 // #endif
 
 		// float pdf_BSDF_sa = 0.0f;
-		//if (mat_x.type_diffuse.x == 0.0)
+		//if (mat_x.data1.w == 0.0)
 		// {
 			// Because the new ray direction is sampled using cosine weighted hemisphere
 			// sampling, the pdf is cos_theta / PI
 			float pdf_BSDF_sa = cos_theta_y / PI;
 		// }
 		/*
-		else if (mat_x.type_diffuse.x == 1.0)
+		else if (mat_x.data1.w == 1.0)
 		{
 			// We only sample the single direction, so the pdf is 1 for that
 			// reflected direction
 			pdf_BSDF_sa = 1.0;
 		}
-		else if (mat_x.type_diffuse.x == 3.0)
+		else if (mat_x.data1.w == 3.0)
 		{
 			// NOTE: it's this value because I assume the terms present in the pdf
 			// cancel out with the terms present in the specular term of the BRDF
@@ -897,11 +894,11 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 		float wBSDF = 1.0f;
 
 		// If we can use NEE on the hit surface
-		if (mat_x.type_diffuse.x == 0.0 && mat_x.Le.x < 0.1 && cos_theta_y > 0.0)
+		if (mat_x.data1.w == 0.0 && mat_x.data3.x < 0.1 && cos_theta_y > 0.0)
 		{
 			// If the hit surface is a light source, we need to calculate
 			// the pdf for NEE
-			if (mat_y.Le.x > 0.1 && light_tri_indices.length() > 0)
+			if (mat_y.data3.x > 0.1 && light_tri_indices.length() > 0)
 			{
 				// float pdf_NEE_area = 0.0f;
 				/*
@@ -928,31 +925,31 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			}
 
 			if (b <= BOUNCE_COUNT)
-				color += throughput_term * mat_x.type_diffuse.yzw * mat_y.Le.xyz * PI * wBSDF;
+				color += throughput_term * mat_x.data1.xyz * mat_y.data3.xyz * PI * wBSDF;
 		}
 		/*
 		else if (b <= BOUNCE_COUNT && cos_theta_y > 0.0)
 		{
-			if (mat_x.type_diffuse.x == 3.0)
+			if (mat_x.data1.w == 3.0)
 			{
 				// Sampled w.r.t the cosine term
-				vec3 diffuse_part = PI * mat_x.type_diffuse.yzw;
+				vec3 diffuse_part = PI * mat_x.data1.xyz;
 
 				// Sampled w.r.t the BRDF
 				float theta_term = 1.0 + 1.0 / (mat_x.specular_spec.w + 1.0);
 				vec3 specular_part = mat_x.specular_spec.xyz * theta_term * cos_theta_x;
 
-				color += throughput_term * (diffuse_part + specular_part) * mat_y.Le.xyz * cos_theta_y;
+				color += throughput_term * (diffuse_part + specular_part) * mat_y.data3.xyz * cos_theta_y;
 			}
 		}
 		*/
 
-		//if (mat_x.type_diffuse.x == 0.0)
-			throughput_term *= PI * mat_x.type_diffuse.yzw;
+		//if (mat_x.data1.w == 0.0)
+			throughput_term *= PI * mat_x.data1.xyz;
 		/*
-		else if (mat_x.type_diffuse.x == 1.0)
+		else if (mat_x.data1.w == 1.0)
 			throughput_term *= mat_x.specular_spec.xyz;
-		else if (mat_x.type_diffuse.x == 3.0)
+		else if (mat_x.data1.w == 3.0)
 		{
 			float theta_term = 1.0 + 1.0 / (mat_x.specular_spec.w + 1.0);
 			throughput_term *= mat_x.specular_spec.xyz * cos_theta_x * theta_term;
@@ -963,28 +960,22 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 	return color;
 }
 
-vec3 render_function(uvec2 screen_size, ivec2 pixel_coords, in uint rng_state)
+vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 {
-	float width = float(screen_size.x);
-	float height = float(screen_size.y);
-
 	float grid_height = 2.0;
-	float grid_width = grid_height * width / height;
+	float grid_width = grid_height * screen_size.x / screen_size.y;
 
 	vec3 grid_x = vec3(grid_width, 0.0, 0.0);
 	vec3 grid_y = vec3(0.0, grid_height, 0.0);
 
-	vec3 eye = vec3(0.0, 0.0, 0.0);
+	vec3 eye = vec3(0.0);
 	vec3 grid_origin = eye - (grid_x * 0.5) - (grid_y * 0.5);
 	grid_origin.z = -2.0;
 
-	int x = pixel_coords.x;
-	int y = pixel_coords.y;
-
 	vec2 uv_offset = rand_vec2(rng_state) - vec2(0.5, 0.5);
 
-	float u = (float(x) + uv_offset.x) / width;
-	float v = (float(y) + uv_offset.y) / height;
+	float u = (float(pixel_coords.x) + uv_offset.x) / screen_size.x;
+	float v = (float(pixel_coords.y) + uv_offset.y) / screen_size.y;
 
 	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
 	vec3 ray_direction = normalize(point_on_grid - eye);
@@ -996,9 +987,9 @@ vec3 render_function(uvec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 
 void main() 
 {
-	uvec2 screen_size = imageSize(screen);
-
 	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
+
+	vec2 screen_size = imageSize(screen);
 
 	uint rng_state = seed3(uvec3(pixel_coords, u_frame_data.x));
 
