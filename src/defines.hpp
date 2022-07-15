@@ -17,8 +17,6 @@ constexpr uint8 NUM_THREADS = 11;
 constexpr uint32 WIDTH = 512;
 constexpr uint32 HEIGHT = 512;
 
-// WHY DOES A LOWER LEAF COUNT RESULT IN THE ARTIFACT?!?!?!?!?!
-
 constexpr uint8 BOUNCE_COUNT = 5;
 constexpr uint16 NUM_SAMPLES = 1;
 constexpr uint8 NUM_SHADOW_RAYS = 1;

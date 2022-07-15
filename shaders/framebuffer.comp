@@ -480,7 +480,7 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				// pick a light source
 				float pdf_pick_light = 1.0 / float(light_tri_indices.length());
 
-				int picked_light_source = int((mod(pcg(rng_state), light_tri_indices.length())));
+				int picked_light_source = int((pcg(rng_state) % light_tri_indices.length()));
 				Triangle light_source = triangles[light_tri_indices[picked_light_source]];
 
 				Material light_source_mat = materials[uint(light_source.data1.w)];
@@ -494,12 +494,12 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				float pdf_light_area = pdf_pick_light * pdf_pick_point_on_light;
 
 				// Just for clarity
-				vec3 x = ro + rd * data.t;
+				vec3 x = ro + rd * data.t + EPSILON * data.normal;
 
 				// Send out a shadow ray in direction x->y
 				vec3 dist_vec = y - x;
 
-				vec3 shadow_ro = x + EPSILON * data.normal;
+				vec3 shadow_ro = x;
 				vec3 shadow_rd = normalize(dist_vec);
 
 				// Check if ray hits anything before hitting the light source
@@ -607,16 +607,12 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				// pick a light source
 				float pdf_pick_light = 1.0f / float(light_tri_indices.length());
 
-				uint r = pcg(rng_state);
-				int picked_light_source = int((mod(r, light_tri_indices.length())));
+				int picked_light_source = int((pcg(rng_state) % light_tri_indices.length()));
 				Triangle light_source = triangles[light_tri_indices[uint(picked_light_source)]];
 
 				Material light_source_mat = materials[uint(light_source.data1.w)];
 				vec3 y_nee = map_to_triangle(rand_vec2(rng_state), light_source);
 				float light_area = area(light_source);
-
-				// Just for clarity
-				// vec3 x_nee = x;
 
 				// Send out a shadow ray in direction x->y
 				vec3 dist_vec = y_nee - x;
@@ -640,15 +636,8 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				// Visibility check means we have a clear line of sight!
 				if (shadow_hit_anything && all(lessThan(y_nee - (shadow_ro + shadow_rd * shadow_data.t), vec3(EPSILON))))
 				{
-//#if TWO_SIDED_LIGHT
-					//float32 cos_theta_y = Dot(shadow_data.normal, -shadow_rd);
-					//vec3 normalY_nee = shadow_data.normal * Sign(cos_theta_y);
-					//cos_theta_y = Abs(cos_theta_y);
-//#else
 					float cos_theta_y = max(0.0, dot(shadow_data.normal, -shadow_rd));
-					// vec3 normalY_nee = shadow_data.normal;
 					if (cos_theta_y > 0.0)
-//#endif
 					{
 						float pdf_pick_point_on_light = 1.0f / light_area;
 
@@ -671,41 +660,10 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			}
 		}
 
-		// if (abs(mat_x.data1.w) < EPSILON)
-		{
-			// Pick a new direction
-			vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), normal_x);
-			ro = x + EPSILON * normal_x;
-			rd = dir;
-		}
-		/*
-		else if (abs(mat_x.data1.w - 1.0) < EPSILON)
-		{
-			// Pick the reflected direciton
-			vec3 reflected_dir = normalize(reflect(rd, normal_x));
-			ro = x + EPSILON * normal_x;
-			rd = reflected_dir;
-		}
-		else if (abs(mat_x.data1.w - 3.0) < EPSILON)
-		{
-			// Pick direction in the cosine lobe around reflected dir
-			vec3 reflected_dir = normalize(reflect(rd, normal_x));
-			mat3 tnb = construct_tnb(reflected_dir);
-
-			float inv = 1.0f / (mat_x.specular_spec.w + 1.0);
-
-			vec2 random_vec2f = rand_vec2(rng_state);
-			float cos_alpha = pow(random_vec2f.x, inv);
-			float sin_alpha = sqrt(1.0 - cos_alpha * cos_alpha);
-			float phi = 2.0 * PI * random_vec2f.y;
-
-			vec3 dir = vec3(sin_alpha * cos(phi), cos_alpha, sin_alpha * sin(phi));
-			dir = tnb * dir;
-
-			ro = x;
-			rd = dir;
-		}
-		*/
+		// Pick a new direction
+		vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), normal_x);
+		ro = x + EPSILON * normal_x;
+		rd = dir;
 
 		float cos_theta_x = max(0.0, dot(normal_x, rd));
 
@@ -715,53 +673,17 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			// No intersection with scene, add env map contribution
 			if (b <= BOUNCE_COUNT)
 			{
-				// if (mat_x.data1.w == 0.0)
-					color += throughput_term * PI * mat_x.data1.xyz * sky_color(rd) * ENVIRONMENT_MAP_LE;
-
-				/*
-				else if (mat_x.data1.w == 1.0)
-					color += throughput_term * mat_x.specular_spec.xyz * sky_color(rd) * cos_theta_x * ENVIRONMENT_MAP_LE;
-				else if (mat_x.data1.w == 3.0)
-				{
-					float theta_term = 1.0 + 1.0 / (mat_x.specular_spec.w + 1.0);
-					color += throughput_term * mat_x.specular_spec.xyz * sky_color(rd) * cos_theta_x * theta_term * ENVIRONMENT_MAP_LE;
-				}
-				*/
+				color += throughput_term * PI * mat_x.data1.xyz * sky_color(rd) * ENVIRONMENT_MAP_LE;
 				break;
 			}
 		}
 
-// #if TWO_SIDED_LIGHT
-// 		float32 cos_theta_y = Dot(data.normal, -rd);
-// 		normal_y = data.normal * Sign(cos_theta_y);
-// 		cos_theta_y = Abs(cos_theta_y);
-// #else
 		float cos_theta_y = max(0.0f, -dot(data.normal, rd));
 		normal_y = data.normal;
-// #endif
 
-		// float pdf_BSDF_sa = 0.0f;
-		//if (mat_x.data1.w == 0.0)
-		// {
-			// Because the new ray direction is sampled using cosine weighted hemisphere
-			// sampling, the pdf is cos_theta / PI
-			float pdf_BSDF_sa = cos_theta_y / PI;
-		// }
-		/*
-		else if (mat_x.data1.w == 1.0)
-		{
-			// We only sample the single direction, so the pdf is 1 for that
-			// reflected direction
-			pdf_BSDF_sa = 1.0;
-		}
-		else if (mat_x.data1.w == 3.0)
-		{
-			// NOTE: it's this value because I assume the terms present in the pdf
-			// cancel out with the terms present in the specular term of the BRDF
-			// because I importance sample the specular term
-			pdf_BSDF_sa = 1.0;
-		}
-		*/
+		// Because the new ray direction is sampled using cosine weighted hemisphere
+		// sampling, the pdf is cos_theta / PI
+		float pdf_BSDF_sa = cos_theta_y / PI;
 
 		y = ro + rd * data.t + EPSILON * normal_y;
 		mat_y = materials[data.mat_object_indices.x];
@@ -802,34 +724,8 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			if (b <= BOUNCE_COUNT)
 				color += throughput_term * mat_x.data1.xyz * mat_y.data3.xyz * PI * wBSDF;
 		}
-		/*
-		else if (b <= BOUNCE_COUNT && cos_theta_y > 0.0)
-		{
-			if (mat_x.data1.w == 3.0)
-			{
-				// Sampled w.r.t the cosine term
-				vec3 diffuse_part = PI * mat_x.data1.xyz;
 
-				// Sampled w.r.t the BRDF
-				float theta_term = 1.0 + 1.0 / (mat_x.specular_spec.w + 1.0);
-				vec3 specular_part = mat_x.specular_spec.xyz * theta_term * cos_theta_x;
-
-				color += throughput_term * (diffuse_part + specular_part) * mat_y.data3.xyz * cos_theta_y;
-			}
-		}
-		*/
-
-		//if (mat_x.data1.w == 0.0)
-			throughput_term *= PI * mat_x.data1.xyz;
-		/*
-		else if (mat_x.data1.w == 1.0)
-			throughput_term *= mat_x.specular_spec.xyz;
-		else if (mat_x.data1.w == 3.0)
-		{
-			float theta_term = 1.0 + 1.0 / (mat_x.specular_spec.w + 1.0);
-			throughput_term *= mat_x.specular_spec.xyz * cos_theta_x * theta_term;
-		}
-		*/
+		throughput_term *= PI * mat_x.data1.xyz;
 	}
 
 	return color;
@@ -856,8 +752,8 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 ray_direction = normalize(point_on_grid - eye);
 
 	// return estimator_path_tracing_naive(eye, ray_direction, rng_state);
-	return estimator_path_tracing_nee(eye, ray_direction, rng_state);
-	// return estimator_path_tracing_mis(eye, ray_direction, rng_state);
+	// return estimator_path_tracing_nee(eye, ray_direction, rng_state);
+	return estimator_path_tracing_mis(eye, ray_direction, rng_state);
 }
 
 void main() 
