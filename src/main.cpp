@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
 	Array<Triangle> tris;
 	Array<Material *> materials;
 
-	if (!LoadModelFromObj("CornellBox-Bunny.obj", "../../res/", tris, materials))
+	if (!LoadModelFromObj("CornellBox-Original.obj", "../../res/", tris, materials))
 	 //if (!LoadModelFromObj("robot.obj", "../../res/", tris, materials))
 	{
 		// DeallocateArray(bitmap_buffer);
