@@ -18,7 +18,7 @@ uniform uvec2 u_frame_data; // seed, frame#
 #define NUM_SHADOW_RAYS 1
 
 // Misc
-#define ENVIRONMENT_MAP_LE 0.0
+#define ENVIRONMENT_MAP_LE 1.0
 
 // SSBO helper structs
 
@@ -268,7 +268,7 @@ bool intersect_aabb(in vec3 ro, in vec3 rd, in vec3 bmin, in vec3 bmax, in float
 	tmin = max(tmin, min(tz1, tz2));
 	tmax = min(tmax, max(tz1, tz2));
 
-	return tmax >= tmin;
+	return tmax >= max(0.0, tmin) && tmin < t;
 }
 
 bool intersect_bvh_stack(in vec3 ro, in vec3 rd, inout HitData data)
@@ -401,14 +401,14 @@ vec3 estimator_path_tracing_naive(inout vec3 ro, inout vec3 rd, in uint rng_stat
 	return color;
 }
 
-float area(Triangle tri)
+float area(vec3 v0, vec3 v1, vec3 v2)
 {
-	vec3 edge1 = tri.data2.xyz - tri.data1.xyz;
-	vec3 edge2 = tri.data3.xyz - tri.data1.xyz;
+	vec3 edge1 = v1 - v0;
+	vec3 edge2 = v2 - v0;
 	return sqrt(dot(edge1, edge1) * dot(edge2, edge2)) * 0.5;
 }
 
-vec3 map_to_triangle(vec2 vec, Triangle tri)
+vec3 map_to_triangle(vec2 vec, vec3 v0, vec3 v1, vec3 v2)
 {
 	float u = vec.x;
 	float v = vec.y;
@@ -422,23 +422,21 @@ vec3 map_to_triangle(vec2 vec, Triangle tri)
 		v = 1.0 - v;
 	}
 
-	vec3 p = u * (tri.data2.xyz - tri.data1.xyz) + v * (tri.data3.xyz - tri.data1.xyz);
-	return p + tri.data1.xyz;
+	vec3 p = u * (v1 - v0) + v * (v2 - v0);
+	return p + v0;
 }
 
-vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
+vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 {
 	vec3 color = vec3(0.0);
 	vec3 throughput_term = vec3(1.0);
 
-	bool old_mat_changed = false;
-	Material old_mat;
+	int old_mat = -1;
 
 	for (uint bounce = 0; bounce < BOUNCE_COUNT; bounce++)
 	{
 		HitData data;
-		bool hit_anything = intersect(ro, rd, data);
-		if (!hit_anything)
+		if (!intersect(ro, rd, data))
 		{
 			// No intersection with scene, add env map contribution
 			color += throughput_term * sky_color(rd) * ENVIRONMENT_MAP_LE;
@@ -446,7 +444,6 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 		}
 
 		Material mat = materials[data.mat_object_indices.x];
-		vec3 BRDF = mat.data1.xyz;
 
 		// (x->y dot Nx)
 		float cos_theta = dot(data.normal, rd);
@@ -463,8 +460,8 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 										  any(greaterThan(old_mat.specular_spec, vec4(0.01))));
 			*/
 
-			bool last_bounce_reflected = false;
-			if (bounce == 0 || last_bounce_reflected)
+			// if (bounce == 0 || last_bounce_reflected)
+			if(bounce == 0)
 				color = mat.data3.xyz;
 
 			return color;
@@ -486,40 +483,37 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				Material light_source_mat = materials[uint(light_source.data1.w)];
 
 				// TODO: implement area functions for all primitives
-				float light_area = area(light_source);
+				float light_area = area(light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
 				float pdf_pick_point_on_light = 1.0 / light_area;
-				vec3 y = map_to_triangle(rand_vec2(rng_state), light_source);
+				vec3 y = map_to_triangle(rand_vec2(rng_state), light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
 
 				// PDF in terms of area, for picking point on light source k
 				float pdf_light_area = pdf_pick_light * pdf_pick_point_on_light;
 
 				// Just for clarity
-				vec3 x = ro + rd * data.t + EPSILON * data.normal;
+				// vec3 x = ro + rd * data.t + EPSILON * data.normal;
 
 				// Send out a shadow ray in direction x->y
-				vec3 dist_vec = y - x;
-
-				vec3 shadow_ro = x;
+				vec3 shadow_ro = ro + rd * data.t + EPSILON * data.normal;
+				vec3 dist_vec = y - shadow_ro;
 				vec3 shadow_rd = normalize(dist_vec);
 
 				// Check if ray hits anything before hitting the light source
 				HitData shadow_data;
 				bool shadow_hit_anything = intersect(shadow_ro, shadow_rd, shadow_data);
-				if (!shadow_hit_anything)
-				{
-					// It shouldn't be possible to send a ray towards the light
-					// source and not hit anything in the scene, even the light
-					// printf("ERROR: Shadow ray didn't hit anything!\n");
-					// break;
-
-					return vec3(0.0, 0.0, 5.0);
-				}
+				// if (!shadow_hit_anything)
+				// {
+				// 	// It shouldn't be possible to send a ray towards the light
+				// 	// source and not hit anything in the scene, even the light
+				// 	// printf("ERROR: Shadow ray didn't hit anything!\n");
+				// 	// break;
+				// 
+				// 	return vec3(0.0, 0.0, 5.0);
+				// }
 
 				// Visibility check means we have a clear line of sight!
 				if (shadow_hit_anything && all(lessThan(y - (shadow_ro + shadow_rd * shadow_data.t), vec3(EPSILON))))
 				{
-					float squared_dist = dot(dist_vec, dist_vec);
-
 					// We want to only add light contribution from lights within
 					// the hemisphere solid angle above X, and not from lights behind it.
 					float cos_theta_x = max(0.0, dot(data.normal, shadow_rd));
@@ -528,14 +522,15 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 					// be a one-sided light source.
 					float cos_theta_y = max(0.0, dot(shadow_data.normal, -shadow_rd));
 
-					float G = (cos_theta_x * cos_theta_y) / squared_dist;
+					float squared_dist = dot(dist_vec, dist_vec);
+					float G = cos_theta_x * cos_theta_y / squared_dist;
 
-					direct_illumination += light_source_mat.data3.xyz * BRDF * G / pdf_light_area;
-					if (any(isnan(direct_illumination)))
-					{
-						// NaN
-						return vec3(0.0, 0.0, 5.0);
-					}
+					direct_illumination += light_source_mat.data3.xyz * mat.data1.xyz * G / pdf_light_area;
+					// if (any(isnan(direct_illumination)))
+					// {
+					// 	// NaN
+					// 	return vec3(0.0, 0.0, 5.0);
+					// }
 				}
 			}
 			direct_illumination /= float(NUM_SHADOW_RAYS);
@@ -545,16 +540,15 @@ vec3 estimator_path_tracing_nee(inout vec3 ro, inout vec3 rd, in uint rng_state)
 			color += throughput_term * direct_illumination;
 
 			// Update the throughput term
-			float pdf_cos_weighted_hemisphere = cos_theta / PI;
-			throughput_term *= BRDF * cos_theta / pdf_cos_weighted_hemisphere;
-			// throughput_term *= PI * BRDF;
+			// float pdf_cos_weighted_hemisphere = cos_theta / PI;
+			// throughput_term *= mat.data1.xyz * cos_theta / pdf_cos_weighted_hemisphere;
+			throughput_term *= PI * mat.data1.xyz;
 
 			ro += rd * data.t + EPSILON * data.normal;
 			rd = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), data.normal);
 		}
 
-		old_mat = mat;
-		old_mat_changed = true;
+		old_mat = int(data.mat_object_indices.x);
 	}
 
 	return color;
@@ -611,8 +605,8 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				Triangle light_source = triangles[light_tri_indices[uint(picked_light_source)]];
 
 				Material light_source_mat = materials[uint(light_source.data1.w)];
-				vec3 y_nee = map_to_triangle(rand_vec2(rng_state), light_source);
-				float light_area = area(light_source);
+				vec3 y_nee = map_to_triangle(rand_vec2(rng_state), light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
+				float light_area = area(light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
 
 				// Send out a shadow ray in direction x->y
 				vec3 dist_vec = y_nee - x;
@@ -691,11 +685,11 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 		float wBSDF = 1.0f;
 
 		// If we can use NEE on the hit surface
-		if (mat_x.data1.w == 0.0 && mat_x.data3.x < 0.1 && cos_theta_y > 0.0)
+		if (mat_x.data1.w == 0.0 && mat_x.data3.x < EPSILON && cos_theta_y > 0.0)
 		{
 			// If the hit surface is a light source, we need to calculate
 			// the pdf for NEE
-			if (mat_y.data3.x > 0.1 && light_tri_indices.length() > 0)
+			if (mat_y.data3.x > EPSILON && light_tri_indices.length() > 0)
 			{
 				// float pdf_NEE_area = 0.0f;
 				/*
@@ -714,9 +708,11 @@ vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
 				*/
 
 				// TODO: Replace this with the above
-				float pdf_NEE_area = 1.0 / area(triangles[data.mat_object_indices.y]);
+				Triangle tri_NEE = triangles[data.mat_object_indices.y];
 
+				float pdf_NEE_area = 1.0 / area(tri_NEE.data1.xyz, tri_NEE.data2.xyz, tri_NEE.data3.xyz);
 				pdf_NEE_area /= float(light_tri_indices.length());
+
 				float pdf_NEE_sa = pdf_NEE_area * data.t * data.t / cos_theta_y;
 				wBSDF = balance_heuristic(pdf_BSDF_sa, pdf_NEE_sa);
 			}
@@ -751,9 +747,9 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
 	vec3 ray_direction = normalize(point_on_grid - eye);
 
-	// return estimator_path_tracing_naive(eye, ray_direction, rng_state);
+	return estimator_path_tracing_naive(eye, ray_direction, rng_state);
 	// return estimator_path_tracing_nee(eye, ray_direction, rng_state);
-	return estimator_path_tracing_mis(eye, ray_direction, rng_state);
+	// return estimator_path_tracing_mis(eye, ray_direction, rng_state);
 }
 
 void main() 
