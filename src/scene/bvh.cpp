@@ -389,5 +389,10 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 		ConstructBVHSweepSAH(tris + left_child_num_tris, right_child_num_tris, bvh_tree, current_node.left + 1);
 	}
 
+	if (bvh_index == 0)
+	{
+		printf("Finished building BVH!\n");
+		printf("--- Number of BVH nodes: %llu\n", bvh_tree.size);
+	}
 	return true;
 }

@@ -212,7 +212,7 @@ float intersect_sphere(vec3 ro, vec3 rd, Sphere sphere)
 }
 
 // Moller–Trumbore ray-triangle intersection algorithm
-bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data)
+bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in float tmax)
 {
 	Triangle tri = triangles[tri_index];
 	vec3 edge1 = tri.data2.xyz - tri.data1.xyz;
@@ -233,7 +233,7 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data)
 
 	// Computing t
 	float t = inv_determinant * dot(edge2, qvec);
-	if ((v >= 0.0) && (u + v <= 1.0) && t > TMIN && t < data.t )
+	if ((v >= 0.0) && (u + v <= 1.0) && t > TMIN && t < tmax)
 	{
 		data.t = t;
 		data.normal = normalize(cross(edge1, edge2));
@@ -271,7 +271,7 @@ bool intersect_aabb(in vec3 ro, in vec3 rd, in vec3 bmin, in vec3 bmax, in float
 	return tmax >= max(0.0, tmin) && tmin < t;
 }
 
-bool intersect_bvh_stack(in vec3 ro, in vec3 rd, inout HitData data)
+bool intersect_bvh_stack(in vec3 ro, in vec3 rd, inout HitData data, inout float tmax)
 {
 	bool hit_anything = false;
 
@@ -287,7 +287,7 @@ bool intersect_bvh_stack(in vec3 ro, in vec3 rd, inout HitData data)
 		BVHNode node = bvh_nodes[current_index];
 
 		// Check if ray intersects root node
-		bool hit_aabb = intersect_aabb(ro, rd, node.data1.xyz, node.data2.xyz, data.t);
+		bool hit_aabb = intersect_aabb(ro, rd, node.data1.xyz, node.data2.xyz, tmax);
 		if(hit_aabb)
 		{
 			int node_left = int(node.data1.w);
@@ -319,10 +319,11 @@ bool intersect_bvh_stack(in vec3 ro, in vec3 rd, inout HitData data)
 				// If leaf node, test against triangles of node
 				for (uint i = 0; i < num_node_tris; i++)
 				{
-					if (intersect_triangle(ro, rd, node_left + i, data))
+					if (intersect_triangle(ro, rd, node_left + i, data, tmax))
 					{
 						// Found closer hit, store it.
 						hit_anything = true;
+						tmax = data.t;
 					}
 				}
 			}
@@ -335,7 +336,9 @@ bool intersect_bvh_stack(in vec3 ro, in vec3 rd, inout HitData data)
 bool intersect(vec3 ro, vec3 rd, out HitData result)
 {
 	bool hit_anything = false;
-	result.t = TMAX;
+	float tmax = TMAX;
+
+	hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
 
 	// TODO: find out why omitting this for loop (even with empty SSBO)
 	// results in lower frame times and higher register counts???
@@ -343,16 +346,17 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 	{
 		Sphere current_sphere = spheres[i];
 		float current_t = intersect_sphere(ro, rd, current_sphere);
-		if(current_t >= TMIN && current_t <= TMAX && current_t < result.t)
+		if(current_t >= TMIN && current_t <= tmax && current_t < result.t)
 		{
+			tmax = current_t;
 			hit_anything = true;
 			result.t = current_t;
-			result.normal = (ro + (rd * current_t) - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
+			result.normal = (ro + rd * current_t - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
 			result.mat_object_indices.x = current_sphere.mat_index.x;
 		}
 	}
 
-	return intersect_bvh_stack(ro, rd, result);
+	return hit_anything;
 }
 
 // Estimators
