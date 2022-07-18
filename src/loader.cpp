@@ -162,7 +162,7 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 					Vec3f Le = out_materials[m]->Le;
 					float spec = out_materials[m]->n_spec;
 
-					if (spec == mat.shininess && 
+					if (Abs(spec - mat.shininess) < EPSILON && 
 						compare_tinyobjvec3_with_vec3f(mat.diffuse, diffuse) &&
 						compare_tinyobjvec3_with_vec3f(mat.specular, specular) &&
 						compare_tinyobjvec3_with_vec3f(mat.emission, Le))
