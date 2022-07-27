@@ -34,3 +34,10 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 bool ConstructBVHObjectMedian(struct Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_tree, uint32 bvh_index);
 void IntersectBVHRecursive(Ray ray, Scene scene, BVHNode *node, HitData *data, float &tmax, bool &hitAnything);
 bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax);
+
+struct BVHNodeGLSL
+{
+	Vec4f data1; // bmin.x, bmin.y, bmin.z, left/first_tri
+	Vec4f data2; // bmax.x, bmax.y, bmax.z, num_tris
+	Vec4f data3; // axis, 0, 0, 0
+};

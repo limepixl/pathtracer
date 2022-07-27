@@ -63,7 +63,7 @@ set(HEADER_FILES
 	src/core/array.hpp
 )
 
-add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
+add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES} "src/scene/camera.cpp")
 
 # C++ standard version
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)

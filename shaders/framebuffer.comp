@@ -568,7 +568,7 @@ float balance_heuristic(float pdf_a, float pdf_b)
 	return pdf_a / (pdf_a + pdf_b);
 }
 
-vec3 estimator_path_tracing_mis(inout vec3 ro, inout vec3 rd, in uint rng_state)
+vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 {
 	vec3 color = vec3(0.0);
 	vec3 throughput_term = vec3(1.0);

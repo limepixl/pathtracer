@@ -67,6 +67,7 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 	//SDL_GL_SetSwapInterval(0);
 
 	SDL_SetRelativeMouseMode(SDL_TRUE);
+	SDL_SetWindowInputFocus(result.window_handle);
 
 	return result;
 }
