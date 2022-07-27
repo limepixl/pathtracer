@@ -15,6 +15,8 @@ Vec3f Sign(Vec3f value);
 float Abs(float value);
 Vec3f Abs(Vec3f value);
 
+float Radians(float degrees);
+
 int16 Clamp(int16 value, int16 max);
 
 float Dot(Vec3f vec1, Vec3f vec2);

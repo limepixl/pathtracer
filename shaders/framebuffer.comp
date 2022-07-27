@@ -741,7 +741,7 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	float grid_height = 2.0;
 	float grid_width = grid_height * screen_size.x / screen_size.y;
 
-	vec3 cam_up = cross(cam_right.xyz, cam_forward.xyz);
+	vec3 cam_up = normalize(cross(cam_right.xyz, cam_forward.xyz));
 	vec3 grid_x = cam_right.xyz * grid_width;
 	vec3 grid_y = cam_up * grid_height;
 

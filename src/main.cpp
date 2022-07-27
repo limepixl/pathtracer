@@ -122,17 +122,19 @@ int main(int argc, char *argv[])
 	// Set up data to be passed to SSBOs
 
 	Array<MaterialGLSL> materials_ssbo;
-	AppendToArray(materials_ssbo, { CreateVec4f(0.8f / PI), CreateVec4f(0.0f), CreateVec4f(0.0f) });
+	AppendToArray(materials_ssbo, { CreateVec4f(0.9f / PI), CreateVec4f(0.0f), CreateVec4f(0.0f) });
+	AppendToArray(materials_ssbo, { CreateVec4f(0.9f / PI, 0.1f / PI, 0.1f / PI, 0.0f), CreateVec4f(0.0f), CreateVec4f(0.0f) });
+	AppendToArray(materials_ssbo, { CreateVec4f(0.9f / PI, 0.9f / PI, 0.1f / PI, 0.0f), CreateVec4f(0.0f), CreateVec4f(0.0f) });
 
 	Array<SphereGLSL> spheres_ssbo;
-	AppendToArray(spheres_ssbo, { CreateVec4f(1.05f, 0.0f, -4.0f, 0.3f), {0} });
-	AppendToArray(spheres_ssbo, { CreateVec4f(-1.05f, 0.0f, -4.0f, 0.3f), {0} });
-	AppendToArray(spheres_ssbo, { CreateVec4f(0.35f, 0.0f, -4.0f, 0.3f), {0} });
-	AppendToArray(spheres_ssbo, { CreateVec4f(-0.35f, 0.0f, -4.0f, 0.3f), {0} });
-	AppendToArray(spheres_ssbo, { CreateVec4f(1.05f, -0.65f, -4.0f, 0.3f), { 0 } });
-	AppendToArray(spheres_ssbo, { CreateVec4f(-1.05f, -0.65f, -4.0f, 0.3f), { 0 } });
-	AppendToArray(spheres_ssbo, { CreateVec4f(0.35f, -0.65f, -4.0f, 0.3f), { 0 } });
-	AppendToArray(spheres_ssbo, { CreateVec4f(-0.35f, -0.65f, -4.0f, 0.3f), { 0 } });
+	AppendToArray(spheres_ssbo, { CreateVec4f(1.05f, 0.0f, -4.0f, 0.3f), {1} });
+	AppendToArray(spheres_ssbo, { CreateVec4f(-1.05f, 0.0f, -4.0f, 0.3f), {2} });
+	AppendToArray(spheres_ssbo, { CreateVec4f(0.35f, 0.0f, -4.0f, 0.3f), {1} });
+	AppendToArray(spheres_ssbo, { CreateVec4f(-0.35f, 0.0f, -4.0f, 0.3f), {2} });
+	AppendToArray(spheres_ssbo, { CreateVec4f(1.05f, -0.65f, -4.0f, 0.3f), { 1 } });
+	AppendToArray(spheres_ssbo, { CreateVec4f(-1.05f, -0.65f, -4.0f, 0.3f), { 2 } });
+	AppendToArray(spheres_ssbo, { CreateVec4f(0.35f, -0.65f, -4.0f, 0.3f), { 1 } });
+	AppendToArray(spheres_ssbo, { CreateVec4f(-0.35f, -0.65f, -4.0f, 0.3f), { 2 } });
 	AppendToArray(spheres_ssbo, { CreateVec4f(0.0f, -101.0f, -4.0f, 100.0f), {0} });
 
 #if 0
@@ -256,12 +258,16 @@ int main(int argc, char *argv[])
 	cam.right = CreateVec3f(1.0f, 0.0f, 0.0f);
 	cam.speed = 0.005f;
 
-	GLuint ubo;
-	glCreateBuffers(1, &ubo);
-	glBindBuffer(GL_UNIFORM_BUFFER, ubo);
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
-	glNamedBufferStorage(ubo, sizeof(Camera), nullptr, GL_DYNAMIC_STORAGE_BIT);
+	GLuint cam_ubo;
+	glCreateBuffers(1, &cam_ubo);
+	glBindBuffer(GL_UNIFORM_BUFFER, cam_ubo);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, cam_ubo);
+	glNamedBufferStorage(cam_ubo, sizeof(CameraGLSL), nullptr, GL_DYNAMIC_STORAGE_BIT);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+	float xpos = WIDTH / 2.0f;
+	float ypos = HEIGHT / 2.0f;
+	float look_sens = 0.05f;
 
 	while(display.is_open)
 	{
@@ -271,6 +277,20 @@ int main(int argc, char *argv[])
 			if(e.type == SDL_QUIT)
 			{
 				display.is_open = false;
+			}
+			else if (e.type == SDL_MOUSEMOTION)
+			{
+				xpos += e.motion.xrel * look_sens;
+				ypos -= e.motion.yrel * look_sens;
+
+				cam.forward.x = cosf(Radians(xpos)) * cosf(Radians(ypos));
+				cam.forward.y = sinf(Radians(ypos));
+				cam.forward.z = sinf(Radians(xpos)) * cosf(Radians(ypos));
+				cam.forward = NormalizeVec3f(cam.forward);
+
+				cam.right = NormalizeVec3f(Cross(cam.forward, CreateVec3f(0.0f, 1.0f, 0.0f)));
+
+				frame_count = 0;
 			}
 		}
 
@@ -283,30 +303,30 @@ int main(int argc, char *argv[])
 			cam.origin += cam.forward * cam.speed * (float)delta_time;
 			frame_count = 0;
 		}
-		else if (state[SDL_SCANCODE_S])
+		if (state[SDL_SCANCODE_S])
 		{
 			cam.origin += -cam.forward * cam.speed * (float)delta_time;
 			frame_count = 0;
 		}
-		else if (state[SDL_SCANCODE_A])
+		if (state[SDL_SCANCODE_A])
 		{
 			cam.origin += -cam.right * cam.speed * (float)delta_time;
 			frame_count = 0;
 		}
-		else if (state[SDL_SCANCODE_D])
+		if (state[SDL_SCANCODE_D])
 		{
 			cam.origin += cam.right * cam.speed * (float)delta_time;
 			frame_count = 0;
 		}
-		else if (state[SDL_SCANCODE_SPACE])
+		if (state[SDL_SCANCODE_SPACE])
 		{
-			Vec3f cam_up = Cross(cam.right, cam.forward);
+			Vec3f cam_up = CreateVec3f(0.0f, 1.0f, 0.0f);
 			cam.origin += cam_up * cam.speed * (float)delta_time;
 			frame_count = 0;
 		}
-		else if (state[SDL_SCANCODE_LSHIFT])
+		if (state[SDL_SCANCODE_LSHIFT])
 		{
-			Vec3f cam_up = Cross(cam.right, cam.forward);
+			Vec3f cam_up = CreateVec3f(0.0f, 1.0f, 0.0f);
 			cam.origin += -cam_up * cam.speed * (float)delta_time;
 			frame_count = 0;
 		}
@@ -324,7 +344,7 @@ int main(int argc, char *argv[])
 				cam_glsl.data1 = CreateVec4f(cam.origin.x, cam.origin.y, cam.origin.z, cam.speed);
 				cam_glsl.data2 = CreateVec4f(cam.forward.x, cam.forward.y, cam.forward.z, 0.0f);
 				cam_glsl.data3 = CreateVec4f(cam.right.x, cam.right.y, cam.right.z, 0.0f);
-				glNamedBufferSubData(ubo, 0, sizeof(Camera), &cam_glsl);
+				glNamedBufferSubData(cam_ubo, 0, sizeof(CameraGLSL), &cam_glsl);
 			}
 
 			glUniform2ui(frame_data_location, pcg32_random(), frame_count++);

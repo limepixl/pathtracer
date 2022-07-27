@@ -66,6 +66,8 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 	// Turn off VSync
 	//SDL_GL_SetSwapInterval(0);
 
+	SDL_SetRelativeMouseMode(SDL_TRUE);
+
 	return result;
 }
 

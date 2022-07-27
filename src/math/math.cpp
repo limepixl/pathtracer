@@ -35,6 +35,11 @@ Vec3f Abs(Vec3f value)
 	return { Abs(value.x), Abs(value.y), Abs(value.z) };
 }
 
+float Radians(float degrees)
+{
+	return degrees * PI / 180.0f;
+}
+
 int16 Clamp(int16 value, int16 max)
 {
 	if (value > max)
