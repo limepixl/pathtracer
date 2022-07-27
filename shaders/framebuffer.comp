@@ -338,15 +338,13 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 	bool hit_anything = false;
 	float tmax = TMAX;
 
-	hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
+	// hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
 
-	// TODO: find out why omitting this for loop (even with empty SSBO)
-	// results in lower frame times and higher register counts???
 	for(uint i = 0; i < spheres.length(); i++)
 	{
 		Sphere current_sphere = spheres[i];
 		float current_t = intersect_sphere(ro, rd, current_sphere);
-		if(current_t >= TMIN && current_t <= tmax && current_t < result.t)
+		if(current_t >= TMIN && current_t <= tmax)
 		{
 			tmax = current_t;
 			hit_anything = true;

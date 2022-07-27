@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 
 	Display display = CreateDisplay("Pathtracer", width, height);
 	InitRenderBuffer(display);
-
+#if 0
 	Array<Triangle> tris;
 	Array<Material *> materials;
 	if (!LoadModelFromObj("CornellBox-Original.obj", "../../res/", tris, materials))
@@ -103,15 +103,26 @@ int main(int argc, char *argv[])
 			AppendToArray(emissive_tris, i);
 		}
 	}
-
+#endif
 	// Set up data to be passed to SSBOs
 
-	Array<SphereGLSL> spheres_ssbo;
-	//AppendToArray(spheres_ssbo, { CreateVec4f(0.7f, 0.5f, -4.0f, 0.1f), {3} });
-	//AppendToArray(spheres_ssbo, { CreateVec4f(0.0f, -101.0f, -4.0f, 100.0f), {0} });
+	Array<MaterialGLSL> materials_ssbo;
+	AppendToArray(materials_ssbo, { CreateVec4f(0.8f / PI), CreateVec4f(0.0f), CreateVec4f(0.0f) });
 
+	Array<SphereGLSL> spheres_ssbo;
+	AppendToArray(spheres_ssbo, { CreateVec4f(1.05f, 0.0f, -4.0f, 0.3f), {0} });
+	AppendToArray(spheres_ssbo, { CreateVec4f(-1.05f, 0.0f, -4.0f, 0.3f), {0} });
+	AppendToArray(spheres_ssbo, { CreateVec4f(0.35f, 0.0f, -4.0f, 0.3f), {0} });
+	AppendToArray(spheres_ssbo, { CreateVec4f(-0.35f, 0.0f, -4.0f, 0.3f), {0} });
+	AppendToArray(spheres_ssbo, { CreateVec4f(1.05f, -0.65f, -4.0f, 0.3f), { 0 } });
+	AppendToArray(spheres_ssbo, { CreateVec4f(-1.05f, -0.65f, -4.0f, 0.3f), { 0 } });
+	AppendToArray(spheres_ssbo, { CreateVec4f(0.35f, -0.65f, -4.0f, 0.3f), { 0 } });
+	AppendToArray(spheres_ssbo, { CreateVec4f(-0.35f, -0.65f, -4.0f, 0.3f), { 0 } });
+	AppendToArray(spheres_ssbo, { CreateVec4f(0.0f, -101.0f, -4.0f, 100.0f), {0} });
+
+#if 0
 	Array<TriangleGLSL> model_tris_ssbo(tris.size);
-	for(uint32 i = 0; i < tris.size; i++)
+	for (uint32 i = 0; i < tris.size; i++)
 	{
 		const Triangle &current_tri = tris[i];
 		const Vec3f &v0 = current_tri.v0;
@@ -126,6 +137,7 @@ int main(int argc, char *argv[])
 		AppendToArray(model_tris_ssbo, tmp);
 	}
 	DeallocateArray(tris);
+
 
 	Array<MaterialGLSL> materials_ssbo(materials.size);
 	for(uint32 i = 0; i < materials.size; i++)
@@ -163,6 +175,7 @@ int main(int argc, char *argv[])
 		AppendToArray(bvh_ssbo, tmp);
 	}
 	DeallocateArray(bvh_tree);
+#endif
 
 	// Set up SSBOs
 	GLuint ssbo[5];
@@ -176,7 +189,7 @@ int main(int argc, char *argv[])
 		glNamedBufferStorage(ssbo[0], spheres_ssbo.size * sizeof(SphereGLSL), &(spheres_ssbo._data[0]), 0);
 		DeallocateArray(spheres_ssbo);
 	}
-
+#if 0
 	if(model_tris_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[1]);
@@ -192,7 +205,7 @@ int main(int argc, char *argv[])
 		glNamedBufferStorage(ssbo[2], emissive_tris.size * sizeof(uint32), &(emissive_tris[0]), 0);
 		DeallocateArray(emissive_tris);
 	}
-
+#endif
 	if(materials_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[3]);
@@ -200,7 +213,7 @@ int main(int argc, char *argv[])
 		glNamedBufferStorage(ssbo[3], materials_ssbo.size * sizeof(MaterialGLSL), &(materials_ssbo[0]), 0);
 		DeallocateArray(materials_ssbo);
 	}
-
+#if 0
 	if(bvh_ssbo.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[4]);
@@ -208,7 +221,7 @@ int main(int argc, char *argv[])
 		glNamedBufferStorage(ssbo[4], bvh_ssbo.size * sizeof(BVHNodeGLSL), &(bvh_ssbo[0]), 0);
 		DeallocateArray(bvh_ssbo);
 	}
-
+#endif
 	glUseProgram(display.rb_shader_program);
 	glUniform1i(glGetUniformLocation(display.rb_shader_program, "tex"), 0);
 

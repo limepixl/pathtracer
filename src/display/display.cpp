@@ -64,7 +64,7 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 	printf("Max size of work group (x, y, z): %d %d %d\n", data1, data2, data3);
 
 	// Turn off VSync
-	SDL_GL_SetSwapInterval(0);
+	//SDL_GL_SetSwapInterval(0);
 
 	return result;
 }
