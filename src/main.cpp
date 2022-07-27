@@ -40,6 +40,21 @@ struct BVHNodeGLSL
 	Vec4f data3; // axis, 0, 0, 0
 };
 
+struct Camera
+{
+	Vec3f origin;
+	Vec3f forward;
+	Vec3f right;
+	float speed;
+};
+
+struct CameraGLSL
+{
+	Vec4f data1; // o.x, o.y, o.z, speed
+	Vec4f data2; // f.x, f.y, f.z, 0
+	Vec4f data3; // r.x, r.y, r.z, 0
+};
+
 int main(int argc, char *argv[])
 {
 	(void)argc; (void)argv;
@@ -235,6 +250,19 @@ int main(int argc, char *argv[])
 	glUseProgram(display.compute_shader_program);
 	uint32 frame_data_location = (uint32)glGetUniformLocation(display.compute_shader_program, "u_frame_data");
 
+	Camera cam;
+	cam.origin = CreateVec3f(0.0f, 0.0f, 0.0f);
+	cam.forward = CreateVec3f(0.0f, 0.0f, -1.0f);
+	cam.right = CreateVec3f(1.0f, 0.0f, 0.0f);
+	cam.speed = 0.005f;
+
+	GLuint ubo;
+	glCreateBuffers(1, &ubo);
+	glBindBuffer(GL_UNIFORM_BUFFER, ubo);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo);
+	glNamedBufferStorage(ubo, sizeof(Camera), nullptr, GL_DYNAMIC_STORAGE_BIT);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
 	while(display.is_open)
 	{
 		SDL_Event e;
@@ -247,6 +275,41 @@ int main(int argc, char *argv[])
 		}
 
 		uint32 current_time = SDL_GetTicks();
+		uint32 delta_time = (uint32)current_time - (uint32)last_time;
+
+		const uint8 *state = SDL_GetKeyboardState(NULL);
+		if (state[SDL_SCANCODE_W])
+		{
+			cam.origin += cam.forward * cam.speed * (float)delta_time;
+			frame_count = 0;
+		}
+		else if (state[SDL_SCANCODE_S])
+		{
+			cam.origin += -cam.forward * cam.speed * (float)delta_time;
+			frame_count = 0;
+		}
+		else if (state[SDL_SCANCODE_A])
+		{
+			cam.origin += -cam.right * cam.speed * (float)delta_time;
+			frame_count = 0;
+		}
+		else if (state[SDL_SCANCODE_D])
+		{
+			cam.origin += cam.right * cam.speed * (float)delta_time;
+			frame_count = 0;
+		}
+		else if (state[SDL_SCANCODE_SPACE])
+		{
+			Vec3f cam_up = Cross(cam.right, cam.forward);
+			cam.origin += cam_up * cam.speed * (float)delta_time;
+			frame_count = 0;
+		}
+		else if (state[SDL_SCANCODE_LSHIFT])
+		{
+			Vec3f cam_up = Cross(cam.right, cam.forward);
+			cam.origin += -cam_up * cam.speed * (float)delta_time;
+			frame_count = 0;
+		}
 
 		glClear(GL_COLOR_BUFFER_BIT);
 
@@ -254,6 +317,16 @@ int main(int argc, char *argv[])
 		{
 			// Compute shader data and dispatch
 			glUseProgram(display.compute_shader_program);
+
+			if (frame_count == 0)
+			{
+				CameraGLSL cam_glsl;
+				cam_glsl.data1 = CreateVec4f(cam.origin.x, cam.origin.y, cam.origin.z, cam.speed);
+				cam_glsl.data2 = CreateVec4f(cam.forward.x, cam.forward.y, cam.forward.z, 0.0f);
+				cam_glsl.data3 = CreateVec4f(cam.right.x, cam.right.y, cam.right.z, 0.0f);
+				glNamedBufferSubData(ubo, 0, sizeof(Camera), &cam_glsl);
+			}
+
 			glUniform2ui(frame_data_location, pcg32_random(), frame_count++);
 
 			const uint32 num_groups_x = width / 8;
@@ -280,7 +353,6 @@ int main(int argc, char *argv[])
 		// Frame time calculation
 		if(current_time > last_report + 1000)
 		{
-			uint32 delta_time = current_time - last_time;
 			uint32 fps = (uint32)(1.0f / ((float)delta_time / 1000.0f));
 			std::string new_title = "Pathtracer | ";
 			new_title += std::to_string(delta_time) + "ms | ";
