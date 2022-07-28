@@ -121,9 +121,9 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 					normalv2[component] = attrib.normals[3 * (uint32)n2 + component];
 
 					// Average out all vertex normals for each face
-					nv0 = CreateVec3f(normalv0[0], normalv0[1], normalv0[2]);
-					nv1 = CreateVec3f(normalv1[0], normalv1[1], normalv1[2]);
-					nv2 = CreateVec3f(normalv2[0], normalv2[1], normalv2[2]);
+					nv0 = Vec3f(normalv0[0], normalv0[1], normalv0[2]);
+					nv1 = Vec3f(normalv1[0], normalv1[1], normalv1[2]);
+					nv2 = Vec3f(normalv2[0], normalv2[1], normalv2[2]);
 				}
 			}
 			else
@@ -133,9 +133,9 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 				// This makes each face have effectively one normal, so they
 				// won't be interpolated between adjacent faces / shared vertices.
 
-				Vec3f v0 = CreateVec3f(vertex0[0], vertex0[1], vertex0[2]);
-				Vec3f v1 = CreateVec3f(vertex1[0], vertex1[1], vertex1[2]);
-				Vec3f v2 = CreateVec3f(vertex2[0], vertex2[1], vertex2[2]);
+				Vec3f v0(vertex0[0], vertex0[1], vertex0[2]);
+				Vec3f v1(vertex1[0], vertex1[1], vertex1[2]);
+				Vec3f v2(vertex2[0], vertex2[1], vertex2[2]);
 
 				Vec3f edge1 = v1 - v0;
 				Vec3f edge2 = v2 - v0;
@@ -176,13 +176,13 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 
 			if (unique)
 			{
-				// Vec3f ambient = CreateVec3f(mat.ambient[0], mat.ambient[1], mat.ambient[2]);
-				Vec3f diffuse = CreateVec3f(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]);
-				Vec3f specular = CreateVec3f(mat.specular[0], mat.specular[1], mat.specular[2]);
-				Vec3f emission = CreateVec3f(mat.emission[0], mat.emission[1], mat.emission[2]);
+				// Vec3f ambient = Vec3f(mat.ambient[0], mat.ambient[1], mat.ambient[2]);
+				Vec3f diffuse(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]);
+				Vec3f specular(mat.specular[0], mat.specular[1], mat.specular[2]);
+				Vec3f emission(mat.emission[0], mat.emission[1], mat.emission[2]);
 
 				// Purely diffuse (Lambertian) material
-				if (mat.illum == 1 || (mat.illum == 2 && specular == CreateVec3f(0.0f)))
+				if (mat.illum == 1 || (mat.illum == 2 && specular == Vec3f(0.0f)))
 				{
 					Material *tmp_mat = (Material *)malloc(sizeof(Material));
 					*tmp_mat = CreateMaterial(MaterialType::MATERIAL_LAMBERTIAN,
@@ -220,7 +220,7 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 
 				//// Reflection
 				//// TODO: fix hack
-				//else if (mat.illum == 5 || (mat.illum == 2 && specular == CreateVec3f(1.0f)))
+				//else if (mat.illum == 5 || (mat.illum == 2 && specular == Vec3f(1.0f)))
 				//{
 				//	Material *tmp_mat = (Material *)malloc(sizeof(Material));
 				//	*tmp_mat = CreateMaterial(MaterialType::MATERIAL_IDEAL_REFLECTIVE,
@@ -236,12 +236,12 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 			}
 
 			// Create triangle
-			Vec3f v0 = CreateVec3f(vertex0[0], vertex0[1], vertex0[2]);
-			Vec3f v1 = CreateVec3f(vertex1[0], vertex1[1], vertex1[2]);
-			Vec3f v2 = CreateVec3f(vertex2[0], vertex2[1], vertex2[2]);
+			Vec3f v0(vertex0[0], vertex0[1], vertex0[2]);
+			Vec3f v1(vertex1[0], vertex1[1], vertex1[2]);
+			Vec3f v2(vertex2[0], vertex2[1], vertex2[2]);
 			Triangle tri = CreateTriangle(v0, v1, v2, normal, triangle_mat_index);
 
-			if (out_materials[triangle_mat_index]->Le >= CreateVec3f(0.1f, 0.1f, 0.1f))
+			if (out_materials[triangle_mat_index]->Le >= Vec3f(0.1f, 0.1f, 0.1f))
 			{
 				emissive_tris.push_back((uint32)tris.size());
 			}

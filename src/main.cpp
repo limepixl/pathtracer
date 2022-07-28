@@ -35,11 +35,11 @@ int main(int argc, char *argv[])
 	Mat4f model_matrix = CreateIdentityMat4f();
 
 	// for cornell box
-	model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), model_matrix); 
+	model_matrix = TranslationMat4f(Vec3f(0.0f, -1.0f, -3.5f), model_matrix); 
 
 	// for robot
-	//model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.5f, -4.f), model_matrix);
-	//model_matrix = ScaleMat4f(CreateVec3f(0.2f, 0.2f, 0.2f), model_matrix);
+	//model_matrix = TranslationMat4f(Vec3f(0.0f, -1.5f, -4.f), model_matrix);
+	//model_matrix = ScaleMat4f(Vec3f(0.2f, 0.2f, 0.2f), model_matrix);
 
 	for (uint32 i = 0; i < tris.size; i++)
 	{
@@ -80,20 +80,20 @@ int main(int argc, char *argv[])
 	// Set up data to be passed to SSBOs
 
 	Array<MaterialGLSL> materials_ssbo;
-	AppendToArray(materials_ssbo, { CreateVec4f(0.9f / PI), CreateVec4f(0.0f), CreateVec4f(0.0f) });
-	AppendToArray(materials_ssbo, { CreateVec4f(0.95f / PI, 0.05f / PI, 0.05f / PI, 0.0f), CreateVec4f(0.0f), CreateVec4f(0.0f) });
-	AppendToArray(materials_ssbo, { CreateVec4f(0.95f / PI, 0.95f / PI, 0.05f / PI, 0.0f), CreateVec4f(0.0f), CreateVec4f(0.0f) });
+	AppendToArray(materials_ssbo, { Vec4f(0.9f / PI), Vec4f(0.0f), Vec4f(0.0f) });
+	AppendToArray(materials_ssbo, { Vec4f(0.95f / PI, 0.05f / PI, 0.05f / PI, 0.0f), Vec4f(0.0f), Vec4f(0.0f) });
+	AppendToArray(materials_ssbo, { Vec4f(0.95f / PI, 0.95f / PI, 0.05f / PI, 0.0f), Vec4f(0.0f), Vec4f(0.0f) });
 
 	Array<SphereGLSL> spheres_ssbo;
-	AppendToArray(spheres_ssbo, { CreateVec4f(1.05f, -0.05f, -4.0f, 0.3f), {1} });
-	AppendToArray(spheres_ssbo, { CreateVec4f(-1.05f, -0.05f, -4.0f, 0.3f), { 2 } });
-	AppendToArray(spheres_ssbo, { CreateVec4f(0.35f, -0.05f, -4.0f, 0.3f), { 1 } });
-	AppendToArray(spheres_ssbo, { CreateVec4f(-0.35f, -0.05f, -4.0f, 0.3f), { 2 } });
-	AppendToArray(spheres_ssbo, { CreateVec4f(1.05f, -0.7f, -4.0f, 0.3f), { 1 } });
-	AppendToArray(spheres_ssbo, { CreateVec4f(-1.05f, -0.7f, -4.0f, 0.3f), { 2 } });
-	AppendToArray(spheres_ssbo, { CreateVec4f(0.35f, -0.7f, -4.0f, 0.3f), { 1 } });
-	AppendToArray(spheres_ssbo, { CreateVec4f(-0.35f, -0.7f, -4.0f, 0.3f), { 2 } });
-	AppendToArray(spheres_ssbo, { CreateVec4f(0.0f, -101.0f, -4.0f, 100.0f), {0} });
+	AppendToArray(spheres_ssbo, { Vec4f(1.05f, -0.05f, -4.0f, 0.3f), {1} });
+	AppendToArray(spheres_ssbo, { Vec4f(-1.05f, -0.05f, -4.0f, 0.3f), { 2 } });
+	AppendToArray(spheres_ssbo, { Vec4f(0.35f, -0.05f, -4.0f, 0.3f), { 1 } });
+	AppendToArray(spheres_ssbo, { Vec4f(-0.35f, -0.05f, -4.0f, 0.3f), { 2 } });
+	AppendToArray(spheres_ssbo, { Vec4f(1.05f, -0.7f, -4.0f, 0.3f), { 1 } });
+	AppendToArray(spheres_ssbo, { Vec4f(-1.05f, -0.7f, -4.0f, 0.3f), { 2 } });
+	AppendToArray(spheres_ssbo, { Vec4f(0.35f, -0.7f, -4.0f, 0.3f), { 1 } });
+	AppendToArray(spheres_ssbo, { Vec4f(-0.35f, -0.7f, -4.0f, 0.3f), { 2 } });
+	AppendToArray(spheres_ssbo, { Vec4f(0.0f, -101.0f, -4.0f, 100.0f), {0} });
 
 #if 0
 	Array<TriangleGLSL> model_tris_ssbo(tris.size);
@@ -105,9 +105,9 @@ int main(int argc, char *argv[])
 		const Vec3f &v2 = current_tri.v2;
 
 		TriangleGLSL tmp;
-		tmp.data1 = CreateVec4f(v0.x, v0.y, v0.z, (float)current_tri.mat_index);
-		tmp.data2 = CreateVec4f(v1.x, v1.y, v1.z, 0.0f);
-		tmp.data3 = CreateVec4f(v2.x, v2.y, v2.z, 0.0f);
+		tmp.data1 = Vec4f(v0.x, v0.y, v0.z, (float)current_tri.mat_index);
+		tmp.data2 = Vec4f(v1.x, v1.y, v1.z, 0.0f);
+		tmp.data3 = Vec4f(v2.x, v2.y, v2.z, 0.0f);
 
 		AppendToArray(model_tris_ssbo, tmp);
 	}
@@ -123,9 +123,9 @@ int main(int argc, char *argv[])
 		const Vec3f &Le = current_mat->Le;
 
 		MaterialGLSL tmp;
-		tmp.data1 = CreateVec4f(diff.x, diff.y, diff.z, (float)current_mat->type);
-		tmp.data2 = CreateVec4f(spec.x, spec.y, spec.z, (float)current_mat->n_spec);
-		tmp.data3 = CreateVec4f(Le.x, Le.y, Le.z, 0.0f);
+		tmp.data1 = Vec4f(diff.x, diff.y, diff.z, (float)current_mat->type);
+		tmp.data2 = Vec4f(spec.x, spec.y, spec.z, (float)current_mat->n_spec);
+		tmp.data3 = Vec4f(Le.x, Le.y, Le.z, 0.0f);
 
 		AppendToArray(materials_ssbo, tmp);
 	}
@@ -143,9 +143,9 @@ int main(int argc, char *argv[])
 		const AABB &current_aabb = current_node.node_AABB;
 
 		BVHNodeGLSL tmp;
-		tmp.data1 = CreateVec4f(current_aabb.bmin.x, current_aabb.bmin.y, current_aabb.bmin.z, (float)current_node.first_tri);
-		tmp.data2 = CreateVec4f(current_aabb.bmax.x, current_aabb.bmax.y, current_aabb.bmax.z, (float)current_node.num_tris);
-		tmp.data3 = CreateVec4f((float)current_node.axis, 0.0f, 0.0f, 0.0);
+		tmp.data1 = Vec4f(current_aabb.bmin.x, current_aabb.bmin.y, current_aabb.bmin.z, (float)current_node.first_tri);
+		tmp.data2 = Vec4f(current_aabb.bmax.x, current_aabb.bmax.y, current_aabb.bmax.z, (float)current_node.num_tris);
+		tmp.data3 = Vec4f((float)current_node.axis, 0.0f, 0.0f, 0.0);
 
 		AppendToArray(bvh_ssbo, tmp);
 	}
@@ -209,7 +209,7 @@ int main(int argc, char *argv[])
 	uint32 last_report = 0;
 	uint32 frame_count = 0;
 
-	Camera cam(CreateVec3f(0.0f), CreateVec3f(0.0f, 0.0f, -1.0f), CreateVec3f(1.0f, 0.0f, 0.0f), 0.005f, 0.05f);
+	Camera cam(Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec3f(1.0f, 0.0f, 0.0f), 0.005f, 0.05f);
 
 	while(display.is_open)
 	{
@@ -242,9 +242,9 @@ int main(int argc, char *argv[])
 			if (frame_count == 0)
 			{
 				CameraGLSL cam_glsl;
-				cam_glsl.data1 = CreateVec4f(cam.origin.x, cam.origin.y, cam.origin.z, cam.fly_speed);
-				cam_glsl.data2 = CreateVec4f(cam.forward.x, cam.forward.y, cam.forward.z, cam.look_sens);
-				cam_glsl.data3 = CreateVec4f(cam.right.x, cam.right.y, cam.right.z, 0.0f);
+				cam_glsl.data1 = Vec4f(cam.origin.x, cam.origin.y, cam.origin.z, cam.fly_speed);
+				cam_glsl.data2 = Vec4f(cam.forward.x, cam.forward.y, cam.forward.z, cam.look_sens);
+				cam_glsl.data3 = Vec4f(cam.right.x, cam.right.y, cam.right.z, 0.0f);
 				glNamedBufferSubData(cam.cam_ubo, 0, sizeof(CameraGLSL), &cam_glsl);
 			}
 

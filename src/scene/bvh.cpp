@@ -10,8 +10,8 @@ bool operator==(const AABB &lhs, const AABB &rhs)
 
 AABB ConstructAABBFromTris(Triangle *tris, uint32 num_tris)
 {
-	Vec3f max_vec = CreateVec3f(INFINITY);
-	Vec3f min_vec = CreateVec3f(-INFINITY);
+	Vec3f max_vec(INFINITY);
+	Vec3f min_vec(-INFINITY);
 	AABB aabb = { max_vec, min_vec };
 
 	for (uint32 t_index = 0; t_index < num_tris; t_index++)
@@ -31,7 +31,7 @@ AABB ConstructAABBFromTris(Triangle *tris, uint32 num_tris)
 
 	// Extend borders of AABB in order to get around
 	// situations where the node is flat like a plane
-	Vec3f offset_vec = CreateVec3f(0.05f);
+	Vec3f offset_vec(0.05f);
 	aabb.bmin = aabb.bmin - offset_vec;
 	aabb.bmax = aabb.bmax + offset_vec;
 	return aabb;
@@ -39,7 +39,7 @@ AABB ConstructAABBFromTris(Triangle *tris, uint32 num_tris)
 
 static void ExpandAABBWithTri(AABB &aabb, Triangle &tri)
 {
-	Vec3f offset_vec = CreateVec3f(0.01f);
+	Vec3f offset_vec(0.01f);
 
 	Vec3f v0 = tri.v0 - offset_vec;
 	Vec3f v1 = tri.v1 - offset_vec;

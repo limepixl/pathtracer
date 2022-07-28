@@ -13,10 +13,11 @@ struct Mat4f
 			Vec4f r0, r1, r2, r3;
 		};
 	};
+
+	Mat4f();
+	Mat4f(Vec4f r0, Vec4f r1, Vec4f r2, Vec4f r3);
 };
 
-Mat4f CreateMat4f(Vec4f r0, Vec4f r1, Vec4f r2, Vec4f r3);
-Mat4f CreateIdentityMat4f();
 Mat4f TranslationMat4f(Vec3f translation_vec, Mat4f mat);
 Mat4f ScaleMat4f(Vec3f scale_vec, Mat4f mat);
 
