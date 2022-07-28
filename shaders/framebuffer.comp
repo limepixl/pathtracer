@@ -4,6 +4,7 @@ layout(rgba32f, binding = 0) restrict uniform image2D screen;
 
 // Uniform variables
 uniform uvec2 u_frame_data; // seed, frame#
+uniform samplerCube u_cubemap;
 
 layout (std140, binding = 0) uniform Camera
 {
@@ -159,9 +160,11 @@ vec3 map_to_unit_hemisphere_cosine_weighted_criver(in vec2 uv, in vec3 normal)
 
 vec3 sky_color(vec3 dir)
 {
-	vec3 normalized_dir = normalize(dir);
-	float t = 0.5 * normalized_dir.y + 0.5;
-	return mix(vec3(1.0), vec3(0.546, 0.824, 0.925), t);
+	// vec3 normalized_dir = normalize(dir);
+	// float t = 0.5 * normalized_dir.y + 0.5;
+	// return mix(vec3(1.0), vec3(0.546, 0.824, 0.925), t);
+
+	return texture(u_cubemap, dir).xyz;
 }
 
 // Structs

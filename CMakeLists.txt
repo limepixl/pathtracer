@@ -34,6 +34,9 @@ set(SOURCE_FILES
 
 	src/resource/shader.cpp
 
+	src/scene/camera.cpp
+	
+	thirdparty/stb/stb_image.c
 	thirdparty/pcg-c-basic-0.9/pcg_basic.c
 	thirdparty/glad/src/glad.c
 )
@@ -63,7 +66,7 @@ set(HEADER_FILES
 	src/core/array.hpp
 )
 
-add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES} "src/scene/camera.cpp")
+add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 
 # C++ standard version
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
@@ -110,7 +113,7 @@ cmake_print_variables(CMAKE_CXX_FLAGS)
 cmake_print_variables(CMAKE_CXX_FLAGS_RELEASE)
 cmake_print_variables(CMAKE_CXX_FLAGS_DEBUG)
 
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC thirdparty/glad/include thirdparty/SDL2-2.0.22/include thirdparty/tinyobjloader)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC thirdparty/glad/include thirdparty/SDL2-2.0.22/include thirdparty/tinyobjloader thirdparty/stb)
 target_link_directories(${PROJECT_NAME} PUBLIC thirdparty/SDL2-2.0.22/lib/x64)
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL2main SDL2)
 

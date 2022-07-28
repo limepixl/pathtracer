@@ -16,6 +16,8 @@ struct Display
 	uint32 render_buffer_texture;
 	uint32 rb_shader_program;
 	uint32 compute_shader_program;
+
+	uint32 cubemap_texture;
 };
 
 Display CreateDisplay(const char* title, uint32 width, uint32 height);

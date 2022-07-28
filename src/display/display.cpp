@@ -3,6 +3,7 @@
 #include <SDL.h>
 #include <cstdio>
 #include <glad/glad.h>
+#include <stb_image.h>
 
 Display CreateDisplay(const char *title, uint32 width, uint32 height)
 {
@@ -112,7 +113,7 @@ bool InitRenderBuffer(Display &window)
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *)nullptr);
 	glEnableVertexAttribArray(1);
 
-	// Set up the texture
+	// Set up the framebuffer texture
 	glCreateTextures(GL_TEXTURE_2D, 1, &window.render_buffer_texture);
 	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -124,6 +125,38 @@ bool InitRenderBuffer(Display &window)
 
 	window.rb_shader_program = LoadShaderFromFiles("../../shaders/framebuffer.vert", "../../shaders/framebuffer.frag");
 	window.compute_shader_program = LoadShaderFromFiles("../../shaders/framebuffer.comp");
+
+	// Set up cubemap
+
+	glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &window.cubemap_texture);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, window.cubemap_texture);
+
+	glTextureParameteri(window.cubemap_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTextureParameteri(window.cubemap_texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTextureParameteri(window.cubemap_texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTextureParameteri(window.cubemap_texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTextureParameteri(window.cubemap_texture, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	int w, h, c;
+	uint8 *data = nullptr;
+	const char *strings[] {
+		"../../res/cubemaps/brown_studio/px.png",
+		"../../res/cubemaps/brown_studio/nx.png",
+		"../../res/cubemaps/brown_studio/py.png",
+		"../../res/cubemaps/brown_studio/ny.png",
+		"../../res/cubemaps/brown_studio/pz.png",
+		"../../res/cubemaps/brown_studio/nz.png"
+	};
+
+	for (uint8 i = 0; i < 6; i++)
+	{
+		data = stbi_load(strings[i], &w, &h, &c, 3);
+		if (data != nullptr)
+		{
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+			stbi_image_free(data);
+		}
+	}
 
 	return true;
 }

@@ -76,6 +76,7 @@ int main(int argc, char *argv[])
 		}
 	}
 #endif
+
 	// Set up data to be passed to SSBOs
 
 	Array<MaterialGLSL> materials_ssbo;
@@ -201,13 +202,12 @@ int main(int argc, char *argv[])
 
 	glUseProgram(display.compute_shader_program);
 	glUniform1i(glGetUniformLocation(display.compute_shader_program, "screen"), 0);
+	glUniform1i(glGetUniformLocation(display.compute_shader_program, "u_cubemap"), 0);
+	uint32 frame_data_location = (uint32)glGetUniformLocation(display.compute_shader_program, "u_frame_data");
 
 	uint32 last_time = 0;
 	uint32 last_report = 0;
 	uint32 frame_count = 0;
-
-	glUseProgram(display.compute_shader_program);
-	uint32 frame_data_location = (uint32)glGetUniformLocation(display.compute_shader_program, "u_frame_data");
 
 	Camera cam(CreateVec3f(0.0f), CreateVec3f(0.0f, 0.0f, -1.0f), CreateVec3f(1.0f, 0.0f, 0.0f), 0.005f, 0.05f);
 
