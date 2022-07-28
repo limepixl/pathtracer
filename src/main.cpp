@@ -260,12 +260,6 @@ int main(int argc, char *argv[])
 		}
 		glPopDebugGroup();
 
-		GLenum err;
-		while((err = glGetError()) != GL_NO_ERROR)
-		{
-			printf("OPENGL ERROR!\n");
-		}
-
 		// Frame time calculation
 		if(current_time > last_report + 1000)
 		{

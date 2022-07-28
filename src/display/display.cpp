@@ -5,6 +5,19 @@
 #include <glad/glad.h>
 #include <stb_image.h>
 
+// https://www.khronos.org/opengl/wiki/Debug_Output
+void GLAPIENTRY MessageCallback(GLenum source,
+								GLenum type,
+								GLuint id,
+								GLenum severity,
+								GLsizei length,
+								const GLchar *message,
+								const void *userParam)
+{
+	if (severity != GL_DEBUG_SEVERITY_NOTIFICATION)
+		printf("GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n", (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
+}
+
 Display CreateDisplay(const char *title, uint32 width, uint32 height)
 {
 	Display result {};
@@ -67,8 +80,13 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 	// Turn off VSync
 	// SDL_GL_SetSwapInterval(0);
 
+	// SDL input specifics
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 	SDL_SetWindowInputFocus(result.window_handle);
+
+	// Enable OpenGL debug callback
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback(MessageCallback, 0);
 
 	return result;
 }
