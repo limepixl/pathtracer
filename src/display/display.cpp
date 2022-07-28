@@ -6,7 +6,7 @@
 #include <stb_image.h>
 
 // https://www.khronos.org/opengl/wiki/Debug_Output
-void GLAPIENTRY MessageCallback(GLenum source,
+static void GLAPIENTRY MessageCallback(GLenum source,
 								GLenum type,
 								GLuint id,
 								GLenum severity,
@@ -14,6 +14,11 @@ void GLAPIENTRY MessageCallback(GLenum source,
 								const GLchar *message,
 								const void *userParam)
 {
+	(void)userParam;
+	(void)length;
+	(void)source;
+	(void)id;
+
 	if (severity != GL_DEBUG_SEVERITY_NOTIFICATION)
 		printf("GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n", (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
 }
@@ -86,7 +91,7 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 
 	// Enable OpenGL debug callback
 	glEnable(GL_DEBUG_OUTPUT);
-	glDebugMessageCallback(MessageCallback, 0);
+	glDebugMessageCallback(MessageCallback, nullptr);
 
 	return result;
 }

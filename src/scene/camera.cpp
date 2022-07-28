@@ -5,8 +5,8 @@
 #include <glad/glad.h>
 #include <cstdio>
 
-Camera::Camera(Vec3f orig, Vec3f fwd, Vec3f r, float fly_speed, float look_sens)
-	: origin(orig), forward(fwd), right(r), fly_speed(fly_speed), look_sens(look_sens)
+Camera::Camera(Vec3f orig, Vec3f fwd, Vec3f r, float speed, float sens)
+	: origin(orig), forward(fwd), right(r), fly_speed(speed), look_sens(sens)
 {
 	xpos = -90.0f;
 	ypos = 0.0f;

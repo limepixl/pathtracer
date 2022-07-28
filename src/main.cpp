@@ -225,7 +225,7 @@ int main(int argc, char *argv[])
 		uint32 current_time = SDL_GetTicks();
 		uint32 delta_time = (uint32)current_time - (uint32)last_time;
 
-		cam.move(SDL_GetKeyboardState(NULL), delta_time, frame_count);
+		cam.move(SDL_GetKeyboardState(nullptr), delta_time, frame_count);
 
 		glClear(GL_COLOR_BUFFER_BIT);
 
