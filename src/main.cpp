@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 	}
 
 	// Apply model matrix to tris
-	Mat4f model_matrix = CreateIdentityMat4f();
+	Mat4f model_matrix;
 
 	// for cornell box
 	model_matrix = TranslationMat4f(Vec3f(0.0f, -1.0f, -3.5f), model_matrix); 
@@ -112,7 +112,6 @@ int main(int argc, char *argv[])
 		AppendToArray(model_tris_ssbo, tmp);
 	}
 	DeallocateArray(tris);
-
 
 	Array<MaterialGLSL> materials_ssbo(materials.size);
 	for(uint32 i = 0; i < materials.size; i++)
@@ -197,12 +196,8 @@ int main(int argc, char *argv[])
 		DeallocateArray(bvh_ssbo);
 	}
 #endif
-	glUseProgram(display.rb_shader_program);
-	glUniform1i(glGetUniformLocation(display.rb_shader_program, "tex"), 0);
-
+	
 	glUseProgram(display.compute_shader_program);
-	glUniform1i(glGetUniformLocation(display.compute_shader_program, "screen"), 0);
-	glUniform1i(glGetUniformLocation(display.compute_shader_program, "u_cubemap"), 0);
 	uint32 frame_data_location = (uint32)glGetUniformLocation(display.compute_shader_program, "u_frame_data");
 
 	uint32 last_time = 0;

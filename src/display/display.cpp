@@ -65,7 +65,7 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 	printf("Max size of work group (x, y, z): %d %d %d\n", data1, data2, data3);
 
 	// Turn off VSync
-	//SDL_GL_SetSwapInterval(0);
+	// SDL_GL_SetSwapInterval(0);
 
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 	SDL_SetWindowInputFocus(result.window_handle);
@@ -125,6 +125,13 @@ bool InitRenderBuffer(Display &window)
 
 	window.rb_shader_program = LoadShaderFromFiles("../../shaders/framebuffer.vert", "../../shaders/framebuffer.frag");
 	window.compute_shader_program = LoadShaderFromFiles("../../shaders/framebuffer.comp");
+
+	glUseProgram(window.rb_shader_program);
+	glUniform1i(glGetUniformLocation(window.rb_shader_program, "tex"), 0);
+
+	glUseProgram(window.compute_shader_program);
+	glUniform1i(glGetUniformLocation(window.compute_shader_program, "screen"), 0);
+	glUniform1i(glGetUniformLocation(window.compute_shader_program, "u_cubemap"), 0);
 
 	// Set up cubemap
 

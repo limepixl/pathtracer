@@ -3,12 +3,13 @@
 #include "../math/math.hpp"
 #include <SDL.h>
 #include <glad/glad.h>
+#include <cstdio>
 
 Camera::Camera(Vec3f orig, Vec3f fwd, Vec3f r, float fly_speed, float look_sens)
 	: origin(orig), forward(fwd), right(r), fly_speed(fly_speed), look_sens(look_sens)
 {
-	xpos = WIDTH / 2.0f;
-	ypos = HEIGHT / 2.0f;
+	xpos = -90.0f;
+	ypos = 0.0f;
 
 	glCreateBuffers(1, &cam_ubo);
 	glBindBuffer(GL_UNIFORM_BUFFER, cam_ubo);
@@ -21,6 +22,11 @@ void Camera::mouse_look(float xrel, float yrel)
 {
 	xpos += xrel * look_sens;
 	ypos -= yrel * look_sens;
+
+	if (ypos > 89.5f)
+		ypos = 89.5f;
+	if (ypos < -89.5f)
+		ypos = -89.5f;
 
 	forward.x = cosf(Radians(xpos)) * cosf(Radians(ypos));
 	forward.y = sinf(Radians(ypos));
