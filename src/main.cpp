@@ -92,19 +92,22 @@ int main(int argc, char *argv[])
 
 	Array<SphereGLSL> spheres_ssbo;
 	// top row
-	AppendToArray(spheres_ssbo, { Vec4f(-1.05f, -0.05f, -4.0f, 0.3f), { 1 } });
-	AppendToArray(spheres_ssbo, { Vec4f(-0.35f, -0.05f, -4.0f, 0.3f), { 2 } });
-	AppendToArray(spheres_ssbo, { Vec4f(0.35f, -0.05f, -4.0f, 0.3f), { 3 } });
-	AppendToArray(spheres_ssbo, { Vec4f(1.05f, -0.05f, -4.0f, 0.3f), {4} });
+	//AppendToArray(spheres_ssbo, { Vec4f(-1.05f, -0.05f, -4.0f, 0.3f), { 1 } });
+	//AppendToArray(spheres_ssbo, { Vec4f(-0.35f, -0.05f, -4.0f, 0.3f), { 2 } });
+	//AppendToArray(spheres_ssbo, { Vec4f(0.35f, -0.05f, -4.0f, 0.3f), { 3 } });
+	//AppendToArray(spheres_ssbo, { Vec4f(1.05f, -0.05f, -4.0f, 0.3f), {4} });
 
-	// bottom row
-	AppendToArray(spheres_ssbo, { Vec4f(-1.05f, -0.7f, -4.0f, 0.3f), { 5 } });
-	AppendToArray(spheres_ssbo, { Vec4f(-0.35f, -0.7f, -4.0f, 0.3f), { 6 } });
-	AppendToArray(spheres_ssbo, { Vec4f(0.35f, -0.7f, -4.0f, 0.3f), { 7 } });
-	AppendToArray(spheres_ssbo, { Vec4f(1.05f, -0.7f, -4.0f, 0.3f), { 8 } });
+	//// bottom row
+	//AppendToArray(spheres_ssbo, { Vec4f(-1.05f, -0.7f, -4.0f, 0.3f), { 5 } });
+	//AppendToArray(spheres_ssbo, { Vec4f(-0.35f, -0.7f, -4.0f, 0.3f), { 6 } });
+	//AppendToArray(spheres_ssbo, { Vec4f(0.35f, -0.7f, -4.0f, 0.3f), { 7 } });
+	//AppendToArray(spheres_ssbo, { Vec4f(1.05f, -0.7f, -4.0f, 0.3f), { 8 } });
 
 	// bottom sphere
 	//AppendToArray(spheres_ssbo, { Vec4f(0.0f, -101.0f, -4.0f, 100.0f), {0} });
+
+	// Furnace test sphere
+	AppendToArray(spheres_ssbo, { Vec4f(0.0f, 0.0f, -4.0f, 1.0f), {0} });
 
 #if 0
 	Array<TriangleGLSL> model_tris_ssbo(tris.size);
