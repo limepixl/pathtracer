@@ -27,7 +27,7 @@ Material CreateMaterial(MaterialType type, Vec3f diffuse, Vec3f specular, float 
 
 struct MaterialGLSL
 {
-	Vec4f data1; // diff.x, diff.y, diff.z, mat_type
+	Vec4f data1; // diff.x, diff.y, diff.z, diff_roughness
 	Vec4f data2; // spec.x, spec.y, spec.z, n_spec
-	Vec4f data3; // Le.x, Le.y, Le.z, empty
+	Vec4f data3; // Le.x, Le.y, Le.z, mat_type
 };
