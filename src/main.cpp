@@ -81,14 +81,14 @@ int main(int argc, char *argv[])
 
 	Array<MaterialGLSL> materials_ssbo;
 	AppendToArray(materials_ssbo, { Vec4f(1.0f, 1.0f, 1.0f, 0.0f), Vec4f(0.0f), Vec4f(0.0f) });
-	AppendToArray(materials_ssbo, { Vec4f(1.0f, 1.0f, 1.0f, 0.0f), Vec4f(0.0f), Vec4f(0.0f) });
+	/*AppendToArray(materials_ssbo, { Vec4f(1.0f, 1.0f, 1.0f, 0.0f), Vec4f(0.0f), Vec4f(0.0f) });
 	AppendToArray(materials_ssbo, { Vec4f(1.0f, 1.0f, 1.0f, 0.1f), Vec4f(0.0f), Vec4f(0.0f) });
 	AppendToArray(materials_ssbo, { Vec4f(1.0f, 1.0f, 1.0f, 0.2f), Vec4f(0.0f), Vec4f(0.0f) });
 	AppendToArray(materials_ssbo, { Vec4f(1.0f, 1.0f, 1.0f, 0.3f), Vec4f(0.0f), Vec4f(0.0f) });
 	AppendToArray(materials_ssbo, { Vec4f(1.0f, 1.0f, 1.0f, 0.4f), Vec4f(0.0f), Vec4f(0.0f) });
 	AppendToArray(materials_ssbo, { Vec4f(1.0f, 1.0f, 1.0f, 0.5f), Vec4f(0.0f), Vec4f(0.0f) });
 	AppendToArray(materials_ssbo, { Vec4f(1.0f, 1.0f, 1.0f, 0.6f), Vec4f(0.0f), Vec4f(0.0f) });
-	AppendToArray(materials_ssbo, { Vec4f(1.0f, 1.0f, 1.0f, 0.7f), Vec4f(0.0f), Vec4f(0.0f) });
+	AppendToArray(materials_ssbo, { Vec4f(1.0f, 1.0f, 1.0f, 0.7f), Vec4f(0.0f), Vec4f(0.0f) });*/
 
 	Array<SphereGLSL> spheres_ssbo;
 	// top row

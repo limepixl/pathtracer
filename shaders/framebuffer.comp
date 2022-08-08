@@ -374,7 +374,7 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 void cartesian_to_spherical(in vec3 vec, out float theta, out float phi)
 {
 	theta = acos(vec.y) * 0.5;
-	phi = atan(vec.x, vec.y) + PI;
+	phi = atan(vec.x, vec.z) + PI;
 }
 
 // Estimators
@@ -403,12 +403,15 @@ vec3 estimator_path_tracing_naive(in vec3 ro, in vec3 rd, in uint rng_state)
 
 		Material mat = materials[data.mat_object_indices.x];
 
+		// Generate TNB matrix to map directions in terms of the normal vector
+		mat3 tnb = transpose(construct_tnb(data.normal));
+
 		// add the light that the material emits
 		if (b <= BOUNCE_COUNT)
 			color += throughput_term * mat.data3.xyz;
 
 		float theta_o, phi_o;
-		cartesian_to_spherical(-rd, theta_o, phi_o);
+		cartesian_to_spherical(tnb * -rd, theta_o, phi_o);
 
 		// Intersection point and new ray
 		ro = ro + (rd * data.t) + (EPSILON * data.normal);
@@ -416,7 +419,7 @@ vec3 estimator_path_tracing_naive(in vec3 ro, in vec3 rd, in uint rng_state)
 
 		// Convert from Cartesian to Spherical coordinates
 		float theta_i, phi_i;
-		cartesian_to_spherical(rd, theta_i, phi_i);
+		cartesian_to_spherical(tnb * rd, theta_i, phi_i);
 
 		float cos_theta_x = cos(theta_i);
 		float pdf = cos_theta_x / PI;
