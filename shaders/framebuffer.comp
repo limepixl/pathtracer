@@ -84,6 +84,11 @@ layout(std430, binding = 4) readonly restrict buffer BVHSSBO
 	BVHNode bvh_nodes[];
 };
 
+layout(std430, binding = 5) readonly restrict buffer LightSpheresSSBO
+{
+	uint light_sphere_indices[];
+};
+
 // Randomness
 // Great thank you to markjarzynski on Shadertoy
 // for their excellent resource on GPU Hash
@@ -164,8 +169,8 @@ vec3 sky_color(vec3 dir)
 	// float t = 0.5 * normalized_dir.y + 0.5;
 	// return mix(vec3(1.0), vec3(0.546, 0.824, 0.925), t);
 
-	// return vec3(0.5);
-	return texture(u_cubemap, dir).xyz;
+	return vec3(0.0);
+	// return texture(u_cubemap, dir).xyz;
 }
 
 // Structs
@@ -175,6 +180,7 @@ struct HitData
 	float t;
 	vec3 normal;
 	uvec2 mat_object_indices;
+	uint object_type; // 0 tri, 1 sphere
 };
 
 // Intersection
@@ -250,7 +256,7 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 		data.normal = normalize(cross(edge1, edge2));
 		data.mat_object_indices.x = uint(tri.data1.w);
 		data.mat_object_indices.y = tri_index;
-		// data.object_type = ObjectType::TRIANGLE;
+		data.object_type = 0;
 		return true;
 	}
 
@@ -360,8 +366,9 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 			tmax = current_t;
 			hit_anything = true;
 			result.t = current_t;
-			result.normal = (ro + rd * current_t - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
+			result.normal = normalize(ro + rd * current_t - current_sphere.sphere_data.xyz);
 			result.mat_object_indices.x = current_sphere.mat_index.x;
+			result.object_type = 1;
 		}
 	}
 
@@ -492,6 +499,8 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		// (x->y dot Nx)
 		float cos_theta = dot(data.normal, rd);
 
+		uint num_light_sources = light_tri_indices.length() + light_sphere_indices.length();
+
 		// add light that is emitted from surface (but stop right afterwards)
 		if (bounce <= BOUNCE_COUNT && any(greaterThanEqual(mat.data3.xyz, vec3(EPSILON))))
 		{
@@ -512,24 +521,47 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		}
 		// If there is at least 1 light source in the scene and the material
 		// of the surface we hit is diffuse, we can use NEE.
-		else if (light_tri_indices.length() > 0 && abs(mat.data1.w) < EPSILON)
+		else if (num_light_sources > 0 && abs(mat.data3.w) < EPSILON)
 		{
 			// sample light sources for direct illumination
 			vec3 direct_illumination = vec3(0.0);
 			for (uint shadow_ray_index = 0; shadow_ray_index < NUM_SHADOW_RAYS; shadow_ray_index++)
 			{
 				// pick a light source
-				float pdf_pick_light = 1.0 / float(light_tri_indices.length());
+				float pdf_pick_light = 1.0 / float(num_light_sources);
 
-				int picked_light_source = int((pcg(rng_state) % light_tri_indices.length()));
-				Triangle light_source = triangles[light_tri_indices[picked_light_source]];
+				int picked_light_source = int((pcg(rng_state) % num_light_sources));
 
-				Material light_source_mat = materials[uint(light_source.data1.w)];
+				float light_area = 0.0;
+				vec3 y = vec3(0.0);
+				Material light_source_mat;
 
-				// TODO: implement area functions for all primitives
-				float light_area = area(light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
+				// Triangle light source
+				if(light_tri_indices.length() > 0 && picked_light_source < light_tri_indices.length())
+				{
+					Triangle light_source = triangles[light_tri_indices[picked_light_source]];
+					light_area = area(light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
+					
+					light_source_mat = materials[uint(light_source.data1.w)];
+					
+					y = map_to_triangle(rand_vec2(rng_state), light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
+				}
+				// Sphere light source
+				else if(light_sphere_indices.length() > 0)
+				{
+					Sphere light_source = spheres[light_sphere_indices[picked_light_source - light_tri_indices.length()]];
+					light_area = 4.0 * PI * light_source.sphere_data.w * light_source.sphere_data.w;
+
+					light_source_mat = materials[uint(light_source.mat_index.x)];
+
+					// get a random point on unit sphere, scale the sphere up/down according
+					// to the light source's radius, and move the point relative to the light 
+					// source's spherical origin.
+					y = map_to_unit_sphere(rand_vec2(rng_state)) * light_source.sphere_data.w;
+					y += light_source.sphere_data.xyz;
+				}
+
 				float pdf_pick_point_on_light = 1.0 / light_area;
-				vec3 y = map_to_triangle(rand_vec2(rng_state), light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
 
 				// PDF in terms of area, for picking point on light source k
 				float pdf_light_area = pdf_pick_light * pdf_pick_point_on_light;
@@ -556,7 +588,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 				// }
 
 				// Visibility check means we have a clear line of sight!
-				if (shadow_hit_anything && all(lessThan(y - (shadow_ro + shadow_rd * shadow_data.t), vec3(EPSILON))))
+				if (shadow_hit_anything && all(lessThan(abs(y - (shadow_ro + shadow_rd * shadow_data.t)), vec3(EPSILON))))
 				{
 					// We want to only add light contribution from lights within
 					// the hemisphere solid angle above X, and not from lights behind it.
@@ -791,8 +823,8 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
-	return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
-	// return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
+	// return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
+	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
 	// return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 

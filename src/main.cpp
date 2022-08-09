@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 	// Set up data to be passed to SSBOs
 
 	Array<MaterialGLSL> materials_ssbo;
-	AppendToArray(materials_ssbo, { Vec4f(0.9f, 0.9f, 0.9f, 0.0f), Vec4f(0.0f), Vec4f(0.0f) });
+	AppendToArray(materials_ssbo, { Vec4f(0.0f), Vec4f(0.0f), Vec4f(100000.0f, 100000.0f, 100000.0f, 0.0f) });
 	AppendToArray(materials_ssbo, { Vec4f(0.9f, 0.9f, 0.9f, 0.0f), Vec4f(0.0f), Vec4f(0.0f) });
 	AppendToArray(materials_ssbo, { Vec4f(0.9f, 0.9f, 0.9f, 0.2f), Vec4f(0.0f), Vec4f(0.0f) });
 	AppendToArray(materials_ssbo, { Vec4f(0.9f, 0.9f, 0.9f, 0.4f), Vec4f(0.0f), Vec4f(0.0f) });
@@ -91,23 +91,13 @@ int main(int argc, char *argv[])
 	AppendToArray(materials_ssbo, { Vec4f(0.9f, 0.9f, 0.9f, 1.4f), Vec4f(0.0f), Vec4f(0.0f) });
 
 	Array<SphereGLSL> spheres_ssbo;
-	// top row
-	AppendToArray(spheres_ssbo, { Vec4f(-1.05f, -0.05f, -4.0f, 0.3f), { 1 } });
-	AppendToArray(spheres_ssbo, { Vec4f(-0.35f, -0.05f, -4.0f, 0.3f), { 2 } });
-	AppendToArray(spheres_ssbo, { Vec4f(0.35f, -0.05f, -4.0f, 0.3f), { 3 } });
-	AppendToArray(spheres_ssbo, { Vec4f(1.05f, -0.05f, -4.0f, 0.3f), {4} });
-
-	//// bottom row
-	AppendToArray(spheres_ssbo, { Vec4f(-1.05f, -0.7f, -4.0f, 0.3f), { 5 } });
-	AppendToArray(spheres_ssbo, { Vec4f(-0.35f, -0.7f, -4.0f, 0.3f), { 6 } });
-	AppendToArray(spheres_ssbo, { Vec4f(0.35f, -0.7f, -4.0f, 0.3f), { 7 } });
-	AppendToArray(spheres_ssbo, { Vec4f(1.05f, -0.7f, -4.0f, 0.3f), { 8 } });
-
-	// bottom sphere
-	//AppendToArray(spheres_ssbo, { Vec4f(0.0f, -101.0f, -4.0f, 100.0f), {0} });
 
 	// Furnace test sphere
 	//AppendToArray(spheres_ssbo, { Vec4f(0.0f, 0.0f, -4.0f, 1.0f), {0} });
+
+	// Point light and sphere next to it
+	AppendToArray(spheres_ssbo, { Vec4f(0.0f, 0.0f, -4.0f, 1.0f), { 1 } });
+	AppendToArray(spheres_ssbo, { Vec4f(4.0f, 0.0f, -4.0f, 0.03f), { 0 } });
 
 #if 0
 	Array<TriangleGLSL> model_tris_ssbo(tris.size);
@@ -165,9 +155,19 @@ int main(int argc, char *argv[])
 	DeallocateArray(bvh_tree);
 #endif
 
+	Array<uint32> emissive_spheres_ssbo;
+	for (uint32 i = 0; i < spheres_ssbo.size; i++)
+	{
+		MaterialGLSL &mat = materials_ssbo[spheres_ssbo[i].mat_index[0]];
+		if (mat.data3.x > EPSILON || mat.data3.y > EPSILON || mat.data3.z > EPSILON)
+		{
+			AppendToArray(emissive_spheres_ssbo, i);
+		}
+	}
+
 	// Set up SSBOs
-	GLuint ssbo[5];
-	glCreateBuffers(5, ssbo);
+	GLuint ssbo[6];
+	glCreateBuffers(6, ssbo);
 
 	// Sphere SSBO
 	if(spheres_ssbo.size > 0)
@@ -210,6 +210,14 @@ int main(int argc, char *argv[])
 		DeallocateArray(bvh_ssbo);
 	}
 #endif
+
+	if (emissive_spheres_ssbo.size > 0)
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[5]);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ssbo[5]);
+		glNamedBufferStorage(ssbo[5], emissive_spheres_ssbo.size * sizeof(uint32), &(emissive_spheres_ssbo[0]), 0);
+		DeallocateArray(emissive_spheres_ssbo);
+	}
 	
 	glUseProgram(display.compute_shader_program);
 	uint32 frame_data_location = (uint32)glGetUniformLocation(display.compute_shader_program, "u_frame_data");
