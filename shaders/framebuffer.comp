@@ -496,7 +496,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		{
 			// No intersection with scene, add env map contribution
 			color += throughput_term * sky_color(rd) * ENVIRONMENT_MAP_LE;
-			break;
+			return color;
 		}
 
 		Material mat = materials[data.mat_object_indices.x];
@@ -509,7 +509,6 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		// add light that is emitted from surface (but stop right afterwards)
 		if (bounce <= BOUNCE_COUNT && any(greaterThanEqual(mat.data3.xyz, vec3(EPSILON))))
 		{
-			// if (bounce == 0 || last_bounce_reflected)
 			if(bounce == 0)
 				color = mat.data3.xyz;
 
@@ -576,7 +575,6 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 				vec3 shadow_ray_hit = shadow_ro + shadow_rd * shadow_data.t;
 				if (shadow_hit_anything && all(lessThanEqual(abs(y - shadow_ray_hit), vec3(EPSILON))))
 				{
-					return vec3(1.0);
 					// We want to only add light contribution from lights within
 					// the hemisphere solid angle above X, and not from lights behind it.
 					float cos_theta_x = max(0.0, dot(data.normal, shadow_rd));
@@ -588,12 +586,8 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 					float squared_dist = dot(dist_vec, dist_vec);
 					float G = cos_theta_x * cos_theta_y / squared_dist;
 
-					direct_illumination += light_source_mat.data3.xyz * mat.data1.xyz * G / pdf_light_area;
-					// if (any(isnan(direct_illumination)))
-					// {
-					// 	// NaN
-					// 	return vec3(0.0, 0.0, 5.0);
-					// }
+					vec3 BRDF = mat.data1.xyz / PI; // Lambertian
+					direct_illumination += light_source_mat.data3.xyz * BRDF * G / pdf_light_area;
 				}
 			}
 			direct_illumination /= float(NUM_SHADOW_RAYS);
@@ -603,9 +597,9 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 			color += throughput_term * direct_illumination;
 
 			// Update the throughput term
-			// float pdf_cos_weighted_hemisphere = cos_theta / PI;
-			// throughput_term *= mat.data1.xyz * cos_theta / pdf_cos_weighted_hemisphere;
-			throughput_term *= PI * mat.data1.xyz;
+			float pdf_cos_weighted_hemisphere = cos_theta / PI;
+			throughput_term *= mat.data1.xyz * cos_theta / pdf_cos_weighted_hemisphere;
+			// throughput_term *= PI * mat.data1.xyz;
 
 			ro += rd * data.t + EPSILON * data.normal;
 			rd = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), data.normal);
@@ -810,8 +804,8 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
-	// return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
-	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
+	return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
+	// return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
 	// return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 
