@@ -14,7 +14,7 @@ layout (std140, binding = 0) uniform Camera
 };
 
 // Math constants
-#define EPSILON 		0.00001
+#define EPSILON 		0.0001
 #define PI 				3.14159265
 #define TWO_PI  		6.28318530
 #define HALF_PI 		1.57079632
@@ -500,6 +500,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		}
 
 		Material mat = materials[data.mat_object_indices.x];
+		vec3 BRDF = mat.data1.xyz / PI; // Lambertian
 
 		// (x->y dot Nx)
 		float cos_theta = dot(rd, data.normal);
@@ -586,7 +587,6 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 					float squared_dist = dot(dist_vec, dist_vec);
 					float G = cos_theta_x * cos_theta_y / squared_dist;
 
-					vec3 BRDF = mat.data1.xyz / PI; // Lambertian
 					direct_illumination += light_source_mat.data3.xyz * BRDF * G / pdf_light_area;
 				}
 			}
@@ -597,9 +597,9 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 			color += throughput_term * direct_illumination;
 
 			// Update the throughput term
-			float pdf_cos_weighted_hemisphere = cos_theta / PI;
-			throughput_term *= mat.data1.xyz * cos_theta / pdf_cos_weighted_hemisphere;
-			// throughput_term *= PI * mat.data1.xyz;
+			//float pdf_cos_weighted_hemisphere = cos_theta / PI;
+			//throughput_term *= BRDF * cos_theta / pdf_cos_weighted_hemisphere;
+			throughput_term *= PI * BRDF;
 
 			ro += rd * data.t + EPSILON * data.normal;
 			rd = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), data.normal);
