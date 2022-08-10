@@ -804,8 +804,8 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
-	return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
-	// return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
+	// return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
+	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
 	// return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 

@@ -146,8 +146,8 @@ bool InitRenderBuffer(Display &window)
 	glBindImageTexture(0, window.render_buffer_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 	glBindTextureUnit(0, window.render_buffer_texture);
 
-	window.rb_shader_program = LoadShaderFromFiles("../../shaders/framebuffer.vert", "../../shaders/framebuffer.frag");
-	window.compute_shader_program = LoadShaderFromFiles("../../shaders/framebuffer.comp");
+	window.rb_shader_program = LoadShaderFromFiles("shaders/framebuffer.vert", "shaders/framebuffer.frag");
+	window.compute_shader_program = LoadShaderFromFiles("shaders/framebuffer.comp");
 
 	glUseProgram(window.rb_shader_program);
 	glUniform1i(glGetUniformLocation(window.rb_shader_program, "tex"), 0);

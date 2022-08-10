@@ -5,6 +5,7 @@
 #include "scene/triangle.hpp"
 #include "scene/camera.hpp"
 
+#include <SDL_events.h>
 #include <cstdlib>
 #include <cstring>
 #include <string>
