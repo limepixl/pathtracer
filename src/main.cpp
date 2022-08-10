@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 	// Set up data to be passed to SSBOs
 
 	Array<MaterialGLSL> materials_ssbo;
-	AppendToArray(materials_ssbo, { Vec4f(0.0f), Vec4f(0.0f), Vec4f(100000.0f, 100000.0f, 100000.0f, 0.0f) });
+	AppendToArray(materials_ssbo, { Vec4f(0.0f), Vec4f(0.0f), Vec4f(100.0f, 100.0f, 100.0f, 0.0f) });
 	AppendToArray(materials_ssbo, { Vec4f(0.9f, 0.9f, 0.9f, 0.0f), Vec4f(0.0f), Vec4f(0.0f) });
 	AppendToArray(materials_ssbo, { Vec4f(0.9f, 0.9f, 0.9f, 0.2f), Vec4f(0.0f), Vec4f(0.0f) });
 	AppendToArray(materials_ssbo, { Vec4f(0.9f, 0.9f, 0.9f, 0.4f), Vec4f(0.0f), Vec4f(0.0f) });
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 
 	// Point light and sphere next to it
 	AppendToArray(spheres_ssbo, { Vec4f(0.0f, 0.0f, -4.0f, 1.0f), { 1 } });
-	AppendToArray(spheres_ssbo, { Vec4f(4.0f, 0.0f, -4.0f, 0.03f), { 0 } });
+	AppendToArray(spheres_ssbo, { Vec4f(4.0f, 0.0f, -4.0f, 0.3f), { 0 } });
 
 #if 0
 	Array<TriangleGLSL> model_tris_ssbo(tris.size);

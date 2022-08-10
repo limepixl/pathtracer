@@ -14,7 +14,7 @@ layout (std140, binding = 0) uniform Camera
 };
 
 // Math constants
-#define EPSILON 		0.000001
+#define EPSILON 		0.00001
 #define PI 				3.14159265
 #define TWO_PI  		6.28318530
 #define HALF_PI 		1.57079632
@@ -366,7 +366,7 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 			tmax = current_t;
 			hit_anything = true;
 			result.t = current_t;
-			result.normal = normalize(ro + rd * current_t - current_sphere.sphere_data.xyz);
+			result.normal = (ro + rd * current_t - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
 			result.mat_object_indices.x = current_sphere.mat_index.x;
 			result.object_type = 1;
 		}
@@ -438,25 +438,30 @@ vec3 estimator_path_tracing_naive(in vec3 ro, in vec3 rd, in uint rng_state)
 		float B = 0.45 * squared_roughness / (squared_roughness + 0.09);
 		float alpha = max(theta_i, theta_o);
 		float beta = min(theta_i, theta_o);
-		vec3 BRDF = (mat.data1.xyz / PI) * (A + B * max(0.0, cos(phi_i - phi_o)) * sin(alpha) * tan(beta));
-		// vec3 BRDF = mat.data1.xyz / PI;
+		// vec3 BRDF = (mat.data1.xyz / PI) * (A + B * max(0.0, cos(phi_i - phi_o)) * sin(alpha) * tan(beta));
+		vec3 BRDF = mat.data1.xyz / PI;
 
 		// update throughput
 		// The PI is here because we are sampling w.r.t the pdf
 		// p(psi) = cos(theta) / PI       (cosine weighted sampling)
 		// This cosine term cancels out with the dot product in
 		// the throughput term and all that is left is the BRDF
-		throughput_term *= BRDF * cos_theta_x / pdf;	
+		throughput_term *= BRDF * PI;	
 	}
 
 	return color;
 }
 
-float area(vec3 v0, vec3 v1, vec3 v2)
+float area_triangle(vec3 v0, vec3 v1, vec3 v2)
 {
 	vec3 edge1 = v1 - v0;
 	vec3 edge2 = v2 - v0;
 	return sqrt(dot(edge1, edge1) * dot(edge2, edge2)) * 0.5;
+}
+
+float area_sphere(float r)
+{
+	return 4.0 * PI * r * r;
 }
 
 vec3 map_to_triangle(vec2 vec, vec3 v0, vec3 v1, vec3 v2)
@@ -497,22 +502,13 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		Material mat = materials[data.mat_object_indices.x];
 
 		// (x->y dot Nx)
-		float cos_theta = dot(data.normal, rd);
+		float cos_theta = dot(rd, data.normal);
 
 		uint num_light_sources = light_tri_indices.length() + light_sphere_indices.length();
 
 		// add light that is emitted from surface (but stop right afterwards)
 		if (bounce <= BOUNCE_COUNT && any(greaterThanEqual(mat.data3.xyz, vec3(EPSILON))))
 		{
-			// TODO: only add if the ray was added by a single lonely bounce from
-			// the mirror instead of just the last bounce being the mirror?
-			/*
-			bool last_bounce_reflected = (old_mat_changed && 
-										  abs(old_mat.data1.w - 3.0) < EPSILON && 
-										  all(equal(old_mat.data1.xyz, vec3(0.0))) && 
-										  any(greaterThan(old_mat.specular_spec, vec4(0.01))));
-			*/
-
 			// if (bounce == 0 || last_bounce_reflected)
 			if(bounce == 0)
 				color = mat.data3.xyz;
@@ -540,7 +536,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 				if(light_tri_indices.length() > 0 && picked_light_source < light_tri_indices.length())
 				{
 					Triangle light_source = triangles[light_tri_indices[picked_light_source]];
-					light_area = area(light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
+					light_area = area_triangle(light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
 					
 					light_source_mat = materials[uint(light_source.data1.w)];
 					
@@ -550,24 +546,22 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 				else if(light_sphere_indices.length() > 0)
 				{
 					Sphere light_source = spheres[light_sphere_indices[picked_light_source - light_tri_indices.length()]];
-					light_area = 4.0 * PI * light_source.sphere_data.w * light_source.sphere_data.w;
+					
+					float radius = light_source.sphere_data.w;
+					light_area = area_sphere(radius);
 
 					light_source_mat = materials[uint(light_source.mat_index.x)];
 
 					// get a random point on unit sphere, scale the sphere up/down according
 					// to the light source's radius, and move the point relative to the light 
 					// source's spherical origin.
-					y = map_to_unit_sphere(rand_vec2(rng_state)) * light_source.sphere_data.w;
-					y += light_source.sphere_data.xyz;
+					y = map_to_unit_sphere(rand_vec2(rng_state)) * radius + light_source.sphere_data.xyz;
 				}
 
 				float pdf_pick_point_on_light = 1.0 / light_area;
 
 				// PDF in terms of area, for picking point on light source k
 				float pdf_light_area = pdf_pick_light * pdf_pick_point_on_light;
-
-				// Just for clarity
-				// vec3 x = ro + rd * data.t + EPSILON * data.normal;
 
 				// Send out a shadow ray in direction x->y
 				vec3 shadow_ro = ro + rd * data.t + EPSILON * data.normal;
@@ -577,19 +571,12 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 				// Check if ray hits anything before hitting the light source
 				HitData shadow_data;
 				bool shadow_hit_anything = intersect(shadow_ro, shadow_rd, shadow_data);
-				// if (!shadow_hit_anything)
-				// {
-				// 	// It shouldn't be possible to send a ray towards the light
-				// 	// source and not hit anything in the scene, even the light
-				// 	// printf("ERROR: Shadow ray didn't hit anything!\n");
-				// 	// break;
-				// 
-				// 	return vec3(0.0, 0.0, 5.0);
-				// }
 
 				// Visibility check means we have a clear line of sight!
-				if (shadow_hit_anything && all(lessThan(abs(y - (shadow_ro + shadow_rd * shadow_data.t)), vec3(EPSILON))))
+				vec3 shadow_ray_hit = shadow_ro + shadow_rd * shadow_data.t;
+				if (shadow_hit_anything && all(lessThanEqual(abs(y - shadow_ray_hit), vec3(EPSILON))))
 				{
+					return vec3(1.0);
 					// We want to only add light contribution from lights within
 					// the hemisphere solid angle above X, and not from lights behind it.
 					float cos_theta_x = max(0.0, dot(data.normal, shadow_rd));
@@ -682,7 +669,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 
 				Material light_source_mat = materials[uint(light_source.data1.w)];
 				vec3 y_nee = map_to_triangle(rand_vec2(rng_state), light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
-				float light_area = area(light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
+				float light_area = area_triangle(light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
 
 				// Send out a shadow ray in direction x->y
 				vec3 dist_vec = y_nee - x;
@@ -786,7 +773,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 				// TODO: Replace this with the above
 				Triangle tri_NEE = triangles[data.mat_object_indices.y];
 
-				float pdf_NEE_area = 1.0 / area(tri_NEE.data1.xyz, tri_NEE.data2.xyz, tri_NEE.data3.xyz);
+				float pdf_NEE_area = 1.0 / area_triangle(tri_NEE.data1.xyz, tri_NEE.data2.xyz, tri_NEE.data3.xyz);
 				pdf_NEE_area /= float(light_tri_indices.length());
 
 				float pdf_NEE_sa = pdf_NEE_area * data.t * data.t / cos_theta_y;

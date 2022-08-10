@@ -22,8 +22,5 @@ void main()
 
 	rendered_texture.xyz = sqrt(rendered_texture.xyz);
 
-	// if(any(greaterThan(rendered_texture.xyz, vec3(1.0))))
-	// 	rendered_texture.xyz /= max(max(rendered_texture.x, rendered_texture.y), rendered_texture.z);
-
 	color = vec4(rendered_texture.xyz, 1.0);
 }
