@@ -192,7 +192,7 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 											  emission,
 											  mat.name.c_str());
 
-					AppendToArray(out_materials, tmp_mat);
+					out_materials.append(tmp_mat);
 					triangle_mat_index = (uint32)num_loaded_materials++;
 				}
 
@@ -252,7 +252,7 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 
 	out_tris = Array<Triangle>((unsigned int)tris.size());
 	for (uint32 i = 0; i < tris.size(); i++)
-		AppendToArray(out_tris, tris[i]);
+		out_tris.append(tris[i]);
 
 	printf("Finished loading .obj model!\n");
 	printf("--- Number of triangles: %llu\n", out_tris.size);

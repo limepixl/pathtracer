@@ -232,12 +232,12 @@ bool ConstructBVHObjectMedian(Triangle *tris, uint32 num_tris, Array<BVHNode> &b
 		left_child.first_tri = current_node.first_tri;
 		left_child.num_tris = left_child_num_tris;
 		uint32 left_index = (uint32)bvh_tree.size;
-		AppendToArray(bvh_tree, left_child);
+		bvh_tree.append(left_child);
 
 		BVHNode right_child {};
 		right_child.first_tri = current_node.first_tri + left_child_num_tris;
 		right_child.num_tris = right_child_num_tris;
-		AppendToArray(bvh_tree, right_child);
+		bvh_tree.append(right_child);
 
 		current_node.left = left_index;
 
@@ -370,12 +370,12 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 		left_child.first_tri = current_node.first_tri;
 		left_child.num_tris = left_child_num_tris;
 		uint32 left_index = (uint32)bvh_tree.size;
-		AppendToArray(bvh_tree, left_child);
+		bvh_tree.append(left_child);
 
 		BVHNode right_child {};
 		right_child.first_tri = current_node.first_tri + left_child_num_tris;
 		right_child.num_tris = right_child_num_tris;
-		AppendToArray(bvh_tree, right_child);
+		bvh_tree.append(right_child);
 
 		current_node.left = left_index;
 		current_node.axis = (int16)axis;

@@ -81,24 +81,24 @@ int main(int argc, char *argv[])
 	// Set up data to be passed to SSBOs
 
 	Array<MaterialGLSL> materials_ssbo;
-	AppendToArray(materials_ssbo, { Vec4f(0.0f), Vec4f(0.0f), Vec4f(10000.0f, 10000.0f, 10000.0f, 0.0f) });
-	AppendToArray(materials_ssbo, { Vec4f(0.9f, 0.9f, 0.9f, 0.0f), Vec4f(0.0f), Vec4f(0.0f) });
-	AppendToArray(materials_ssbo, { Vec4f(0.9f, 0.9f, 0.9f, 0.2f), Vec4f(0.0f), Vec4f(0.0f) });
-	AppendToArray(materials_ssbo, { Vec4f(0.9f, 0.9f, 0.9f, 0.4f), Vec4f(0.0f), Vec4f(0.0f) });
-	AppendToArray(materials_ssbo, { Vec4f(0.9f, 0.9f, 0.9f, 0.6f), Vec4f(0.0f), Vec4f(0.0f) });
-	AppendToArray(materials_ssbo, { Vec4f(0.9f, 0.9f, 0.9f, 0.8f), Vec4f(0.0f), Vec4f(0.0f) });
-	AppendToArray(materials_ssbo, { Vec4f(0.9f, 0.9f, 0.9f, 1.0f), Vec4f(0.0f), Vec4f(0.0f) });
-	AppendToArray(materials_ssbo, { Vec4f(0.9f, 0.9f, 0.9f, 1.2f), Vec4f(0.0f), Vec4f(0.0f) });
-	AppendToArray(materials_ssbo, { Vec4f(0.9f, 0.9f, 0.9f, 1.4f), Vec4f(0.0f), Vec4f(0.0f) });
+	materials_ssbo.append({ Vec4f(0.0f), Vec4f(0.0f), Vec4f(10000.0f, 10000.0f, 10000.0f, 0.0f) });
+	materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 0.0f), Vec4f(0.0f), Vec4f(0.0f) });
+	// materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 0.2f), Vec4f(0.0f), Vec4f(0.0f) });
+	// materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 0.4f), Vec4f(0.0f), Vec4f(0.0f) });
+	// materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 0.6f), Vec4f(0.0f), Vec4f(0.0f) });
+	// materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 0.8f), Vec4f(0.0f), Vec4f(0.0f) });
+	// materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 1.0f), Vec4f(0.0f), Vec4f(0.0f) });
+	// materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 1.2f), Vec4f(0.0f), Vec4f(0.0f) });
+	// materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 1.4f), Vec4f(0.0f), Vec4f(0.0f) });
 
 	Array<SphereGLSL> spheres_ssbo;
 
 	// Furnace test sphere
-	//AppendToArray(spheres_ssbo, { Vec4f(0.0f, 0.0f, -4.0f, 1.0f), {0} });
+	// spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), {0} });
 
 	// Point light and sphere next to it
-	AppendToArray(spheres_ssbo, { Vec4f(0.0f, 0.0f, -4.0f, 1.0f), { 1 } });
-	AppendToArray(spheres_ssbo, { Vec4f(4.0f, 0.0f, -4.0f, 0.03f), { 0 } });
+	spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), { 1 } });
+	spheres_ssbo.append({ Vec4f(4.0f, 0.0f, -4.0f, 0.03f), { 0 } });
 
 #if 0
 	Array<TriangleGLSL> model_tris_ssbo(tris.size);
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
 		MaterialGLSL &mat = materials_ssbo[spheres_ssbo[i].mat_index[0]];
 		if (mat.data3.x > EPSILON || mat.data3.y > EPSILON || mat.data3.z > EPSILON)
 		{
-			AppendToArray(emissive_spheres_ssbo, i);
+			emissive_spheres_ssbo.append(i);
 		}
 	}
 

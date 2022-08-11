@@ -54,6 +54,7 @@
 		"random": "cpp",
 		"valarray": "cpp",
 		"stack": "cpp",
-		"*.rh": "cpp"
+		"*.rh": "cpp",
+		"stb_image.h": "c"
 	}
 }

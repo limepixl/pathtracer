@@ -15,7 +15,6 @@ endif()
 # List of project source and header files
 set(SOURCE_FILES 
 	src/main.cpp
-	# src/threads.cpp
 	src/loader.cpp
 
 	src/scene/bvh.cpp
@@ -24,17 +23,15 @@ set(SOURCE_FILES
 	src/scene/scene.cpp
 	src/scene/sphere.cpp
 	src/scene/triangle.cpp
+	src/display/display.cpp
+	src/resource/shader.cpp
+	src/scene/camera.cpp
 
 	src/math/mat3.cpp
 	src/math/mat4.cpp
 	src/math/math.cpp
 	src/math/vec.cpp
 
-	src/display/display.cpp
-
-	src/resource/shader.cpp
-
-	src/scene/camera.cpp
 	
 	thirdparty/stb/stb_image.c
 	thirdparty/pcg-c-basic-0.9/pcg_basic.c
@@ -42,7 +39,6 @@ set(SOURCE_FILES
 )
 
 set(HEADER_FILES
-	# src/threads.hpp
 	src/loader.hpp
 	src/defines.hpp
 	src/pathtracer.hpp
@@ -53,17 +49,15 @@ set(HEADER_FILES
 	src/scene/scene.hpp
 	src/scene/sphere.hpp
 	src/scene/triangle.hpp
+	src/display/display.hpp
+	src/resource/shader.hpp
+	src/core/array.hpp
 
 	src/math/mat3.hpp
 	src/math/mat4.hpp
 	src/math/math.hpp
 	src/math/vec.hpp
 
-	src/display/display.hpp
-
-	src/resource/shader.hpp
-
-	src/core/array.hpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})

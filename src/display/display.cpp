@@ -83,7 +83,7 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 	printf("Max size of work group (x, y, z): %d %d %d\n", data1, data2, data3);
 
 	// Turn off VSync
-	SDL_GL_SetSwapInterval(0);
+	// SDL_GL_SetSwapInterval(0);
 
 	// SDL input specifics
 	SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -170,12 +170,12 @@ bool InitRenderBuffer(Display &window)
 	int w, h, c;
 	uint8 *data = nullptr;
 	const char *strings[] {
-		"../../res/cubemaps/brown_studio/px.png",
-		"../../res/cubemaps/brown_studio/nx.png",
-		"../../res/cubemaps/brown_studio/py.png",
-		"../../res/cubemaps/brown_studio/ny.png",
-		"../../res/cubemaps/brown_studio/pz.png",
-		"../../res/cubemaps/brown_studio/nz.png"
+		"res/cubemaps/brown_studio/px.png",
+		"res/cubemaps/brown_studio/nx.png",
+		"res/cubemaps/brown_studio/py.png",
+		"res/cubemaps/brown_studio/ny.png",
+		"res/cubemaps/brown_studio/pz.png",
+		"res/cubemaps/brown_studio/nz.png"
 	};
 
 	for (uint8 i = 0; i < 6; i++)
