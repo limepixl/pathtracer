@@ -43,7 +43,7 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 	// int64 numVertices = (int64)(attrib.vertices.size() / 3);
 	uint32 num_normals = (uint32)(attrib.normals.size() / 3);
 	// int64 numUVs = (int64)(attrib.texcoords.size() / 2);
-	uint32 num_materials = (uint32)(materials.size());
+	// uint32 num_materials = (uint32)(materials.size());
 	uint32 num_shapes = (uint32)(shapes.size());
 
 	// Initialize out materials

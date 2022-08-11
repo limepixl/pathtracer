@@ -82,22 +82,13 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 include(CMakePrintHelpers)
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -Wno-missing-braces 
-																		 -Wno-unused-variable 
-																		 -Wno-c++98-compat 
-																		 -Wno-gnu-anonymous-struct 
-																		 -Wno-c++98-compat-pedantic
-																		 -Wno-old-style-cast
-																		 -Wno-nested-anon-types
-																		 -Wno-reserved-macro-identifier
-																		 -Wno-nonportable-system-include-path
-																		 -Wno-undef)
+	target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Werror)
 	if(UNIX)
 		target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
 	endif()
 
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-	target_compile_options(${PROJECT_NAME} PRIVATE -WX -W4 -wd4201 -wd4189 -wd4100 -wd4146)
+	target_compile_options(${PROJECT_NAME} PRIVATE -WX -W4 -wd4201 -wd4146)
 	target_link_libraries(${PROJECT_NAME} PUBLIC opengl32)
 endif()
 
