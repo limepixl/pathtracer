@@ -9,7 +9,8 @@
 			"program": "${workspaceFolder}/build/pathtracer.exe",
 			"type": "cppvsdbg",
 			"cwd": "${workspaceRoot}",
-			"request": "launch"
+			"request": "launch",
+			"console": "externalTerminal"
 		}
 	]
 }

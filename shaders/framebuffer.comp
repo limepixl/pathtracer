@@ -384,6 +384,16 @@ void cartesian_to_spherical(in vec3 vec, out float theta, out float phi)
 	phi = atan(vec.x, vec.z) + PI;
 }
 
+vec3 oren_nayar_brdf(vec3 albedo, float roughness, vec2 theta_phi_i, vec2 theta_phi_o)
+{
+	float squared_roughness = roughness * roughness;
+	float A = 1.0 - 0.5 * squared_roughness / (squared_roughness + 0.33);
+	float B = 0.45 * squared_roughness / (squared_roughness + 0.09);
+	float alpha = max(theta_phi_i.x, theta_phi_o.x);
+	float beta = min(theta_phi_i.x, theta_phi_o.x);
+	return (albedo / PI) * (A + B * max(0.0, cos(theta_phi_i.y - theta_phi_o.y)) * sin(alpha) * tan(beta));
+}
+
 // Estimators
 
 vec3 estimator_path_tracing_naive(in vec3 ro, in vec3 rd, in uint rng_state)
@@ -432,14 +442,8 @@ vec3 estimator_path_tracing_naive(in vec3 ro, in vec3 rd, in uint rng_state)
 		float pdf = cos_theta_x / PI;
 
 		// Oren-Nayar diffuse BRDF
-		float roughness = mat.data1.w;
-		float squared_roughness = roughness * roughness;
-		float A = 1.0 - 0.5 * squared_roughness / (squared_roughness + 0.33);
-		float B = 0.45 * squared_roughness / (squared_roughness + 0.09);
-		float alpha = max(theta_i, theta_o);
-		float beta = min(theta_i, theta_o);
-		// vec3 BRDF = (mat.data1.xyz / PI) * (A + B * max(0.0, cos(phi_i - phi_o)) * sin(alpha) * tan(beta));
-		vec3 BRDF = mat.data1.xyz / PI;
+		vec3 BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(theta_i, phi_i), vec2(theta_o, phi_o));
+		// vec3 BRDF = mat.data1.xyz / PI;
 
 		// update throughput
 		// The PI is here because we are sampling w.r.t the pdf
@@ -500,7 +504,6 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		}
 
 		Material mat = materials[data.mat_object_indices.x];
-		vec3 BRDF = mat.data1.xyz / PI; // Lambertian
 
 		// (x->y dot Nx)
 		float cos_theta = dot(rd, data.normal);
@@ -519,6 +522,12 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		// of the surface we hit is diffuse, we can use NEE.
 		else if (num_light_sources > 0 && abs(mat.data3.w) < EPSILON)
 		{
+			// Generate TNB matrix to map directions in terms of the normal vector
+			mat3 tnb = transpose(construct_tnb(data.normal));
+
+			float theta_o, phi_o;
+			cartesian_to_spherical(normalize(tnb * -rd), theta_o, phi_o);
+
 			// sample light sources for direct illumination
 			vec3 direct_illumination = vec3(0.0);
 			for (uint shadow_ray_index = 0; shadow_ray_index < NUM_SHADOW_RAYS; shadow_ray_index++)
@@ -576,6 +585,13 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 				vec3 shadow_ray_hit = shadow_ro + shadow_rd * shadow_data.t;
 				if (shadow_hit_anything && all(lessThanEqual(abs(y - shadow_ray_hit), vec3(EPSILON))))
 				{
+					// Convert from Cartesian to Spherical coordinates
+					float shadow_theta_i, shadow_phi_i;
+					cartesian_to_spherical(normalize(tnb * shadow_rd), shadow_theta_i, shadow_phi_i);
+
+					vec3 BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(shadow_theta_i, shadow_phi_i), vec2(theta_o, phi_o));
+					// vec3 BRDF = mat.data1.xyz / PI;
+
 					// We want to only add light contribution from lights within
 					// the hemisphere solid angle above X, and not from lights behind it.
 					float cos_theta_x = max(0.0, dot(data.normal, shadow_rd));
@@ -596,13 +612,20 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 			// add the direct illumination to this point.
 			color += throughput_term * direct_illumination;
 
-			// Update the throughput term
-			//float pdf_cos_weighted_hemisphere = cos_theta / PI;
-			//throughput_term *= BRDF * cos_theta / pdf_cos_weighted_hemisphere;
-			throughput_term *= PI * BRDF;
-
 			ro += rd * data.t + EPSILON * data.normal;
 			rd = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), data.normal);
+
+			// Convert from Cartesian to Spherical coordinates
+			float theta_i, phi_i;
+			cartesian_to_spherical(normalize(tnb * rd), theta_i, phi_i);
+
+			vec3 BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(theta_i, phi_i), vec2(theta_o, phi_o));
+			// vec3 BRDF = mat.data1.xyz / PI;
+
+			// Update the throughput term
+			float pdf_cos_weighted_hemisphere = cos_theta / PI;
+			throughput_term *= BRDF * cos_theta / pdf_cos_weighted_hemisphere;
+			// throughput_term *= PI * BRDF;
 		}
 
 		old_mat = int(data.mat_object_indices.x);

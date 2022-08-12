@@ -83,22 +83,15 @@ int main(int argc, char *argv[])
 	Array<MaterialGLSL> materials_ssbo;
 	materials_ssbo.append({ Vec4f(0.0f), Vec4f(0.0f), Vec4f(10000.0f, 10000.0f, 10000.0f, 0.0f) });
 	materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 0.0f), Vec4f(0.0f), Vec4f(0.0f) });
-	// materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 0.2f), Vec4f(0.0f), Vec4f(0.0f) });
-	// materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 0.4f), Vec4f(0.0f), Vec4f(0.0f) });
-	// materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 0.6f), Vec4f(0.0f), Vec4f(0.0f) });
-	// materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 0.8f), Vec4f(0.0f), Vec4f(0.0f) });
-	// materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 1.0f), Vec4f(0.0f), Vec4f(0.0f) });
-	// materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 1.2f), Vec4f(0.0f), Vec4f(0.0f) });
-	// materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 1.4f), Vec4f(0.0f), Vec4f(0.0f) });
 
 	Array<SphereGLSL> spheres_ssbo;
 
 	// Furnace test sphere
-	// spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), {0} });
+	// spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), {1} });
 
 	// Point light and sphere next to it
-	spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), { 1 } });
-	spheres_ssbo.append({ Vec4f(4.0f, 0.0f, -4.0f, 0.03f), { 0 } });
+	spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -8.0f, 2.0f), { 1 } });
+	spheres_ssbo.append({ Vec4f(0.0f, 0.0f, 0.1f, 0.05f), { 0 } });
 
 #if 0
 	Array<TriangleGLSL> model_tris_ssbo(tris.size);

@@ -9,7 +9,7 @@ pushd "build"
 
 @REM MSVC
 @REM cmake -S ../ -B . -G "Ninja" -DCMAKE_BUILD_TYPE=Debug
-cmake -S ../ -B . -G "Ninja" -DCMAKE_BUILD_TYPE=RelWithDebInfo
+@REM cmake -S ../ -B . -G "Ninja" -DCMAKE_BUILD_TYPE=RelWithDebInfo
 @REM cmake -S ../ -B . -G "Ninja" -DCMAKE_BUILD_TYPE=Release
 ninja
 
