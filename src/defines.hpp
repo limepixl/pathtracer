@@ -14,7 +14,7 @@ typedef long int64;
 
 constexpr uint8 NUM_THREADS = 11;
 
-constexpr uint32 WIDTH = 1280;
+constexpr uint32 WIDTH = 720;
 constexpr uint32 HEIGHT = 720;
 
 constexpr uint8 BOUNCE_COUNT = 5;

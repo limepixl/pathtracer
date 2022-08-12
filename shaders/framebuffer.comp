@@ -376,11 +376,11 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 }
 
 // NOTE: Assumes normalized vector "vec" in a hemisphere.
-// This results in a theta value in the range [0, PI/2],
+// This results in a theta value in the range [0, PI],
 // and a phi value in the range [0, 2PI].
 void cartesian_to_spherical(in vec3 vec, out float theta, out float phi)
 {
-	theta = acos(vec.y) * 0.5;
+	theta = acos(vec.y);
 	phi = atan(vec.x, vec.z) + PI;
 }
 
@@ -450,7 +450,7 @@ vec3 estimator_path_tracing_naive(in vec3 ro, in vec3 rd, in uint rng_state)
 		// p(psi) = cos(theta) / PI       (cosine weighted sampling)
 		// This cosine term cancels out with the dot product in
 		// the throughput term and all that is left is the BRDF
-		throughput_term *= BRDF * PI;	
+		throughput_term *= cos_theta_x * BRDF / pdf;
 	}
 
 	return color;
@@ -504,9 +504,6 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		}
 
 		Material mat = materials[data.mat_object_indices.x];
-
-		// (x->y dot Nx)
-		float cos_theta = dot(rd, data.normal);
 
 		uint num_light_sources = light_tri_indices.length() + light_sphere_indices.length();
 
@@ -618,6 +615,8 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 			// Convert from Cartesian to Spherical coordinates
 			float theta_i, phi_i;
 			cartesian_to_spherical(normalize(tnb * rd), theta_i, phi_i);
+
+			float cos_theta = cos(theta_i);
 
 			vec3 BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(theta_i, phi_i), vec2(theta_o, phi_o));
 			// vec3 BRDF = mat.data1.xyz / PI;
