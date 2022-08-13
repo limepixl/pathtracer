@@ -8,9 +8,9 @@ float Area(Sphere *sphere)
 	return 4.0f * PI * sphere->radius * sphere->radius;
 };
 
-Sphere CreateSphere(Vec3f origin, float radius, Material *mat)
+Sphere CreateSphere(Vec3f origin, float radius, uint32 mat_index)
 {
-	Sphere result = { origin, radius, mat };
+	Sphere result = { origin, radius, mat_index };
 	return result;
 }
 
@@ -24,7 +24,7 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data, float &tmax)
 	if (discriminant >= 0)
 	{
 		float sqrtDiscriminant = sqrtf(discriminant);
-		if (discriminant == 0) // 2 equal real solutions
+		if (Abs(discriminant) < EPSILON) // 2 equal real solutions
 		{
 			float t = -b / (2.0f * a);
 			if (t > TMIN && t < tmax)
@@ -33,7 +33,7 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data, float &tmax)
 				data->t = t;
 				data->point = ray.origin + ray.direction * t;
 				data->normal = data->point - sphere.origin;
-				data->mat = sphere.mat;
+				data->mat_index = sphere.mat_index;
 				return true;
 			}
 		}
@@ -54,7 +54,7 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data, float &tmax)
 				data->t = t1;
 				data->point = ray.origin + ray.direction * t1;
 				data->normal = (data->point - sphere.origin) / sphere.radius;
-				data->mat = sphere.mat;
+				data->mat_index = sphere.mat_index;
 				return true;
 			}
 			else if (t2 > TMIN && t2 < tmax)
@@ -63,7 +63,7 @@ bool SphereIntersect(Ray ray, Sphere sphere, HitData *data, float &tmax)
 				data->t = t2;
 				data->point = ray.origin + ray.direction * t2;
 				data->normal = (data->point - sphere.origin) / sphere.radius;
-				data->mat = sphere.mat;
+				data->mat_index = sphere.mat_index;
 				return true;
 			}
 		}

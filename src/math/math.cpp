@@ -1,4 +1,3 @@
-#define _CRT_RAND_S
 #include "math.hpp"
 #include "../scene/triangle.hpp"
 #include <cmath>
@@ -33,7 +32,12 @@ float Abs(float value)
 
 Vec3f Abs(Vec3f value)
 {
-	return { Abs(value.x), Abs(value.y), Abs(value.z) };
+	return Vec3f(Abs(value.x), Abs(value.y), Abs(value.z));
+}
+
+float Radians(float degrees)
+{
+	return degrees * PI / 180.0f;
 }
 
 int16 Clamp(int16 value, int16 max)
@@ -49,12 +53,12 @@ float Dot(Vec3f vec1, Vec3f vec2)
 	return (vec1.x * vec2.x) + (vec1.y * vec2.y) + (vec1.z * vec2.z);
 }
 
-Vec3f Cross(Vec3f &a, Vec3f &b)
+Vec3f Cross(const Vec3f &a, const Vec3f &b)
 {
 	float x = a.y * b.z - a.z * b.y;
 	float y = a.z * b.x - a.x * b.z;
 	float z = a.x * b.y - a.y * b.x;
-	return { x, y, z };
+	return Vec3f(x, y, z);
 }
 
 float Max(float a, float b)
@@ -84,7 +88,7 @@ uint32 Max(uint32 a, uint32 b)
 
 Vec3f MaxComponentWise(Vec3f &a, Vec3f &b)
 {
-	return { Max(a.x, b.x), Max(a.y, b.y), Max(a.z, b.z) };
+	return Vec3f(Max(a.x, b.x), Max(a.y, b.y), Max(a.z, b.z));
 }
 
 float Min(float a, float b)
@@ -109,7 +113,7 @@ uint16 Min(uint16 a, uint16 b)
 
 Vec3f MinComponentWise(Vec3f &a, Vec3f &b)
 {
-	return { Min(a.x, b.x), Min(a.y, b.y), Min(a.z, b.z) };
+	return Vec3f(Min(a.x, b.x), Min(a.y, b.y), Min(a.z, b.z));
 }
 
 float Step(float edge, float x)
@@ -119,12 +123,12 @@ float Step(float edge, float x)
 
 Vec3f Step(Vec3f edge, Vec3f x)
 {
-	return { Step(edge.x, x.x), Step(edge.y, x.y), Step(edge.z, x.z) };
+	return Vec3f(Step(edge.x, x.x), Step(edge.y, x.y), Step(edge.z, x.z));
 }
 
 float Ceil(float num)
 {
-	if (num - (int32)num > 0.0f)
+	if (num - (float)((int32)num) > 0.0f)
 		return float((int32)num + 1);
 
 	return num;
@@ -141,23 +145,6 @@ Vec3f NormalizeVec3f(Vec3f vec)
 {
 	return vec / sqrtf(Dot(vec, vec));
 }
-
-#include <stdio.h>
-
-// // Returns a number in (0, 1)
-// float32 RandomNumberNormalized()
-// {
-// 	unsigned int val = 0;
-// 	rand_s(&val);
-
-// 	float64 result = (float64)(val+1000.0) / ((float64)UINT_MAX + 2000.0);
-// 	return (float32)result;
-// }
-
-// Vec2f RandomVec2f()
-// {
-// 	return { RandomNumberNormalized(), RandomNumberNormalized() };
-// }
 
 // PCG variants of the above functions
 float RandomNumberNormalizedPCG(pcg32_random_t *rngptr)
@@ -198,7 +185,7 @@ Vec3f MapToUnitSphere(Vec2f vec2)
 	float cosPhi = cosf(Phi);
 
 	// Just a conversion between spherical and Cartesian coordinates
-	return { sinTheta * cosPhi, cosTheta, sinTheta * sinPhi };
+	return Vec3f(sinTheta * cosPhi, cosTheta, sinTheta * sinPhi);
 }
 
 Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal)
@@ -242,15 +229,15 @@ void OrthonormalBasis(Vec3f &n, Vec3f &t, Vec3f &bt)
 	float a = -1.0f / (sign + n.z);
 	float b = n.x * n.y * a;
 
-	t = CreateVec3f(1.0f + sign * n.x * n.x * a, sign * b, -sign * n.x);
-	bt = CreateVec3f(b, sign + n.y * n.y * a, -n.y);
+	t = Vec3f(1.0f + sign * n.x * n.x * a, sign * b, -sign * n.x);
+	bt = Vec3f(b, sign + n.y * n.y * a, -n.y);
 }
 
 Mat3f ConstructTNB(Vec3f &n)
 {
-	Vec3f t = {}, bt = {};
+	Vec3f t, bt;
 	OrthonormalBasis(n, t, bt);
-	Mat3f res = CreateMat3f(t, n, bt);
+	Mat3f res(t, n, bt);
 	return TransposeMat3f(res);
 }
 

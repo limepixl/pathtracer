@@ -43,7 +43,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngpt
 			break;
 		}
 
-		Material *mat = data.mat;
+		Material *mat = scene.materials[data.mat_index];
 
 		// add the light that the material emits
 		if (b <= BOUNCE_COUNT)
@@ -91,7 +91,7 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngpt
 		{
 			// TODO: fix the diffuse part
 			float u = RandomNumberNormalizedPCG(rngptr);
-			Vec3f uvec = CreateVec3f(u);
+			Vec3f uvec = Vec3f(u);
 			if (uvec <= mat->diffuse * PI)
 			{
 				throughput_term *= PI * mat->diffuse;
@@ -138,8 +138,8 @@ Vec3f EstimatorPathTracingLambertian(Ray ray, Scene scene, pcg32_random_t *rngpt
 
 Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rngptr)
 {
-	Vec3f color = CreateVec3f(0.0f);
-	Vec3f throughput_term = CreateVec3f(1.0f);
+	Vec3f color = Vec3f(0.0f);
+	Vec3f throughput_term = Vec3f(1.0f);
 
 	Material *old_mat = nullptr;
 
@@ -154,8 +154,8 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 			break;
 		}
 
-		Vec3f &BRDF = data.mat->diffuse; // convenience
-		Material *mat = data.mat;
+		Vec3f &BRDF = scene.materials[data.mat_index]->diffuse; // convenience
+		Material *mat = scene.materials[data.mat_index];
 
 		// (x->y dot Nx)
 		float cos_theta = Dot(data.normal, ray.direction);
@@ -174,10 +174,10 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 		}
 		// If there is at least 1 light source in the scene and the material
 		// of the surface we hit is diffuse, we can use NEE.
-		else if (scene.light_tris.size > 0 && (mat->type == MaterialType::MATERIAL_LAMBERTIAN || (mat->type == MaterialType::MATERIAL_PHONG && mat->specular == CreateVec3f(0.0f))))
+		else if (scene.light_tris.size > 0 && (mat->type == MaterialType::MATERIAL_LAMBERTIAN || (mat->type == MaterialType::MATERIAL_PHONG && mat->specular == Vec3f(0.0f))))
 		{
 			// sample light sources for direct illumination
-			Vec3f direct_illumination = CreateVec3f(0.0f);
+			Vec3f direct_illumination = Vec3f(0.0f);
 			for (int8 shadow_ray_index = 0; shadow_ray_index < NUM_SHADOW_RAYS; shadow_ray_index++)
 			{
 				// pick a light source
@@ -185,9 +185,9 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 
 				int32 picked_light_source = (int32)(pcg32_random_r(rngptr) % scene.light_tris.size);
 				// TODO: FIX THIS
-				Triangle light_source = scene.tris[scene.light_tris[picked_light_source]];
+				Triangle light_source = scene.tris[scene.light_tris[(uint32)picked_light_source]];
 
-				Material *light_source_mat = light_source.mat;
+				Material *light_source_mat = scene.materials[light_source.mat_index];
 				float light_area = Area(&light_source);
 				float pdf_pick_point_on_light = 1.0f / light_area;
 				Vec3f y = MapToTriangle(RandomVec2fPCG(rngptr), light_source);
@@ -213,7 +213,7 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 					// printf("ERROR: Shadow ray didn't hit anything!\n");
 					// break;
 
-					// return CreateVec3f(5.0f, 0.0f, 5.0f);
+					// return Vec3f(5.0f, 0.0f, 5.0f);
 				}
 
 				// Visibility check means we have a clear line of sight!
@@ -227,19 +227,19 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 
 					// We can sample the light from both sides, it doesn't have to
 					// be a one-sided light source.
-#if TWO_SIDED_LIGHT
-					float32 cos_theta_y = Abs(Dot(shadow_data.normal, shadowRayDir));
-#else
+// #if TWO_SIDED_LIGHT
+// 					float32 cos_theta_y = Abs(Dot(shadow_data.normal, shadowRayDir));
+// #else
 					float cos_theta_y = Max(0.0f, Dot(shadow_data.normal, -shadow_ray_dir));
-#endif
+// #endif
 
 					float G = cos_theta_x * cos_theta_y / squared_dist;
 
 					direct_illumination += light_source_mat->Le * BRDF * G / pdf_light_area;
-					if (direct_illumination.x != direct_illumination.x || direct_illumination.y != direct_illumination.y || direct_illumination.z != direct_illumination.z)
-					{
+					//if (direct_illumination.x != direct_illumination.x || direct_illumination.y != direct_illumination.y || direct_illumination.z != direct_illumination.z)
+					//{
 						// printf("NaN!\n");
-					}
+					//}
 				}
 			}
 			direct_illumination /= (float)NUM_SHADOW_RAYS;
@@ -316,8 +316,8 @@ Vec3f EstimatorPathTracingLambertianNEE(Ray ray, Scene scene, pcg32_random_t *rn
 
 Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 {
-	Vec3f color = CreateVec3f(0.0f);
-	Vec3f throughput_term = CreateVec3f(1.0f);
+	Vec3f color = Vec3f(0.0f);
+	Vec3f throughput_term = Vec3f(1.0f);
 
 	HitData data = {};
 	bool intersect = Intersect(ray, scene, &data);
@@ -330,7 +330,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 
 	Vec3f y = ray.origin + ray.direction * data.t + EPSILON * data.normal;
 	Vec3f normal_y = data.normal;
-	Material *mat_y = data.mat;
+	Material *mat_y = scene.materials[data.mat_index];
 
 	// Add light contribution from first bounce if it hit a light source
 	color += throughput_term * mat_y->Le;
@@ -344,7 +344,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 
 		// If there is at least 1 light source in the scene, and the material of the
 		// surface is diffuse, we can calculate the direct light contribution (NEE)
-		bool can_use_NEE = scene.light_tris.size > 0 && (mat_x->type == MaterialType::MATERIAL_LAMBERTIAN || (mat_x->type == MaterialType::MATERIAL_PHONG && mat_x->specular == CreateVec3f(0.0f))) && mat_x->Le.x < 0.1f;
+		bool can_use_NEE = scene.light_tris.size > 0 && (mat_x->type == MaterialType::MATERIAL_LAMBERTIAN || (mat_x->type == MaterialType::MATERIAL_PHONG && mat_x->specular == Vec3f(0.0f))) && mat_x->Le.x < 0.1f;
 
 		if (can_use_NEE)
 		{
@@ -356,9 +356,9 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 
 				uint32 r = pcg32_random_r(rngptr);
 				int32 picked_light_source = (int32)(r % scene.light_tris.size);
-				Triangle light_source = scene.tris[scene.light_tris[picked_light_source]];
+				Triangle light_source = scene.tris[scene.light_tris[(uint32)picked_light_source]];
 
-				Material *light_source_mat = light_source.mat;
+				Material *light_source_mat = scene.materials[light_source.mat_index];
 				Vec3f y_nee = MapToTriangle(RandomVec2fPCG(rngptr), light_source);
 				float light_area = Area(&light_source);
 
@@ -381,21 +381,21 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 				bool hit_anything = Intersect(shadow_ray, scene, &shadow_data);
 				if (!hit_anything)
 				{
-					// return CreateVec3f(5.0f, 0.0f, 5.0f);
+					// return Vec3f(5.0f, 0.0f, 5.0f);
 				}
 
 				// Visibility check means we have a clear line of sight!
 				if (hit_anything && y_nee == shadow_data.point)
 				{
-#if TWO_SIDED_LIGHT
-					float32 cos_theta_y = Dot(shadow_data.normal, -shadow_ray.direction);
-					Vec3f normalY_nee = shadow_data.normal * Sign(cos_theta_y);
-					cos_theta_y = Abs(cos_theta_y);
-#else
+//#if TWO_SIDED_LIGHT
+					//float32 cos_theta_y = Dot(shadow_data.normal, -shadow_ray.direction);
+					//Vec3f normalY_nee = shadow_data.normal * Sign(cos_theta_y);
+					//cos_theta_y = Abs(cos_theta_y);
+//#else
 					float cos_theta_y = Max(0.0f, Dot(shadow_data.normal, -shadow_ray.direction));
 					// Vec3f normalY_nee = shadow_data.normal;
 					if (cos_theta_y > 0.0f)
-#endif
+//#endif
 					{
 						float pdf_pick_point_on_light = 1.0f / light_area;
 
@@ -428,13 +428,13 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 		else if (mat_x->type == MaterialType::MATERIAL_IDEAL_REFLECTIVE)
 		{
 			// Pick the reflected direciton
-			Vec3f reflected_dir = Reflect(-ray.direction, normal_x);
+			Vec3f reflected_dir = NormalizeVec3f(Reflect(-ray.direction, normal_x));
 			ray = { x + EPSILON * normal_x, reflected_dir, 1.0f / reflected_dir };
 		}
 		else if (mat_x->type == MaterialType::MATERIAL_PHONG)
 		{
 			// Pick direction in the cosine lobe around reflected dir
-			Vec3f reflected_dir = Reflect(-ray.direction, normal_x);
+			Vec3f reflected_dir = NormalizeVec3f(Reflect(-ray.direction, normal_x));
 			Mat3f tnb = ConstructTNB(reflected_dir);
 
 			float inv = 1.0f / (mat_x->n_spec + 1.0f);
@@ -502,7 +502,7 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 		}
 
 		y = ray.origin + ray.direction * data.t + EPSILON * normal_y;
-		mat_y = data.mat;
+		mat_y = scene.materials[data.mat_index];
 
 		float wBSDF = 1.0f;
 

@@ -15,10 +15,11 @@ struct Vec4f
 		};
 		float values[4];
 	};
-};
 
-Vec4f CreateVec4f(float x, float y, float z, float w);
-Vec4f CreateVec4f(float v);
+	Vec4f() = default;
+	Vec4f(float v);
+	Vec4f(float x, float y, float z, float w);
+};
 
 struct Vec3f
 {
@@ -30,10 +31,12 @@ struct Vec3f
 			float x, y, z;
 		};
 	};
+
+	Vec3f() = default;
+	Vec3f(float v);
+	Vec3f(float x, float y, float z);
 };
 
-Vec3f CreateVec3f(float x, float y, float z);
-Vec3f CreateVec3f(float v);
 Vec3f operator+(const Vec3f &lhs, const Vec3f &rhs);
 Vec3f operator-(const Vec3f &lhs, const Vec3f &rhs);
 Vec3f operator-(const Vec3f &vec);
@@ -61,10 +64,12 @@ struct Vec2f
 			float x, y;
 		};
 	};
+
+	Vec2f() = default;
+	Vec2f(float v);
+	Vec2f(float x, float y);
 };
 
-Vec2f CreateVec2f(float x, float y);
-Vec2f CreateVec2f(float v);
 Vec2f operator-(const Vec2f &lhs, const Vec2f &rhs);
 Vec2f operator+(const Vec2f &lhs, const Vec2f &rhs);
 Vec2f operator*(const float lhs, const Vec2f &rhs);

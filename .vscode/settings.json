@@ -53,6 +53,8 @@
 		"chrono": "cpp",
 		"random": "cpp",
 		"valarray": "cpp",
-		"stack": "cpp"
+		"stack": "cpp",
+		"*.rh": "cpp",
+		"stb_image.h": "c"
 	}
 }

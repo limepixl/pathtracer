@@ -1,6 +1,7 @@
 #include "scene.hpp"
 #include "bvh.hpp"
 #include "sphere.hpp"
+#include "material.hpp"
 
 LightSource CreateLightSource(void *obj, LightSourceType type)
 {
@@ -10,9 +11,10 @@ LightSource CreateLightSource(void *obj, LightSourceType type)
 Scene ConstructScene(Array<Sphere> spheres,
 					 Array<Triangle> tris,
 					 Array<uint32> light_tris,
-					 Array<BVHNode> bvh_tree)
+					 Array<Material *> materials
+					 /*Array<BVHNode> bvh_tree*/)
 {
-	return { spheres, tris, light_tris, bvh_tree };
+	return { spheres, tris, light_tris, materials/*, bvh_tree*/ };
 }
 
 bool Intersect(Ray ray, Scene scene, HitData *data)
@@ -39,7 +41,7 @@ bool Intersect(Ray ray, Scene scene, HitData *data)
 		}
 	}
 
-	hit_anything = hit_anything || IntersectBVHStack(ray, scene, &result_data, tmax);
+	// hit_anything = hit_anything || IntersectBVHStack(ray, scene, &result_data, tmax);
 	if (hit_anything)
 	{
 		*data = result_data;

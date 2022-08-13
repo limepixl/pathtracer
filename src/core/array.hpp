@@ -7,9 +7,9 @@
 template <typename T>
 struct Array
 {
-	T *data;
-	unsigned long size;
-	unsigned long internal_size; // the size of the allocated memory
+	T *_data;
+	unsigned long long size;
+	unsigned long long internal_size; // the size of the allocated memory
 
 	T &operator[](unsigned int i)
 	{
@@ -17,139 +17,126 @@ struct Array
 		{ 
 			printf("ERROR!\n"); 
 		}
-		return data[i];
+		return _data[i];
+	}
+
+	Array(unsigned long long count, T *data = nullptr)
+	{
+		internal_size = count;
+
+		if (data == nullptr)
+		{
+			this->size = 0;
+			this->_data = new T[count];
+		}
+		else
+		{
+			this->size = count;
+			this->_data = data;
+		}
+	}
+
+	Array()
+	{
+		size = ARRAY_STARTING_SIZE;
+		internal_size = ARRAY_STARTING_SIZE;
+		_data = nullptr;
+		if (size > 0)
+		{
+			_data = new T[size];
+		}
+	}
+
+	void append(T element)
+	{
+		// If the array has max elements, expand it
+		if (size == internal_size)
+		{
+			// Increase old size by 1.5x (with some exceptions)
+			unsigned long long old_size = internal_size;
+			if (old_size <= 1)
+				internal_size += 2;
+			else
+				internal_size += internal_size / 2;
+
+			// Allocate new buffer with new size and
+			// copy over the contents from the old buffer.
+			T *tmp_data = new T[internal_size];
+			memcpy(tmp_data, _data, old_size * sizeof(T));
+			delete[] _data;
+			_data = tmp_data;
+		}
+
+		_data[size] = element;
+		size++;
+	}
+
+	void prepend(T element)
+	{
+		// If the array has max elements, expand it
+		if (size == internal_size)
+		{
+			// Increase old size by 1.5x (with some exceptions)
+			unsigned int old_size = internal_size;
+			if (old_size <= 1)
+				internal_size += 2;
+			else
+				internal_size += internal_size / 2;
+		}
+
+		// Shift all elements to the right
+		T *tmp_data = new T[internal_size];
+		if(size < internal_size)
+			memcpy(tmp_data + 1, _data, size * sizeof(T));
+		else
+		{
+			printf("ERROR!\n");
+		}
+		
+		tmp_data[0] = element;
+
+		delete[] _data;
+		_data = tmp_data;
+		size++;
+	}
+
+	T pop()
+	{
+		if (size == 0)
+		{
+			printf("ERROR: Popping from empty array!\n");
+		}
+
+		T result = _data[size - 1];
+		_data[size - 1] = {};
+		size--;
+
+		return result;
+	}
+
+	T &back()
+	{
+		return _data[size - 1];
+	}
+
+	void clear()
+	{
+		if(size == 0)
+			return;
+		
+		memset(_data, 0, size * sizeof(T));
+		size = 0;
 	}
 };
 
-template <typename T>
-Array<T> CreateArray(unsigned int size, T *data = nullptr)
-{
-	Array<T> res {};
-	res.internal_size = size;
-
-	if (data == nullptr)
-	{
-		res.size = 0;
-		res.data = new T[size];
-	}
-	else
-	{
-		res.size = size;
-		res.data = data;
-	}
-
-	return res;
-}
-
-template <typename T>
-Array<T> CreateArray()
-{
-	Array<T> res {};
-	res.size = ARRAY_STARTING_SIZE;
-	res.internal_size = ARRAY_STARTING_SIZE;
-	res.data = nullptr;
-	if (res.size > 0)
-	{
-		res.data = new T[res.size];
-	}
-
-	return res;
-}
-
-template <typename T>
-void AppendToArray(Array<T> &arr, T element)
-{
-	// If the array has max elements, expand it
-	if (arr.size == arr.internal_size)
-	{
-		// Increase old size by 1.5x (with some exceptions)
-		unsigned int old_size = arr.internal_size;
-		if (old_size <= 1)
-			arr.internal_size += 2;
-		else
-			arr.internal_size += arr.internal_size / 2;
-
-		// Allocate new buffer with new size and
-		// copy over the contents from the old buffer.
-		T *tmp_data = new T[arr.internal_size];
-		memcpy(tmp_data, arr.data, old_size * sizeof(T));
-		delete[] arr.data;
-		arr.data = tmp_data;
-	}
-
-	arr.data[arr.size] = element;
-	arr.size++;
-}
-
-template <typename T>
-void PrependToArray(Array<T> &arr, T &element)
-{
-	// If the array has max elements, expand it
-	if (arr.size == arr.internal_size)
-	{
-		// Increase old size by 1.5x (with some exceptions)
-		unsigned int old_size = arr.internal_size;
-		if (old_size <= 1)
-			arr.internal_size += 2;
-		else
-			arr.internal_size += arr.internal_size / 2;
-	}
-
-	// Shift all elements to the right
-	T *tmp_data = new T[arr.internal_size];
-	if(arr.size < arr.internal_size)
-		memcpy(tmp_data + 1, arr.data, arr.size * sizeof(T));
-	else
-	{
-		printf("ERROR 123!\n");
-	}
-	
-	tmp_data[0] = element;
-
-	delete[] arr.data;
-	arr.data = tmp_data;
-	arr.size++;
-}
-
-template <typename T>
-T PopFromArray(Array<T> &arr)
-{
-	// TODO: this is an error and should be handled
-	if (arr.size == 0)
-	{
-		printf("ERROR: Popping from empty array!\n");
-	}
-
-	T result = arr.data[arr.size - 1];
-	arr.data[arr.size - 1] = {};
-	arr.size--;
-
-	return result;
-}
-
-template <typename T>
-T &Back(Array<T> &arr)
-{
-	return arr.data[arr.size - 1];
-}
-
-template <typename T>
-void ClearArray(Array<T> &arr)
-{
-	if (arr.size == 0)
-		return;
-
-	memset(arr.data, 0, arr.size * sizeof(T));
-	arr.size = 0;
-}
-
+// TODO: move to destructor + copy constructor
 template <typename T>
 void DeallocateArray(Array<T> &arr)
 {
-	if (arr.data != nullptr)
+	if (arr._data != nullptr)
 	{
-		delete[] arr.data;
-		arr.data = nullptr;
+		delete[] arr._data;
+		arr._data = nullptr;
 	}
 
 	arr.size = 0;

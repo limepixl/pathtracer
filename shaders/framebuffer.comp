@@ -1,0 +1,850 @@
+#version 460 core
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(rgba32f, binding = 0) restrict uniform image2D screen;
+
+// Uniform variables
+uniform uvec2 u_frame_data; // seed, frame#
+uniform samplerCube u_cubemap;
+
+layout (std140, binding = 0) uniform Camera
+{
+	vec4 cam_origin;
+	vec4 cam_forward;
+	vec4 cam_right;
+};
+
+// Math constants
+#define EPSILON 		0.0001
+#define PI 				3.14159265
+#define TWO_PI  		6.28318530
+#define HALF_PI 		1.57079632
+
+// Ray constants
+#define TMIN            0.0001
+#define TMAX            10000.0
+#define BOUNCE_COUNT    5
+#define NUM_SHADOW_RAYS 1
+
+// Misc
+#define ENVIRONMENT_MAP_LE 1.0
+
+// SSBO helper structs
+
+struct Triangle
+{
+	vec4  data1;  // v0.x, v0.y, v0.z, mat_index
+	vec4  data2;  // v1.x, v1.y, v1.z, 0
+	vec4  data3;  // v2.x, v2.y, v2.z, 0
+};
+
+struct Sphere
+{
+	vec4 sphere_data; // o.x, o.y, o.z, radius
+	uvec4 mat_index;
+};
+
+struct Material
+{
+	vec4 data1; // diff.x, diff.y, diff.z, diff_roughness
+	vec4 data2; // spec.x, spec.y, spec.z, n_spec
+	vec4 data3; // Le.x, Le.y, Le.z, mat_type
+};
+
+struct BVHNode
+{
+	vec4 data1; // bmin.x, bmin.y, bmin.z, left/first_tri
+	vec4 data2; // bmax.x, bmax.y, bmax.z, num_tris
+	vec4 data3; // axis, 0, 0, 0
+};
+
+// SSBOs
+
+layout(std430, binding = 0) readonly restrict buffer SpheresSSBO
+{
+	Sphere spheres[];
+};
+
+layout(std430, binding = 1) readonly restrict buffer ModelTrisSSBO
+{
+	Triangle triangles[];
+};
+
+layout(std430, binding = 2) readonly restrict buffer ModelLightTrisSSBO
+{
+	uint light_tri_indices[];
+};
+
+layout(std430, binding = 3) readonly restrict buffer MaterialsSSBO
+{
+	Material materials[];
+};
+
+layout(std430, binding = 4) readonly restrict buffer BVHSSBO
+{
+	BVHNode bvh_nodes[];
+};
+
+layout(std430, binding = 5) readonly restrict buffer LightSpheresSSBO
+{
+	uint light_sphere_indices[];
+};
+
+// Randomness
+// Great thank you to markjarzynski on Shadertoy
+// for their excellent resource on GPU Hash
+// functions, created alongside their research.
+// https://www.shadertoy.com/view/XlGcRh
+
+uint seed3(in uvec3 p) 
+{
+    return 19u * p.x + 47u * p.y + 101u * p.z + 131u;
+}
+
+float hash_to_float(in uint hash)
+{
+	// hash * (1 / MAX_UINT)
+	return float(hash) / float(0xfffffff0u);
+}
+
+uint pcg(inout uint rng_state)
+{
+	uint state = rng_state;
+	rng_state = rng_state * 747796405u + 2891336453u;
+    uint word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
+}
+
+// Make sure to generate a value in (0,1) rather than [0,1]
+float rand(inout uint rng_state)
+{
+	return max(EPSILON, min(1.0 - EPSILON, hash_to_float(pcg(rng_state))));
+}
+
+vec2 rand_vec2(inout uint rng_state)
+{
+	return vec2(rand(rng_state), rand(rng_state));
+}
+
+// Math
+
+mat3 construct_tnb(in vec3 n)
+{
+	// Orthonormal basis
+	float s = n.z < 0.0 ? -1.0 : 1.0;
+	float a = -1.0 / (s + n.z);
+	float b = n.x * n.y * a;
+
+	vec3 t = vec3(1.0 + s * n.x * n.x * a, s * b, -s * n.x);
+	vec3 bt = vec3(b, s + n.y * n.y * a, -n.y);
+
+	return mat3(t, n, bt);
+}
+
+vec3 map_to_unit_sphere(in vec2 vec)
+{
+	// First we map [0,1] to [0,2] and subtract one to map
+	// that to [-1, 1], which is the range of cosine.
+	float cos_theta = 2.0 * vec.x - 1.0;
+
+	// We can directly map phi to [0, 2PI] from [0, 1] by just
+	// multiplying it with 2PI
+	float phi = TWO_PI * vec.y;
+
+	// sin^2(x) = 1 - cos^2(x)
+	// sin(x) = sqrt(1 - cos^2(x))
+	float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+
+	// Just a conversion between spherical and Cartesian coordinates
+	return vec3(sin_theta * cos(phi), cos_theta, sin_theta * sin(phi));
+}
+
+vec3 map_to_unit_hemisphere_cosine_weighted_criver(in vec2 uv, in vec3 normal)
+{
+	return normalize(map_to_unit_sphere(uv) + normal);
+}
+
+vec3 sky_color(vec3 dir)
+{
+	// vec3 normalized_dir = normalize(dir);
+	// float t = 0.5 * normalized_dir.y + 0.5;
+	// return mix(vec3(1.0), vec3(0.546, 0.824, 0.925), t);
+
+	return vec3(0.0);
+	// return texture(u_cubemap, dir).xyz;
+}
+
+// Structs
+
+struct HitData
+{
+	float t;
+	vec3 normal;
+	uvec2 mat_object_indices;
+	uint object_type; // 0 tri, 1 sphere
+};
+
+// Intersection
+
+float intersect_sphere(vec3 ro, vec3 rd, Sphere sphere)
+{
+	vec3 oc = ro - sphere.sphere_data.xyz;
+	float a = dot(rd, rd);
+	float b = 2.0 * dot(oc, rd);
+	float c = dot(oc, oc) - sphere.sphere_data.w * sphere.sphere_data.w;
+	float discriminant = b * b - 4.0 * a * c;
+	if(discriminant >= 0)
+	{
+		if(discriminant <= EPSILON)
+		{
+			float t = -b / (2.0 * a);
+			if(t >= TMIN && t <= TMAX)
+			{
+				return t;
+			}
+		}
+		else
+		{
+			float sqrt_discriminant = sqrt(discriminant);
+			float t1 = (-b + sqrt_discriminant) / (2.0 * a);
+			float t2 = (-b - sqrt_discriminant) / (2.0 * a);
+			if(t1 > t2)
+			{
+				float tmp = t1;
+				t1 = t2;
+				t2 = tmp;
+			}
+
+			if(t1 >= TMIN && t1 <= TMAX)
+			{
+				return t1;
+			}
+			else if (t2 >= TMIN && t2 <= TMAX)
+			{
+				return t2;
+			}
+		}
+	}
+
+	return -1.0;
+}
+
+// Moller–Trumbore ray-triangle intersection algorithm
+bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in float tmax)
+{
+	Triangle tri = triangles[tri_index];
+	vec3 edge1 = tri.data2.xyz - tri.data1.xyz;
+	vec3 edge2 = tri.data3.xyz - tri.data1.xyz;
+	vec3 pvec = cross(rd, edge2);
+	float dt = dot(edge1, pvec);
+
+	// Ray direction parallel to the triangle plane
+
+	float inv_determinant = 1.0 / dt;
+	vec3 tvec = ro - tri.data1.xyz;
+	float u = dot(tvec, pvec) * inv_determinant;
+	if (abs(dt) < EPSILON || (u < 0.0) || (u > 1.0))
+		return false;
+
+	vec3 qvec = cross(tvec, edge1);
+	float v = inv_determinant * dot(rd, qvec);
+
+	// Computing t
+	float t = inv_determinant * dot(edge2, qvec);
+	if ((v >= 0.0) && (u + v <= 1.0) && t > TMIN && t < tmax)
+	{
+		data.t = t;
+		data.normal = normalize(cross(edge1, edge2));
+		data.mat_object_indices.x = uint(tri.data1.w);
+		data.mat_object_indices.y = tri_index;
+		data.object_type = 0;
+		return true;
+	}
+
+	return false;
+}
+
+// Slab method
+// https://tavianator.com/2011/ray_box.html
+bool intersect_aabb(in vec3 ro, in vec3 rd, in vec3 bmin, in vec3 bmax, in float t)
+{
+	vec3 inv_dir = 1.0 / rd;
+	float tx1 = bmin.x * inv_dir.x - ro.x * inv_dir.x;
+	float tx2 = bmax.x * inv_dir.x - ro.x * inv_dir.x;
+	float tmin = min(tx1, tx2);
+	float tmax = max(tx1, tx2);
+
+	float ty1 = bmin.y * inv_dir.y - ro.y * inv_dir.y;
+	float ty2 = bmax.y * inv_dir.y - ro.y * inv_dir.y;
+
+	tmin = max(tmin, min(ty1, ty2));
+	tmax = min(tmax, max(ty1, ty2));
+
+	float tz1 = bmin.z * inv_dir.z - ro.z * inv_dir.z;
+	float tz2 = bmax.z * inv_dir.z - ro.z * inv_dir.z;
+
+	tmin = max(tmin, min(tz1, tz2));
+	tmax = min(tmax, max(tz1, tz2));
+
+	return tmax >= max(0.0, tmin) && tmin < t;
+}
+
+bool intersect_bvh_stack(in vec3 ro, in vec3 rd, inout HitData data, inout float tmax)
+{
+	bool hit_anything = false;
+
+	int stack_top = 0;
+	int stack[16];
+	stack[0] = 0;
+
+	while (stack_top + 1 > 0)
+	{
+		uint current_index = stack[stack_top];
+		stack_top--;
+
+		BVHNode node = bvh_nodes[current_index];
+
+		// Check if ray intersects root node
+		bool hit_aabb = intersect_aabb(ro, rd, node.data1.xyz, node.data2.xyz, tmax);
+		if(hit_aabb)
+		{
+			int node_left = int(node.data1.w);
+			int num_node_tris = int(node.data2.w);
+
+			if(num_node_tris == 0)
+			{
+				// First check closer child and then farther child
+				int offset1 = int(rd.x > 0.0);
+				int offset2 = int(rd.x < 0.0);
+				if(int(node.data3.x) == 1)
+				{
+					offset1 = int(rd.y > 0.0);
+					offset2 = int(rd.y < 0.0);
+				}
+				else if(int(node.data3.x) == 2)
+				{
+					offset1 = int(rd.z > 0.0);
+					offset2 = int(rd.z < 0.0);
+				}
+				
+				stack_top++;
+				stack[stack_top] = node_left + offset1;
+				stack_top++;
+				stack[stack_top] = node_left + offset2;
+			}
+			else
+			{
+				// If leaf node, test against triangles of node
+				for (uint i = 0; i < num_node_tris; i++)
+				{
+					if (intersect_triangle(ro, rd, node_left + i, data, tmax))
+					{
+						// Found closer hit, store it.
+						hit_anything = true;
+						tmax = data.t;
+					}
+				}
+			}
+		}
+	}
+
+	return hit_anything;
+}
+
+bool intersect(vec3 ro, vec3 rd, out HitData result)
+{
+	bool hit_anything = false;
+	float tmax = TMAX;
+
+	// hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
+
+	for(uint i = 0; i < spheres.length(); i++)
+	{
+		Sphere current_sphere = spheres[i];
+		float current_t = intersect_sphere(ro, rd, current_sphere);
+		if(current_t >= TMIN && current_t <= tmax)
+		{
+			tmax = current_t;
+			hit_anything = true;
+			result.t = current_t;
+			result.normal = (ro + rd * current_t - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
+			result.mat_object_indices.x = current_sphere.mat_index.x;
+			result.object_type = 1;
+		}
+	}
+
+	return hit_anything;
+}
+
+// NOTE: Assumes normalized vector "vec" in a hemisphere.
+// This results in a theta value in the range [0, PI],
+// and a phi value in the range [0, 2PI].
+void cartesian_to_spherical(in vec3 vec, out float theta, out float phi)
+{
+	theta = acos(vec.y);
+	phi = atan(vec.x, vec.z) + PI;
+}
+
+vec3 oren_nayar_brdf(vec3 albedo, float roughness, vec2 theta_phi_i, vec2 theta_phi_o)
+{
+	float squared_roughness = roughness * roughness;
+	float A = 1.0 - 0.5 * squared_roughness / (squared_roughness + 0.33);
+	float B = 0.45 * squared_roughness / (squared_roughness + 0.09);
+	float alpha = max(theta_phi_i.x, theta_phi_o.x);
+	float beta = min(theta_phi_i.x, theta_phi_o.x);
+	return (albedo / PI) * (A + B * max(0.0, cos(theta_phi_i.y - theta_phi_o.y)) * sin(alpha) * tan(beta));
+}
+
+// Estimators
+
+vec3 estimator_path_tracing_naive(in vec3 ro, in vec3 rd, in uint rng_state)
+{
+	vec3 color = vec3(0.0);
+
+	// ( BRDF * dot(Nx, psi) ) / PDF(psi)
+	vec3 throughput_term = vec3(1.0);
+
+	// Vignette effect (basically undoing We=1/cos^3(theta) )
+	// float theta = acos(-rd.z);
+	// throughput_term = throughput_term * pow(cos(theta), 3);
+
+	for (uint b = 0; b < BOUNCE_COUNT; b++)
+	{
+		HitData data;
+		if(!intersect(ro, rd, data)) // ray goes off into infinity
+		{
+			if (b <= BOUNCE_COUNT)
+				color += throughput_term * sky_color(rd) * ENVIRONMENT_MAP_LE;
+
+			return color;
+		}
+
+		Material mat = materials[data.mat_object_indices.x];
+
+		// Generate TNB matrix to map directions in terms of the normal vector
+		mat3 tnb = transpose(construct_tnb(data.normal));
+
+		// add the light that the material emits
+		if (b <= BOUNCE_COUNT)
+			color += throughput_term * mat.data3.xyz;
+
+		float theta_o, phi_o;
+		cartesian_to_spherical(normalize(tnb * -rd), theta_o, phi_o);
+
+		// Intersection point and new ray
+		ro = ro + (rd * data.t) + (EPSILON * data.normal);
+		rd = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), data.normal);
+
+		// Convert from Cartesian to Spherical coordinates
+		float theta_i, phi_i;
+		cartesian_to_spherical(normalize(tnb * rd), theta_i, phi_i);
+
+		float cos_theta_x = cos(theta_i);
+		float pdf = cos_theta_x / PI;
+
+		// Oren-Nayar diffuse BRDF
+		vec3 BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(theta_i, phi_i), vec2(theta_o, phi_o));
+		// vec3 BRDF = mat.data1.xyz / PI;
+
+		// update throughput
+		// The PI is here because we are sampling w.r.t the pdf
+		// p(psi) = cos(theta) / PI       (cosine weighted sampling)
+		// This cosine term cancels out with the dot product in
+		// the throughput term and all that is left is the BRDF
+		throughput_term *= cos_theta_x * BRDF / pdf;
+	}
+
+	return color;
+}
+
+float area_triangle(vec3 v0, vec3 v1, vec3 v2)
+{
+	vec3 edge1 = v1 - v0;
+	vec3 edge2 = v2 - v0;
+	return sqrt(dot(edge1, edge1) * dot(edge2, edge2)) * 0.5;
+}
+
+float area_sphere(float r)
+{
+	return 4.0 * PI * r * r;
+}
+
+vec3 map_to_triangle(vec2 vec, vec3 v0, vec3 v1, vec3 v2)
+{
+	float u = vec.x;
+	float v = vec.y;
+
+	if (u + v > 1.0)
+	{
+		// The generated point is outside triangle but
+		// within the parallelogram defined by the 2 edges
+		// of the triangle (v1-v0 and v2-v0)
+		u = 1.0 - u;
+		v = 1.0 - v;
+	}
+
+	vec3 p = u * (v1 - v0) + v * (v2 - v0);
+	return p + v0;
+}
+
+vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
+{
+	vec3 color = vec3(0.0);
+	vec3 throughput_term = vec3(1.0);
+
+	int old_mat = -1;
+
+	for (uint bounce = 0; bounce < BOUNCE_COUNT; bounce++)
+	{
+		HitData data;
+		if (!intersect(ro, rd, data))
+		{
+			// No intersection with scene, add env map contribution
+			color += throughput_term * sky_color(rd) * ENVIRONMENT_MAP_LE;
+			return color;
+		}
+
+		Material mat = materials[data.mat_object_indices.x];
+
+		uint num_light_sources = light_tri_indices.length() + light_sphere_indices.length();
+
+		// add light that is emitted from surface (but stop right afterwards)
+		if (bounce <= BOUNCE_COUNT && any(greaterThanEqual(mat.data3.xyz, vec3(EPSILON))))
+		{
+			if(bounce == 0)
+				color = mat.data3.xyz;
+
+			return color;
+		}
+		// If there is at least 1 light source in the scene and the material
+		// of the surface we hit is diffuse, we can use NEE.
+		else if (num_light_sources > 0 && abs(mat.data3.w) < EPSILON)
+		{
+			// Generate TNB matrix to map directions in terms of the normal vector
+			mat3 tnb = transpose(construct_tnb(data.normal));
+
+			float theta_o, phi_o;
+			cartesian_to_spherical(normalize(tnb * -rd), theta_o, phi_o);
+
+			// sample light sources for direct illumination
+			vec3 direct_illumination = vec3(0.0);
+			for (uint shadow_ray_index = 0; shadow_ray_index < NUM_SHADOW_RAYS; shadow_ray_index++)
+			{
+				// pick a light source
+				float pdf_pick_light = 1.0 / float(num_light_sources);
+
+				int picked_light_source = int((pcg(rng_state) % num_light_sources));
+
+				float light_area = 0.0;
+				vec3 y = vec3(0.0);
+				Material light_source_mat;
+
+				// Triangle light source
+				if(light_tri_indices.length() > 0 && picked_light_source < light_tri_indices.length())
+				{
+					Triangle light_source = triangles[light_tri_indices[picked_light_source]];
+					light_area = area_triangle(light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
+					
+					light_source_mat = materials[uint(light_source.data1.w)];
+					
+					y = map_to_triangle(rand_vec2(rng_state), light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
+				}
+				// Sphere light source
+				else if(light_sphere_indices.length() > 0)
+				{
+					Sphere light_source = spheres[light_sphere_indices[picked_light_source - light_tri_indices.length()]];
+					
+					float radius = light_source.sphere_data.w;
+					light_area = area_sphere(radius);
+
+					light_source_mat = materials[uint(light_source.mat_index.x)];
+
+					// get a random point on unit sphere, scale the sphere up/down according
+					// to the light source's radius, and move the point relative to the light 
+					// source's spherical origin.
+					y = map_to_unit_sphere(rand_vec2(rng_state)) * radius + light_source.sphere_data.xyz;
+				}
+
+				float pdf_pick_point_on_light = 1.0 / light_area;
+
+				// PDF in terms of area, for picking point on light source k
+				float pdf_light_area = pdf_pick_light * pdf_pick_point_on_light;
+
+				// Send out a shadow ray in direction x->y
+				vec3 shadow_ro = ro + rd * data.t + EPSILON * data.normal;
+				vec3 dist_vec = y - shadow_ro;
+				vec3 shadow_rd = normalize(dist_vec);
+
+				// Check if ray hits anything before hitting the light source
+				HitData shadow_data;
+				bool shadow_hit_anything = intersect(shadow_ro, shadow_rd, shadow_data);
+
+				// Visibility check means we have a clear line of sight!
+				vec3 shadow_ray_hit = shadow_ro + shadow_rd * shadow_data.t;
+				if (shadow_hit_anything && all(lessThanEqual(abs(y - shadow_ray_hit), vec3(EPSILON))))
+				{
+					// Convert from Cartesian to Spherical coordinates
+					float shadow_theta_i, shadow_phi_i;
+					cartesian_to_spherical(normalize(tnb * shadow_rd), shadow_theta_i, shadow_phi_i);
+
+					vec3 BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(shadow_theta_i, shadow_phi_i), vec2(theta_o, phi_o));
+					// vec3 BRDF = mat.data1.xyz / PI;
+
+					// We want to only add light contribution from lights within
+					// the hemisphere solid angle above X, and not from lights behind it.
+					float cos_theta_x = max(0.0, dot(data.normal, shadow_rd));
+
+					// We can sample the light from both sides, it doesn't have to
+					// be a one-sided light source.
+					float cos_theta_y = max(0.0, dot(shadow_data.normal, -shadow_rd));
+
+					float squared_dist = dot(dist_vec, dist_vec);
+					float G = cos_theta_x * cos_theta_y / squared_dist;
+
+					direct_illumination += light_source_mat.data3.xyz * BRDF * G / pdf_light_area;
+				}
+			}
+			direct_illumination /= float(NUM_SHADOW_RAYS);
+
+			// Because we are calculating for a non-emissive point, we can safely
+			// add the direct illumination to this point.
+			color += throughput_term * direct_illumination;
+
+			ro += rd * data.t + EPSILON * data.normal;
+			rd = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), data.normal);
+
+			// Convert from Cartesian to Spherical coordinates
+			float theta_i, phi_i;
+			cartesian_to_spherical(normalize(tnb * rd), theta_i, phi_i);
+
+			float cos_theta = cos(theta_i);
+
+			vec3 BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(theta_i, phi_i), vec2(theta_o, phi_o));
+			// vec3 BRDF = mat.data1.xyz / PI;
+
+			// Update the throughput term
+			float pdf_cos_weighted_hemisphere = cos_theta / PI;
+			throughput_term *= BRDF * cos_theta / pdf_cos_weighted_hemisphere;
+			// throughput_term *= PI * BRDF;
+		}
+
+		old_mat = int(data.mat_object_indices.x);
+	}
+
+	return color;
+}
+
+float balance_heuristic(float pdf_a, float pdf_b)
+{
+	return pdf_a / (pdf_a + pdf_b);
+}
+
+vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
+{
+	vec3 color = vec3(0.0);
+	vec3 throughput_term = vec3(1.0);
+
+	HitData data;
+	bool hit_anything = intersect(ro, rd, data);
+	if (!hit_anything)
+	{
+		// No intersection with scene, add env map contribution
+		color += throughput_term * sky_color(rd) * ENVIRONMENT_MAP_LE;
+		return color;
+	}
+
+	vec3 y = ro + rd * data.t + EPSILON * data.normal;
+	vec3 normal_y = data.normal;
+	Material mat_y = materials[data.mat_object_indices.x];
+
+	// Add light contribution from first bounce if it hit a light source
+	color += throughput_term * mat_y.data3.xyz;
+
+	uint num_bounces = BOUNCE_COUNT + 1;
+	for (uint b = 1; b < num_bounces; b++)
+	{
+		vec3 x = y;
+		vec3 normal_x = normal_y;
+		Material mat_x = mat_y;
+
+		// If there is at least 1 light source in the scene, and the material of the
+		// surface is diffuse, we can calculate the direct light contribution (NEE)
+		bool can_use_NEE = light_tri_indices.length() > 0;
+		can_use_NEE = can_use_NEE && abs(mat_x.data1.w) < EPSILON /*|| (abs(mat_x.data1.w - 3.0) < EPSILON && all(lessThan(mat_x.specular_spec.xyz, vec3(EPSILON)))))*/;
+		can_use_NEE = can_use_NEE && all(lessThan(mat_x.data3.xyz, vec3(EPSILON)));
+
+		if (can_use_NEE)
+		{
+			// sample light sources for direct illumination
+			// for (uint shadow_ray_index = 0; shadow_ray_index < NUM_SHADOW_RAYS; shadow_ray_index++)
+			{
+				// pick a light source
+				float pdf_pick_light = 1.0f / float(light_tri_indices.length());
+
+				int picked_light_source = int((pcg(rng_state) % light_tri_indices.length()));
+				Triangle light_source = triangles[light_tri_indices[uint(picked_light_source)]];
+
+				Material light_source_mat = materials[uint(light_source.data1.w)];
+				vec3 y_nee = map_to_triangle(rand_vec2(rng_state), light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
+				float light_area = area_triangle(light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
+
+				// Send out a shadow ray in direction x->y
+				vec3 dist_vec = y_nee - x;
+				vec3 shadow_rd = normalize(dist_vec);
+				vec3 shadow_ro = x;
+
+				float squared_dist = dot(dist_vec, dist_vec);
+
+				// We want to only add light contribution from lights within
+				// the hemisphere solid angle above X, and not from lights behind it.
+				float cos_theta_x = max(0.0, dot(normal_x, shadow_rd));
+
+				// Check if ray hits anything before hitting the light source
+				HitData shadow_data;
+				bool shadow_hit_anything = intersect(shadow_ro, shadow_rd, shadow_data);
+				//if (!hit_anything)
+				//{
+					// return Createvec3(5.0f, 0.0f, 5.0f);
+				//}
+
+				// Visibility check means we have a clear line of sight!
+				if (shadow_hit_anything && all(lessThan(y_nee - (shadow_ro + shadow_rd * shadow_data.t), vec3(EPSILON))))
+				{
+					float cos_theta_y = max(0.0, dot(shadow_data.normal, -shadow_rd));
+					if (cos_theta_y > 0.0)
+					{
+						float pdf_pick_point_on_light = 1.0f / light_area;
+
+						// PDF in terms of area, for picking point on light source k
+						float pdf_light_area = pdf_pick_light * pdf_pick_point_on_light;
+
+						// PDF in terms of solid angle, for picking point on light source k
+						float pdf_light_sa = pdf_light_area * squared_dist / cos_theta_y;
+
+						// PDF in terms of solid angle, for picking ray from cos. weighted hemisphere
+						float pdf_BSDF_sa = cos_theta_x / PI;
+
+						// weight for NEE
+						// float32 wNEE = BalanceHeuristic(pdf_light_sa, pdf_BSDF_sa) / pdf_light_sa;
+						float wNEE = 1.0f / (pdf_light_sa + pdf_BSDF_sa);
+
+						color += light_source_mat.data3.xyz * mat_x.data1.xyz * cos_theta_x * throughput_term * wNEE;
+					}
+				}
+			}
+		}
+
+		// Pick a new direction
+		vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), normal_x);
+		ro = x + EPSILON * normal_x;
+		rd = dir;
+
+		float cos_theta_x = max(0.0, dot(normal_x, rd));
+
+		hit_anything = intersect(ro, rd, data);
+		if (!hit_anything)
+		{
+			// No intersection with scene, add env map contribution
+			if (b <= BOUNCE_COUNT)
+			{
+				color += throughput_term * PI * mat_x.data1.xyz * sky_color(rd) * ENVIRONMENT_MAP_LE;
+				break;
+			}
+		}
+
+		float cos_theta_y = max(0.0f, -dot(data.normal, rd));
+		normal_y = data.normal;
+
+		// Because the new ray direction is sampled using cosine weighted hemisphere
+		// sampling, the pdf is cos_theta / PI
+		float pdf_BSDF_sa = cos_theta_y / PI;
+
+		y = ro + rd * data.t + EPSILON * normal_y;
+		mat_y = materials[data.mat_object_indices.x];
+
+		float wBSDF = 1.0f;
+
+		// If we can use NEE on the hit surface
+		if (mat_x.data1.w == 0.0 && mat_x.data3.x < EPSILON && cos_theta_y > 0.0)
+		{
+			// If the hit surface is a light source, we need to calculate
+			// the pdf for NEE
+			if (mat_y.data3.x > EPSILON && light_tri_indices.length() > 0)
+			{
+				// float pdf_NEE_area = 0.0f;
+				/*
+				switch (data.object_type)
+				{
+				case ObjectType::SPHERE:
+					pdf_NEE_area = 1.0f / Area(&scene.spheres[data.object_index]);
+					break;
+				case ObjectType::TRIANGLE:
+					pdf_NEE_area = 1.0f / Area(&scene.tris[data.object_index]);
+					break;
+				default:
+					// printf("Light source type unsupported for sampling!\n");
+					break;
+				};
+				*/
+
+				// TODO: Replace this with the above
+				Triangle tri_NEE = triangles[data.mat_object_indices.y];
+
+				float pdf_NEE_area = 1.0 / area_triangle(tri_NEE.data1.xyz, tri_NEE.data2.xyz, tri_NEE.data3.xyz);
+				pdf_NEE_area /= float(light_tri_indices.length());
+
+				float pdf_NEE_sa = pdf_NEE_area * data.t * data.t / cos_theta_y;
+				wBSDF = balance_heuristic(pdf_BSDF_sa, pdf_NEE_sa);
+			}
+
+			if (b <= BOUNCE_COUNT)
+				color += throughput_term * mat_x.data1.xyz * mat_y.data3.xyz * PI * wBSDF;
+		}
+
+		throughput_term *= PI * mat_x.data1.xyz;
+	}
+
+	return color;
+}
+
+vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
+{
+	float grid_height = 2.0;
+	float grid_width = grid_height * screen_size.x / screen_size.y;
+
+	vec3 cam_up = normalize(cross(cam_right.xyz, cam_forward.xyz));
+	vec3 grid_x = cam_right.xyz * grid_width;
+	vec3 grid_y = cam_up * grid_height;
+
+	vec3 grid_origin = cam_origin.xyz - (grid_x * 0.5) - (grid_y * 0.5);
+	grid_origin += 2.0 * cam_forward.xyz;
+
+	vec2 uv_offset = rand_vec2(rng_state) - vec2(0.5, 0.5);
+
+	float u = (float(pixel_coords.x) + uv_offset.x) / screen_size.x;
+	float v = (float(pixel_coords.y) + uv_offset.y) / screen_size.y;
+
+	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
+	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
+
+	// return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
+	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
+	// return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
+}
+
+void main() 
+{
+	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
+
+	vec2 screen_size = imageSize(screen);
+
+	uint rng_state = seed3(uvec3(pixel_coords, u_frame_data.x));
+
+	vec3 color = render_function(screen_size, pixel_coords, rng_state);
+
+	// weigh current frame according to accumulated past
+	// frames and the current frame number
+	vec4 last_frame = imageLoad(screen, pixel_coords);
+	color = float(u_frame_data.y) / float(u_frame_data.y + 1) * last_frame.xyz + 1.0 / float(u_frame_data.y + 1) * color;
+
+	imageStore(screen, pixel_coords, vec4(color, 1.0));
+}

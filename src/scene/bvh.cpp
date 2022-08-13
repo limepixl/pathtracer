@@ -10,8 +10,8 @@ bool operator==(const AABB &lhs, const AABB &rhs)
 
 AABB ConstructAABBFromTris(Triangle *tris, uint32 num_tris)
 {
-	Vec3f max_vec = CreateVec3f(INFINITY);
-	Vec3f min_vec = CreateVec3f(-INFINITY);
+	Vec3f max_vec(INFINITY);
+	Vec3f min_vec(-INFINITY);
 	AABB aabb = { max_vec, min_vec };
 
 	for (uint32 t_index = 0; t_index < num_tris; t_index++)
@@ -31,15 +31,15 @@ AABB ConstructAABBFromTris(Triangle *tris, uint32 num_tris)
 
 	// Extend borders of AABB in order to get around
 	// situations where the node is flat like a plane
-	Vec3f offset_vec = CreateVec3f(0.05f);
+	Vec3f offset_vec(0.05f);
 	aabb.bmin = aabb.bmin - offset_vec;
 	aabb.bmax = aabb.bmax + offset_vec;
 	return aabb;
 }
 
-void ExpandAABBWithTri(AABB &aabb, Triangle &tri)
+static void ExpandAABBWithTri(AABB &aabb, Triangle &tri)
 {
-	Vec3f offset_vec = CreateVec3f(0.01f);
+	Vec3f offset_vec(0.01f);
 
 	Vec3f v0 = tri.v0 - offset_vec;
 	Vec3f v1 = tri.v1 - offset_vec;
@@ -90,7 +90,7 @@ bool AABBIntersect(Ray ray, AABB aabb, float t)
 
 	return tmax >= Max(0.0f, tmin) && tmin < t;
 }
-
+/*
 bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax)
 {
 	bool hit_anything = false;
@@ -156,12 +156,13 @@ bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax)
 	DeallocateArray(stack);
 	return hit_anything;
 }
+*/
 
 static int axis = 0;
 
 // Returns negative integer if a < b, a positive integer if a > b
 // and 0 if a == b. Used for qsort in ConstructBVH() below.
-int compare_tris(const void *a, const void *b)
+static int compare_tris(const void *a, const void *b)
 {
 	Triangle arg1 = *(const Triangle *)a;
 	Triangle arg2 = *(const Triangle *)b;
@@ -201,7 +202,7 @@ int compare_tris(const void *a, const void *b)
 	}
 }
 
-float SurfaceAreaOfAABB(AABB aabb)
+static float SurfaceAreaOfAABB(AABB aabb)
 {
 	Vec3f dims = aabb.bmax - aabb.bmin;
 	// * 2.0f is not needed for comparison purposes
@@ -230,13 +231,13 @@ bool ConstructBVHObjectMedian(Triangle *tris, uint32 num_tris, Array<BVHNode> &b
 		BVHNode left_child {};
 		left_child.first_tri = current_node.first_tri;
 		left_child.num_tris = left_child_num_tris;
-		uint32 left_index = bvh_tree.size;
-		AppendToArray(bvh_tree, left_child);
+		uint32 left_index = (uint32)bvh_tree.size;
+		bvh_tree.append(left_child);
 
 		BVHNode right_child {};
 		right_child.first_tri = current_node.first_tri + left_child_num_tris;
 		right_child.num_tris = right_child_num_tris;
-		AppendToArray(bvh_tree, right_child);
+		bvh_tree.append(right_child);
 
 		current_node.left = left_index;
 
@@ -255,6 +256,7 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 	BVHNode &current_node = bvh_tree[bvh_index];
 	current_node.node_AABB = ConstructAABBFromTris(tris, num_tris);
 	current_node.num_tris = num_tris;
+	current_node.axis = -1;
 
 	float S_P = SurfaceAreaOfAABB(current_node.node_AABB);
 
@@ -274,7 +276,7 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 			// Compute cost (Sweep SAH method)
 			// Cost function:   C(L, R) = ( N(L) * S(L) + N(R) * S(R) ) / S(P)
 
-			Array<float> partition_costs = CreateArray<float>(num_tris - 1);
+			Array<float> partition_costs(num_tris - 1);
 			partition_costs.size = num_tris - 1;
 
 			AABB V_L, V_R;
@@ -290,7 +292,7 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 				ExpandAABBWithTri(V_R, new_tri);
 				float S_R = SurfaceAreaOfAABB(V_R);
 
-				float res_R = S_R * i;
+				float res_R = S_R * (float)i;
 				partition_costs[num_tris - i - 1] = res_R;
 			}
 
@@ -301,7 +303,7 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 				ExpandAABBWithTri(V_L, new_tri);
 
 				float S_L = SurfaceAreaOfAABB(V_L);
-				float res_L = S_L * i;
+				float res_L = S_L * (float)i;
 				partition_costs[i - 1] += res_L;
 			}
 
@@ -342,21 +344,21 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 			optimal_axis = 2;
 		}
 
-		// Check if splitting cost is bigger than not splitting
-		uint32 cost_parent = num_tris;
-		if ((float)cost_parent < min_cost)
-		{
-			// Skipped split of node
-			// printf("Keeping node with %u tris!\n", current_node.num_tris);
-			return true;
-		}
+		//// Check if splitting cost is bigger than not splitting
+		//uint32 cost_parent = num_tris;
+		//if ((float)cost_parent < min_cost)
+		//{
+		//	// Skipped split of node
+		//	printf("Keeping node with %u tris!\n", current_node.num_tris);
+		//	return true;
+		//}
 
 		current_node.num_tris = 0;
 
 		// Sort triangles along the optimal axis
 		if (optimal_axis != 2)
 		{
-			axis = optimal_axis;
+			axis = (int32)optimal_axis;
 			qsort(tris, num_tris, sizeof(Triangle), compare_tris);
 		}
 
@@ -367,15 +369,16 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 		BVHNode left_child {};
 		left_child.first_tri = current_node.first_tri;
 		left_child.num_tris = left_child_num_tris;
-		uint32 left_index = bvh_tree.size;
-		AppendToArray(bvh_tree, left_child);
+		uint32 left_index = (uint32)bvh_tree.size;
+		bvh_tree.append(left_child);
 
 		BVHNode right_child {};
 		right_child.first_tri = current_node.first_tri + left_child_num_tris;
 		right_child.num_tris = right_child_num_tris;
-		AppendToArray(bvh_tree, right_child);
+		bvh_tree.append(right_child);
 
 		current_node.left = left_index;
+		current_node.axis = (int16)axis;
 
 		// printf("Left child #tris: %d\n", left_child_num_tris);
 		// printf("Right child #tris: %d\n", right_child_num_tris);
@@ -386,5 +389,10 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 		ConstructBVHSweepSAH(tris + left_child_num_tris, right_child_num_tris, bvh_tree, current_node.left + 1);
 	}
 
+	if (bvh_index == 0)
+	{
+		printf("Finished building BVH!\n");
+		printf("--- Number of BVH nodes: %llu\n", bvh_tree.size);
+	}
 	return true;
 }

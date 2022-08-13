@@ -11,10 +11,10 @@ struct Mat3f
 			Vec3f r0, r1, r2;
 		};
 	};
-};
 
-Mat3f CreateMat3f(Vec3f r0, Vec3f r1, Vec3f r2);
-Mat3f CreateIdentityMat3f();
+	Mat3f();
+	Mat3f(Vec3f r0, Vec3f r1, Vec3f r2);
+};
 
 Mat3f TransposeMat3f(Mat3f mat);
 

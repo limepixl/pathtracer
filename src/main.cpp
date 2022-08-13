@@ -3,51 +3,44 @@
 #include "scene/material.hpp"
 #include "scene/sphere.hpp"
 #include "scene/triangle.hpp"
-#include "threads.hpp"
+#include "scene/camera.hpp"
 
+#include <SDL_events.h>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
-int main()
+#include "display/display.hpp"
+#include <glad/glad.h>
+#include <SDL.h>
+
+int main(int argc, char *argv[])
 {
+	(void)argc; (void)argv;
+
 	uint32 width = (uint32)WIDTH;
 	uint32 height = (uint32)HEIGHT;
-	float aspect_atio = (float)width / (float)height;
 
-	// Memory allocation for bitmap buffer
-	Array<uint8> bitmap_buffer = CreateArray<uint8>(width * height * 3);
-
-	// x is right, y is up, z is backwards
-	Vec3f eye = CreateVec3f(0.0f, 0.0f, 0.0f);
-
-	float grid_height = 2.0f;
-	float grid_width = aspect_atio * grid_height;
-	Vec3f grid_x = { grid_width, 0.0f, 0.0f };
-	Vec3f grid_y = { 0.0f, -grid_height,
-					0.0f }; // negative because of the way I am writing to the file
-
-	// Lower left corner of virtual grid
-	Vec3f grid_origin = eye - (grid_x / 2.0f) - (grid_y / 2.0f);
-	grid_origin.z = -2.0f;
-
-	Array<Triangle> tris = CreateArray<Triangle>();
-	Array<Material *> materials = CreateArray<Material *>();
-
-	if (!LoadModelFromObj("CornellBox-Suzanne.obj", "../res/", tris, materials))
+	Display display = CreateDisplay("Pathtracer", width, height);
+	InitRenderBuffer(display);
+#if 0
+	Array<Triangle> tris;
+	Array<Material *> materials;
+	if (!LoadModelFromObj("CornellBox-Original.obj", "../../res/", tris, materials))
+	//if (!LoadModelFromObj("robot.obj", "../../res/", tris, materials))
 	{
-		DeallocateArray(bitmap_buffer);
 		return -1;
 	}
 
 	// Apply model matrix to tris
-	Mat4f model_matrix = CreateIdentityMat4f();
+	Mat4f model_matrix;
 
 	// for cornell box
-	model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.0f, -3.5f), model_matrix); 
+	model_matrix = TranslationMat4f(Vec3f(0.0f, -1.0f, -3.5f), model_matrix); 
 
 	// for robot
-	// model_matrix = TranslationMat4f(CreateVec3f(0.0f, -1.5f, -4.f), model_matrix);
-	// model_matrix = ScaleMat4f(CreateVec3f(0.2f, 0.2f, 0.2f), model_matrix);
+	//model_matrix = TranslationMat4f(Vec3f(0.0f, -1.5f, -4.f), model_matrix);
+	//model_matrix = ScaleMat4f(Vec3f(0.2f, 0.2f, 0.2f), model_matrix);
 
 	for (uint32 i = 0; i < tris.size; i++)
 	{
@@ -56,228 +49,249 @@ int main()
 		tris[i].v2 = model_matrix * tris[i].v2;
 		tris[i].edge1 = tris[i].v1 - tris[i].v0;
 		tris[i].edge2 = tris[i].v2 - tris[i].v0;
+		tris[i].normal = NormalizeVec3f(Cross(tris[i].edge1, tris[i].edge2));
 	}
 
 	// Construct BVH tree and sort triangle list according to it
-	Array<BVHNode> bvh_tree = CreateArray<BVHNode>(2 * tris.size - 1);
+	Array<BVHNode> bvh_tree(2 * tris.size - 1);
 	
 	BVHNode root_node {};
 	root_node.first_tri = 0;
 	AppendToArray(bvh_tree, root_node);
 	
-	if (!ConstructBVHSweepSAH(tris.data, tris.size, bvh_tree, 0))
-	// if (!ConstructBVHObjectMedian(tris.data, tris.size, bvh_tree, 0))
+	if (!ConstructBVHSweepSAH(tris._data, (uint32)tris.size, bvh_tree, 0))
 	{
 		printf("Error in BVH construction!\n");
-		DeallocateArray(bitmap_buffer);
 		return -1;
 	}
-	printf("Finished building BVH!\n");
 
 	// Find all emissive triangles in scene
-	Array<uint32> emissive_tris = CreateArray<uint32>(tris.size);
+	Array<uint32> emissive_tris(tris.size);
 	uint32 num_emissive_tris = 0;
 	for (uint32 i = 0; i < tris.size; i++)
 	{
-		if (tris[i].mat->Le.x >= 0.01f || tris[i].mat->Le.y >= 0.01f || tris[i].mat->Le.z >= 0.01f)
+		Material *current_mat = materials[tris[i].mat_index];
+		if (current_mat->Le.x >= EPSILON || current_mat->Le.y >= EPSILON || current_mat->Le.z >= EPSILON)
 		{
 			AppendToArray(emissive_tris, i);
 		}
 	}
-
-	Array<Sphere> spheres = CreateArray<Sphere>();
-	Scene scene = ConstructScene(spheres, tris, emissive_tris, bvh_tree);
-
-	// Each thread's handle and data to be used by it
-	void *threadHandles[NUM_THREADS];
-	RenderData *data_for_threads[NUM_THREADS];
-
-	// Variables that keep track of the chunk data
-	uint32 pixel_step = 64;
-	uint32 row_index = 0, col_index = 0;
-
-	uint32 pixel_size = 3 * sizeof(uint8);
-	uint32 row_size_in_bytes = pixel_size * width;
-	uint32 thread_memory_size = pixel_step * pixel_step * pixel_size;
-
-	uint16 num_chunk_columns = (uint16)Ceil((float)width / (float)pixel_step);
-	uint16 num_chunk_rows = (uint16)Ceil((float)height / (float)pixel_step);
-
-	// If there are more threads than needed, don't allocate memory for them
-	uint16 num_threads = Min((uint16)NUM_THREADS, num_chunk_rows * num_chunk_columns);
-
-	// Allocate memory for each one of the threads that will
-	// be reused for all chunks to come
-	for (uint16 i = 0; i < num_threads; i++)
-	{
-		uint8 *thread_memory = (uint8 *)malloc(thread_memory_size);
-
-		data_for_threads[i] = (RenderData *)malloc(sizeof(RenderData));
-
-		*(data_for_threads[i]) = { (void *)thread_memory,
-								 thread_memory_size,
-								 0,
-								 0,
-								 0,
-								 0,
-								 width,
-								 height,
-								 grid_origin,
-								 grid_x,
-								 grid_y,
-								 eye,
-								 scene,
-								 false };
-	}
-
-	// Start a thread with the next chunk to be rendered
-	for (uint16 i = 0; i <= num_threads; i++)
-	{
-		// Cycle around the thread array and check each thread infinitely
-		if (i == num_threads)
-			i = 0;
-
-		// If we're at the end of the row, go down to the next row
-		if (col_index == num_chunk_columns)
-		{
-			col_index = 0;
-			row_index++;
-		}
-
-		// We rendered all rows
-		if (row_index == num_chunk_rows)
-		{
-			break;
-		}
-
-		// We can start a thread if it has never been started, OR
-		// if the thread has started and finished its execution
-		RenderData *data = data_for_threads[i];
-#if defined(_WIN32) || defined(_WIN64)
-		if (!data->initialized || CanThreadStartWin32(threadHandles[i]))
-#elif defined(__linux__)
-		if (!data->initialized || CanThreadStartLinux(threadHandles[i]))
-#endif
-		{
-			// If initialized, this means that there was a previous run
-			// that we can save to the bitmap buffer. If not, we need
-			// to initialize and start the thread for the first time
-			if (data->initialized)
-			{
-				printf("Rendered region: x = %u-%u, y = %u-%u\n", data->start_x, data->end_x, data->start_y, data->end_y);
-
-				int32 delta_x = (int32)(data->end_x - data->start_x);
-				int32 delta_y = (int32)(data->end_y - data->start_y);
-
-				// Read only this many bytes at a time from the thread's memory
-				// and write it to the bitmap buffer. If we exceed this number
-				// of bytes, we will enter the next row and write bytes to it
-				uint32 chunk_row_size_in_bytes = pixel_size * delta_x;
-
-				if (delta_x <= 0 || delta_y <= 0)
-				{
-					printf("Oh no we gotta go\n");
-				}
-
-				// Write the rendered region into the bitmap memory
-				for (uint32 ymem = data->start_y; ymem < data->end_y; ymem++)
-				{
-					uint8 *offset_bitmap_buffer = bitmap_buffer.data + (ymem * row_size_in_bytes) + data->start_x * pixel_size;
-					memcpy(offset_bitmap_buffer,
-						   (uint8 *)data->thread_memory_chunk + (ymem - data->start_y) * chunk_row_size_in_bytes,
-						   chunk_row_size_in_bytes);
-				}
-
-				// Close the finished thread because it can't be rerun
-#if defined(_WIN32) || defined(_WIN64)
-				CloseThreadWin32(threadHandles[i]);
-#endif
-			}
-
-			// Set the thread's region parameters
-			data->start_x = col_index * pixel_step;
-			data->end_x = Min(width, data->start_x + pixel_step);
-			data->start_y = row_index * pixel_step;
-			data->end_y = Min(height, data->start_y + pixel_step);
-
-			// Make sure next run's rendered region is saved
-			data->initialized = true;
-
-			// Create another thread with the above data being the same
-#if defined(_WIN32) || defined(_WIN64)
-			threadHandles[i] = CreateThreadWin32(data_for_threads[i]);
-#elif defined(__linux__)
-			threadHandles[i] = CreateThreadLinux(data_for_threads[i]);
 #endif
 
-			// Increment column index
-			col_index++;
-		}
-	}
+	// Set up data to be passed to SSBOs
 
-	// After we finish rendering all chunks
-	for (uint16 i = 0; i < num_threads; i++)
+	Array<MaterialGLSL> materials_ssbo;
+	materials_ssbo.append({ Vec4f(0.0f), Vec4f(0.0f), Vec4f(10000.0f, 10000.0f, 10000.0f, 0.0f) });
+	materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 5.0f), Vec4f(0.0f), Vec4f(0.0f) });
+
+	Array<SphereGLSL> spheres_ssbo;
+
+	// Furnace test sphere
+	// spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), {1} });
+
+	// Point light and sphere next to it
+	spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), { 1 } });
+	spheres_ssbo.append({ Vec4f(4.0f, 0.0f, -4.0f, 0.03f), { 0 } });
+
+#if 0
+	Array<TriangleGLSL> model_tris_ssbo(tris.size);
+	for (uint32 i = 0; i < tris.size; i++)
 	{
-#if defined(_WIN32) || defined(_WIN64)
-		// If the thread is currently running, wait for it (join it to main thread)
-		if (!CanThreadStartWin32(threadHandles[i]))
-			WaitForThreadWin32(threadHandles[i]);
+		const Triangle &current_tri = tris[i];
+		const Vec3f &v0 = current_tri.v0;
+		const Vec3f &v1 = current_tri.v1;
+		const Vec3f &v2 = current_tri.v2;
 
-		// Close the thread, we won't be needing it anymore
-		CloseThreadWin32(threadHandles[i]);
-#elif defined(__linux__)
-		// If the thread is currently running, wait for it (join it to main thread)
-		if (!CanThreadStartLinux(threadHandles[i]))
-			WaitForThreadLinux(threadHandles[i]);
-#endif
+		TriangleGLSL tmp;
+		tmp.data1 = Vec4f(v0.x, v0.y, v0.z, (float)current_tri.mat_index);
+		tmp.data2 = Vec4f(v1.x, v1.y, v1.z, 0.0f);
+		tmp.data3 = Vec4f(v2.x, v2.y, v2.z, 0.0f);
 
-		// Thread just finished, so we need to write the changes
-		RenderData *data = data_for_threads[i];
-
-		printf("Rendered region: x = %u-%u, y = %u-%u\n", data->start_x, data->end_x,
-			   data->start_y, data->end_y);
-
-		uint32 chunk_row_size_in_bytes = pixel_size * (data->end_x - data->start_x);
-
-		for (uint32 ymem = data->start_y; ymem < data->end_y; ymem++)
-		{
-			uint8 *offset_bitmap_buffer = bitmap_buffer.data + (ymem * row_size_in_bytes) + data->start_x * pixel_size;
-			memcpy(offset_bitmap_buffer,
-				   (uint8 *)data->thread_memory_chunk + (ymem - data->start_y) * chunk_row_size_in_bytes,
-				   chunk_row_size_in_bytes);
-		}
-
-		// Free the allocated thread's memory, and the thread's data struct
-		free(data->thread_memory_chunk);
-		free(data);
+		AppendToArray(model_tris_ssbo, tmp);
 	}
-
-	// Write resulting rendered image to file
-	FILE *result = fopen("../result.ppm", "w+");
-	if (!result)
-	{
-		printf("Failed to create file!\n");
-		DeallocateArray(bitmap_buffer);
-		DeallocateArray(bvh_tree);
-		return -1;
-	}
-	fprintf(result, "P3\n%d %d\n255\n", width, height);
-
-	for (uint32 i = 0; i < (uint32)(width * height * 3); i += 3)
-		fprintf(result, "%d %d %d\n", bitmap_buffer.data[i], bitmap_buffer.data[i + 1], bitmap_buffer.data[i + 2]);
-
-	fclose(result);
-	printf("Finished rendering to image!\n");
-
-	DeallocateArray(bitmap_buffer);
 	DeallocateArray(tris);
+
+	Array<MaterialGLSL> materials_ssbo(materials.size);
+	for(uint32 i = 0; i < materials.size; i++)
+	{
+		const Material *current_mat = materials[i];
+		const Vec3f &diff = current_mat->diffuse;
+		const Vec3f &spec = current_mat->specular;
+		const Vec3f &Le = current_mat->Le;
+
+		MaterialGLSL tmp;
+		tmp.data1 = Vec4f(diff.x, diff.y, diff.z, (float)current_mat->type);
+		tmp.data2 = Vec4f(spec.x, spec.y, spec.z, (float)current_mat->n_spec);
+		tmp.data3 = Vec4f(Le.x, Le.y, Le.z, 0.0f);
+
+		AppendToArray(materials_ssbo, tmp);
+	}
+
 	for (uint32 i = 0; i < materials.size; i++)
 	{
 		free(materials[i]);
 	}
-
 	DeallocateArray(materials);
-	DeallocateArray(bvh_tree);
 
+	Array<BVHNodeGLSL> bvh_ssbo(bvh_tree.size);
+	for(uint32 i = 0; i < bvh_tree.size; i++)
+	{
+		const BVHNode &current_node = bvh_tree[i];
+		const AABB &current_aabb = current_node.node_AABB;
+
+		BVHNodeGLSL tmp;
+		tmp.data1 = Vec4f(current_aabb.bmin.x, current_aabb.bmin.y, current_aabb.bmin.z, (float)current_node.first_tri);
+		tmp.data2 = Vec4f(current_aabb.bmax.x, current_aabb.bmax.y, current_aabb.bmax.z, (float)current_node.num_tris);
+		tmp.data3 = Vec4f((float)current_node.axis, 0.0f, 0.0f, 0.0);
+
+		AppendToArray(bvh_ssbo, tmp);
+	}
+	DeallocateArray(bvh_tree);
+#endif
+
+	Array<uint32> emissive_spheres_ssbo;
+	for (uint32 i = 0; i < spheres_ssbo.size; i++)
+	{
+		MaterialGLSL &mat = materials_ssbo[spheres_ssbo[i].mat_index[0]];
+		if (mat.data3.x > EPSILON || mat.data3.y > EPSILON || mat.data3.z > EPSILON)
+		{
+			emissive_spheres_ssbo.append(i);
+		}
+	}
+
+	// Set up SSBOs
+	GLuint ssbo[6];
+	glCreateBuffers(6, ssbo);
+
+	// Sphere SSBO
+	if(spheres_ssbo.size > 0)
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[0]);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo[0]);
+		glNamedBufferStorage(ssbo[0], spheres_ssbo.size * sizeof(SphereGLSL), &(spheres_ssbo._data[0]), 0);
+		DeallocateArray(spheres_ssbo);
+	}
+#if 0
+	if(model_tris_ssbo.size > 0)
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[1]);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo[1]);
+		glNamedBufferStorage(ssbo[1], model_tris_ssbo.size * sizeof(TriangleGLSL), &(model_tris_ssbo[0]), 0);
+		DeallocateArray(model_tris_ssbo);
+	}
+
+	if(emissive_tris.size > 0)
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[2]);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo[2]);
+		glNamedBufferStorage(ssbo[2], emissive_tris.size * sizeof(uint32), &(emissive_tris[0]), 0);
+		DeallocateArray(emissive_tris);
+	}
+#endif
+	if(materials_ssbo.size > 0)
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[3]);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo[3]);
+		glNamedBufferStorage(ssbo[3], materials_ssbo.size * sizeof(MaterialGLSL), &(materials_ssbo[0]), 0);
+		DeallocateArray(materials_ssbo);
+	}
+#if 0
+	if(bvh_ssbo.size > 0)
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[4]);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo[4]);
+		glNamedBufferStorage(ssbo[4], bvh_ssbo.size * sizeof(BVHNodeGLSL), &(bvh_ssbo[0]), 0);
+		DeallocateArray(bvh_ssbo);
+	}
+#endif
+
+	if (emissive_spheres_ssbo.size > 0)
+	{
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[5]);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ssbo[5]);
+		glNamedBufferStorage(ssbo[5], emissive_spheres_ssbo.size * sizeof(uint32), &(emissive_spheres_ssbo[0]), 0);
+		DeallocateArray(emissive_spheres_ssbo);
+	}
+	
+	glUseProgram(display.compute_shader_program);
+	uint32 frame_data_location = (uint32)glGetUniformLocation(display.compute_shader_program, "u_frame_data");
+
+	uint32 last_time = 0;
+	uint32 last_report = 0;
+	uint32 frame_count = 0;
+
+	Camera cam(Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec3f(1.0f, 0.0f, 0.0f), 0.005f, 0.05f);
+
+	while(display.is_open)
+	{
+		SDL_Event e;
+		while(SDL_PollEvent(&e))
+		{
+			if(e.type == SDL_QUIT)
+			{
+				display.is_open = false;
+			}
+			else if (e.type == SDL_MOUSEMOTION)
+			{
+				cam.mouse_look((float)e.motion.xrel, (float)e.motion.yrel);
+				frame_count = 0;
+			}
+		}
+
+		uint32 current_time = SDL_GetTicks();
+		uint32 delta_time = (uint32)current_time - (uint32)last_time;
+
+		cam.move(SDL_GetKeyboardState(nullptr), delta_time, frame_count);
+
+		glClear(GL_COLOR_BUFFER_BIT);
+
+		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "COMPUTE");
+		{
+			// Compute shader data and dispatch
+			glUseProgram(display.compute_shader_program);
+
+			if (frame_count == 0)
+			{
+				CameraGLSL cam_glsl;
+				cam_glsl.data1 = Vec4f(cam.origin.x, cam.origin.y, cam.origin.z, cam.fly_speed);
+				cam_glsl.data2 = Vec4f(cam.forward.x, cam.forward.y, cam.forward.z, cam.look_sens);
+				cam_glsl.data3 = Vec4f(cam.right.x, cam.right.y, cam.right.z, 0.0f);
+				glNamedBufferSubData(cam.cam_ubo, 0, sizeof(CameraGLSL), &cam_glsl);
+			}
+
+			glUniform2ui(frame_data_location, pcg32_random(), frame_count++);
+
+			const uint32 num_groups_x = width / 8;
+			const uint32 num_groups_y = height / 8;
+			glDispatchCompute(num_groups_x, num_groups_y, 1);
+			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+		}
+		glPopDebugGroup();
+
+		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "SCREEN QUAD");
+		{
+			// Full screen quad drawing
+			glUseProgram(display.rb_shader_program);
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+		}
+		glPopDebugGroup();
+
+		// Frame time calculation
+		if(current_time > last_report + 1000)
+		{
+			uint32 fps = (uint32)(1.0f / ((float)delta_time / 1000.0f));
+			std::string new_title = "Pathtracer | ";
+			new_title += std::to_string(delta_time) + "ms | ";
+			new_title += std::to_string(fps) + "fps | ";
+			new_title += std::to_string(frame_count) + " total frame count";
+			UpdateDisplayTitle(display, new_title.c_str());
+			last_report = current_time;
+		}
+		last_time = current_time;
+
+		SDL_GL_SwapWindow(display.window_handle);
+	}
+
+	CloseDisplay(display);
 	return 0;
 }
