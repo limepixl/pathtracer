@@ -169,8 +169,8 @@ vec3 sky_color(vec3 dir)
 	// float t = 0.5 * normalized_dir.y + 0.5;
 	// return mix(vec3(1.0), vec3(0.546, 0.824, 0.925), t);
 
-	return vec3(0.0);
-	// return texture(u_cubemap, dir).xyz;
+	// return vec3(0.0);
+	return texture(u_cubemap, dir).xyz;
 }
 
 // Structs
@@ -826,8 +826,8 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
-	// return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
-	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
+	return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
+	// return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
 	// return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 

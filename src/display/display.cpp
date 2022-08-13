@@ -170,12 +170,12 @@ bool InitRenderBuffer(Display &window)
 	int w, h, c;
 	uint8 *data = nullptr;
 	const char *strings[] {
-		"res/cubemaps/brown_studio/px.png",
-		"res/cubemaps/brown_studio/nx.png",
-		"res/cubemaps/brown_studio/py.png",
-		"res/cubemaps/brown_studio/ny.png",
-		"res/cubemaps/brown_studio/pz.png",
-		"res/cubemaps/brown_studio/nz.png"
+		"res/cubemaps/px.png",
+		"res/cubemaps/nx.png",
+		"res/cubemaps/py.png",
+		"res/cubemaps/ny.png",
+		"res/cubemaps/pz.png",
+		"res/cubemaps/nz.png"
 	};
 
 	for (uint8 i = 0; i < 6; i++)
