@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
 
 	Array<MaterialGLSL> materials_ssbo;
 	materials_ssbo.append({ Vec4f(0.0f), Vec4f(0.0f), Vec4f(10000.0f, 10000.0f, 10000.0f, 0.0f) });
-	materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 0.0f), Vec4f(0.0f), Vec4f(0.0f) });
+	materials_ssbo.append({ Vec4f(0.99f, 0.99f, 0.99f, 0.0f), Vec4f(0.0f), Vec4f(0.0f) });
 
 	Array<SphereGLSL> spheres_ssbo;
 

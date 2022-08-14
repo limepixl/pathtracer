@@ -170,7 +170,8 @@ vec3 sky_color(vec3 dir)
 	// return mix(vec3(1.0), vec3(0.546, 0.824, 0.925), t);
 
 	// return vec3(0.0);
-	return texture(u_cubemap, dir).xyz;
+	vec3 cubemap_color = texture(u_cubemap, vec3(-dir.x, dir.y, dir.z)).rgb;
+	return pow(cubemap_color, vec3(2.2));
 }
 
 // Structs
@@ -412,9 +413,7 @@ vec3 estimator_path_tracing_naive(in vec3 ro, in vec3 rd, in uint rng_state)
 		HitData data;
 		if(!intersect(ro, rd, data)) // ray goes off into infinity
 		{
-			if (b <= BOUNCE_COUNT)
-				color += throughput_term * sky_color(rd) * ENVIRONMENT_MAP_LE;
-
+			color += throughput_term * sky_color(rd) * ENVIRONMENT_MAP_LE;
 			return color;
 		}
 
@@ -424,8 +423,7 @@ vec3 estimator_path_tracing_naive(in vec3 ro, in vec3 rd, in uint rng_state)
 		mat3 tnb = transpose(construct_tnb(data.normal));
 
 		// add the light that the material emits
-		if (b <= BOUNCE_COUNT)
-			color += throughput_term * mat.data3.xyz;
+		color += throughput_term * mat.data3.xyz;
 
 		float theta_o, phi_o;
 		cartesian_to_spherical(normalize(tnb * -rd), theta_o, phi_o);

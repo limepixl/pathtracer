@@ -20,7 +20,7 @@ void main()
 		return;
 	}
 
-	rendered_texture.xyz = sqrt(rendered_texture.xyz);
+	rendered_texture.xyz = pow(rendered_texture.xyz, vec3(1.0 / 2.2));
 
 	color = vec4(rendered_texture.xyz, 1.0);
 }
