@@ -1,3 +1,4 @@
 - Optimize compute shader
 - Implement a better BRDF that isn't Phong
+- Support HDR or EXR images as cubemaps and do mapping in shader
 - Move to moving view matrix rather than moving camera and pixel grid
