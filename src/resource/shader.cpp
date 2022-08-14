@@ -104,7 +104,7 @@ uint32 LoadShaderFromFiles(const char *vertex_source_path,
 		exit(-1);
 	}
 
-	int64 file_length = 0;
+	int64 file_length;
 	fseek(vertex_file, 0, SEEK_END);
 	file_length = ftell(vertex_file);
 	rewind(vertex_file);

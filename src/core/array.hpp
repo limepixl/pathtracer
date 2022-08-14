@@ -8,8 +8,8 @@ template <typename T>
 struct Array
 {
 	T *_data;
-	unsigned long long size;
-	unsigned long long internal_size; // the size of the allocated memory
+	unsigned int size;
+	unsigned int internal_size; // the size of the allocated memory
 
 	T &operator[](unsigned int i)
 	{
@@ -20,19 +20,19 @@ struct Array
 		return _data[i];
 	}
 
-	Array(unsigned long long count, T *data = nullptr)
+	explicit Array(unsigned int count, T *data = nullptr)
 	{
 		internal_size = count;
 
 		if (data == nullptr)
 		{
-			this->size = 0;
-			this->_data = new T[count];
+			size = 0;
+			_data = new T[count];
 		}
 		else
 		{
-			this->size = count;
-			this->_data = data;
+			size = count;
+			_data = data;
 		}
 	}
 
@@ -53,7 +53,7 @@ struct Array
 		if (size == internal_size)
 		{
 			// Increase old size by 1.5x (with some exceptions)
-			unsigned long long old_size = internal_size;
+			unsigned int old_size = internal_size;
 			if (old_size <= 1)
 				internal_size += 2;
 			else

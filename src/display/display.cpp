@@ -99,7 +99,7 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 bool InitRenderBuffer(Display &window)
 {
 	glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-	glViewport(0, 0, window.width, window.height);
+	glViewport(0, 0, (GLsizei)window.width, (GLsizei)window.height);
 
 	float vertices[] = {
 		-1.0f, -1.0f, 0.0f,
@@ -142,7 +142,7 @@ bool InitRenderBuffer(Display &window)
 	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTextureStorage2D(window.render_buffer_texture, 1, GL_RGBA32F, window.width, window.height);
+	glTextureStorage2D(window.render_buffer_texture, 1, GL_RGBA32F, (GLsizei)window.width, (GLsizei)window.height);
 	glBindImageTexture(0, window.render_buffer_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 	glBindTextureUnit(0, window.render_buffer_texture);
 

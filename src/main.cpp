@@ -2,12 +2,9 @@
 #include "scene/bvh.hpp"
 #include "scene/material.hpp"
 #include "scene/sphere.hpp"
-#include "scene/triangle.hpp"
 #include "scene/camera.hpp"
 
 #include <SDL_events.h>
-#include <cstdlib>
-#include <cstring>
 #include <string>
 
 #include "display/display.hpp"
@@ -214,7 +211,7 @@ int main(int argc, char *argv[])
 	}
 	
 	glUseProgram(display.compute_shader_program);
-	uint32 frame_data_location = (uint32)glGetUniformLocation(display.compute_shader_program, "u_frame_data");
+	int32 frame_data_location = (int32)glGetUniformLocation(display.compute_shader_program, "u_frame_data");
 
 	uint32 last_time = 0;
 	uint32 last_report = 0;
@@ -252,7 +249,7 @@ int main(int argc, char *argv[])
 
 			if (frame_count == 0)
 			{
-				CameraGLSL cam_glsl;
+				CameraGLSL cam_glsl {};
 				cam_glsl.data1 = Vec4f(cam.origin.x, cam.origin.y, cam.origin.z, cam.fly_speed);
 				cam_glsl.data2 = Vec4f(cam.forward.x, cam.forward.y, cam.forward.z, cam.look_sens);
 				cam_glsl.data3 = Vec4f(cam.right.x, cam.right.y, cam.right.z, 0.0f);

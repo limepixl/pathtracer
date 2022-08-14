@@ -251,11 +251,11 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 	}
 
 	out_tris = Array<Triangle>((unsigned int)tris.size());
-	for (uint32 i = 0; i < tris.size(); i++)
-		out_tris.append(tris[i]);
+	for (auto &tri : tris)
+		out_tris.append(tri);
 
 	printf("Finished loading .obj model!\n");
-	printf("--- Number of triangles: %llu\n", out_tris.size);
-	printf("--- Number of materials: %llu\n", out_materials.size);
+	printf("--- Number of triangles: %u\n", out_tris.size);
+	printf("--- Number of materials: %u\n", out_materials.size);
 	return true;
 }

@@ -235,7 +235,7 @@ void OrthonormalBasis(Vec3f &n, Vec3f &t, Vec3f &bt)
 
 Mat3f ConstructTNB(Vec3f &n)
 {
-	Vec3f t, bt;
+	Vec3f t {}, bt {};
 	OrthonormalBasis(n, t, bt);
 	Mat3f res(t, n, bt);
 	return TransposeMat3f(res);
