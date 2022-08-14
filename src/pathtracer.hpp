@@ -6,6 +6,7 @@
 #include "scene/triangle.hpp"
 #include <cmath>
 
+#if 0
 // A simple lerp between 2 colors
 Vec3f SkyColor(Vec3f dir)
 {
@@ -563,3 +564,4 @@ Vec3f EstimatorPathTracingMIS(Ray ray, Scene scene, pcg32_random_t *rngptr)
 
 	return color;
 }
+#endif

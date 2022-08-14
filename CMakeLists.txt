@@ -41,7 +41,7 @@ set(SOURCE_FILES
 set(HEADER_FILES
 	src/loader.hpp
 	src/defines.hpp
-	src/pathtracer.hpp
+	# src/pathtracer.hpp
 
 	src/scene/bvh.hpp
 	src/scene/material.hpp

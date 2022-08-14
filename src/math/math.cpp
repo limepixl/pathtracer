@@ -247,9 +247,7 @@ Mat3f ConstructTNB(Vec3f &n)
 
 bool operator==(const Vec3f &lhs, const Vec3f &rhs)
 {
-	Vec3f grace_interval = { FLOAT_EQUALITY_PRECISION,
-							 FLOAT_EQUALITY_PRECISION,
-							 FLOAT_EQUALITY_PRECISION };
+	Vec3f grace_interval(EPSILON);
 	Vec3f absdiff = Abs(lhs - rhs);
 	return absdiff <= grace_interval;
 }
