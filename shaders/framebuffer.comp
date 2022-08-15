@@ -178,6 +178,13 @@ vec3 sky_color(vec3 dir)
 
 	float theta, phi;
 	cartesian_to_spherical(dir, theta, phi);
+
+	phi += PI / 8.0;
+	if(phi < 0.0)
+		phi += TWO_PI;
+	if(phi > TWO_PI)
+		phi -= TWO_PI;
+
 	vec3 cubemap_color = texture(u_cubemap, vec2(phi / TWO_PI, theta / PI)).rgb;
 	return cubemap_color;
 }
