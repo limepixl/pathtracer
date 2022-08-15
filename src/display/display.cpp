@@ -154,12 +154,13 @@ bool InitRenderBuffer(Display &window)
 
 	glUseProgram(window.compute_shader_program);
 	glUniform1i(glGetUniformLocation(window.compute_shader_program, "screen"), 0);
-	glUniform1i(glGetUniformLocation(window.compute_shader_program, "u_cubemap"), 0);
+	glUniform1i(glGetUniformLocation(window.compute_shader_program, "u_cubemap"), 1);
 
 	// Set up cubemap
 
-	glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &window.cubemap_texture);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, window.cubemap_texture);
+	glCreateTextures(GL_TEXTURE_2D, 1, &window.cubemap_texture);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, window.cubemap_texture);
 
 	glTextureParameteri(window.cubemap_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTextureParameteri(window.cubemap_texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -169,23 +170,12 @@ bool InitRenderBuffer(Display &window)
 
 	int w, h, c;
 	uint8 *data = nullptr;
-	const char *strings[] {
-		"res/cubemaps/px.png",
-		"res/cubemaps/nx.png",
-		"res/cubemaps/py.png",
-		"res/cubemaps/ny.png",
-		"res/cubemaps/pz.png",
-		"res/cubemaps/nz.png"
-	};
-
-	for (uint8 i = 0; i < 6; i++)
+	stbi_hdr_to_ldr_gamma(1.0);
+	data = stbi_load("cubemaps/solitude_interior_4k.hdr", &w, &h, &c, 3);
+	if (data != nullptr)
 	{
-		data = stbi_load(strings[i], &w, &h, &c, 3);
-		if (data != nullptr)
-		{
-			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB8, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-			stbi_image_free(data);
-		}
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		stbi_image_free(data);
 	}
 
 	return true;
