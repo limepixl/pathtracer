@@ -3,18 +3,7 @@
 
 struct Vec4f
 {
-	union
-	{
-		struct
-		{
-			float x, y, z, w;
-		};
-		struct
-		{
-			float r, g, b, a;
-		};
-		float values[4];
-	};
+	float x, y, z, w;
 
 	Vec4f() = default;
 	explicit Vec4f(float v);
@@ -23,14 +12,7 @@ struct Vec4f
 
 struct Vec3f
 {
-	union
-	{
-		float values[3];
-		struct
-		{
-			float x, y, z;
-		};
-	};
+	float x, y, z;
 
 	Vec3f() = default;
 	explicit Vec3f(float v);
@@ -56,14 +38,7 @@ bool operator>(const Vec3f &lhs, const Vec3f &rhs);
 
 struct Vec2f
 {
-	union
-	{
-		float values[2];
-		struct
-		{
-			float x, y;
-		};
-	};
+	float x, y;
 
 	Vec2f() = default;
 	explicit Vec2f(float v);

@@ -3,14 +3,7 @@
 
 struct Mat3f
 {
-	union
-	{
-		Vec3f rows[3];
-		struct
-		{
-			Vec3f r0, r1, r2;
-		};
-	};
+	Vec3f r0, r1, r2;
 
 	Mat3f();
 	Mat3f(Vec3f r0, Vec3f r1, Vec3f r2);
