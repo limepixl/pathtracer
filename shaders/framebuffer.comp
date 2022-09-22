@@ -26,7 +26,7 @@ layout (std140, binding = 0) uniform Camera
 #define NUM_SHADOW_RAYS 1
 
 // Misc
-#define ENVIRONMENT_MAP_LE 1.0
+#define ENVIRONMENT_MAP_LE 0.0
 
 // SSBO helper structs
 
@@ -452,7 +452,7 @@ vec3 estimator_path_tracing_naive(in vec3 ro, in vec3 rd, in uint rng_state)
 		{
 			BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(theta_i, phi_i), vec2(theta_o, phi_o));
 		}
-		else
+		else if (mat.data3.w == 0.0)
 		{
 			BRDF = mat.data1.xyz / PI;
 		}
@@ -529,7 +529,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		}
 		// If there is at least 1 light source in the scene and the material
 		// of the surface we hit is diffuse, we can use NEE.
-		else if (num_light_sources > 0 && abs(mat.data3.w) < EPSILON)
+		else if (num_light_sources > 0 && (mat.data3.w == 0.0 || mat.data3.w == 1.0))
 		{
 			// Generate TNB matrix to map directions in terms of the normal vector
 			mat3 tnb = transpose(construct_tnb(data.normal));
@@ -598,8 +598,15 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 					float shadow_theta_i, shadow_phi_i;
 					cartesian_to_spherical(normalize(tnb * shadow_rd), shadow_theta_i, shadow_phi_i);
 
-					vec3 BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(shadow_theta_i, shadow_phi_i), vec2(theta_o, phi_o));
-					// vec3 BRDF = mat.data1.xyz / PI;
+					vec3 BRDF;
+					if(mat.data3.w == 1.0)
+					{
+						BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(shadow_theta_i, shadow_phi_i), vec2(theta_o, phi_o));
+					}
+					else if (mat.data3.w == 0.0)
+					{
+						BRDF = mat.data1.xyz / PI;
+					}
 
 					// We want to only add light contribution from lights within
 					// the hemisphere solid angle above X, and not from lights behind it.
@@ -630,8 +637,15 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 
 			float cos_theta = cos(theta_i);
 
-			vec3 BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(theta_i, phi_i), vec2(theta_o, phi_o));
-			// vec3 BRDF = mat.data1.xyz / PI;
+			vec3 BRDF;
+			if(mat.data3.w == 1.0)
+			{
+				BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(theta_i, phi_i), vec2(theta_o, phi_o));
+			}
+			else if (mat.data3.w == 0.0)
+			{
+				BRDF = mat.data1.xyz / PI;
+			}
 
 			// Update the throughput term
 			float pdf_cos_weighted_hemisphere = cos_theta / PI;
@@ -838,8 +852,8 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
-	return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
-	// return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
+	// return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
+	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
 	// return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 
