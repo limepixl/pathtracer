@@ -448,11 +448,11 @@ vec3 estimator_path_tracing_naive(in vec3 ro, in vec3 rd, in uint rng_state)
 		vec3 BRDF;
 
 		// Oren-Nayar diffuse BRDF
-		if(mat.data3.w == 1.0)
+		if(abs(mat.data3.w - 1.0) < EPSILON)
 		{
 			BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(theta_i, phi_i), vec2(theta_o, phi_o));
 		}
-		else if (mat.data3.w == 0.0)
+		else if (abs(mat.data3.w) < EPSILON)
 		{
 			BRDF = mat.data1.xyz / PI;
 		}
@@ -599,11 +599,11 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 					cartesian_to_spherical(normalize(tnb * shadow_rd), shadow_theta_i, shadow_phi_i);
 
 					vec3 BRDF;
-					if(mat.data3.w == 1.0)
+					if(abs(mat.data3.w - 1.0) < EPSILON)
 					{
 						BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(shadow_theta_i, shadow_phi_i), vec2(theta_o, phi_o));
 					}
-					else if (mat.data3.w == 0.0)
+					else if (abs(mat.data3.w) < EPSILON)
 					{
 						BRDF = mat.data1.xyz / PI;
 					}
@@ -638,11 +638,11 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 			float cos_theta = cos(theta_i);
 
 			vec3 BRDF;
-			if(mat.data3.w == 1.0)
+			if(abs(mat.data3.w - 1.0) < EPSILON)
 			{
 				BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(theta_i, phi_i), vec2(theta_o, phi_o));
 			}
-			else if (mat.data3.w == 0.0)
+			else if (abs(mat.data3.w) < EPSILON)
 			{
 				BRDF = mat.data1.xyz / PI;
 			}

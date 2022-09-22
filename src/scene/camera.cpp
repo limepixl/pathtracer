@@ -72,3 +72,9 @@ void Camera::move(const uint8 *keyboard_state, uint32 delta_time, uint32 &frame_
 		frame_count = 0;
 	}
 }
+CameraGLSL::CameraGLSL(const Vec3f &origin, const Vec3f &forward, const Vec3f &right, float speed, float sens)
+{
+	data1 = Vec4f(origin.x, origin.y, origin.z, speed);
+	data2 = Vec4f(forward.x, forward.y, forward.z, sens);
+	data3 = Vec4f(right.x, right.y, right.z, 0.0f);
+}

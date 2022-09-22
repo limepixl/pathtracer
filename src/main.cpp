@@ -79,16 +79,16 @@ int main(int argc, char *argv[])
 
 	Array<MaterialGLSL> materials_ssbo;
 	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.0f), Vec3f(10000.0f), 0.0f, 0.0f, MaterialType::MATERIAL_LAMBERTIAN));
-	materials_ssbo.append(MaterialGLSL(Vec3f(0.9f), Vec3f(0.0f), Vec3f(0.0f), 0.0f, 0.0f, MaterialType::MATERIAL_LAMBERTIAN));
+	materials_ssbo.append(MaterialGLSL(Vec3f(1.0f), Vec3f(0.0f), Vec3f(0.0f), 0.0f, 0.0f, MaterialType::MATERIAL_OREN_NAYAR));
 
 	Array<SphereGLSL> spheres_ssbo;
 
 	// Furnace test sphere
-	// spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), {1} });
+	spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), {1} });
 
 	// Point light and sphere next to it
-	spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), { 1 } });
-//	spheres_ssbo.append({ Vec4f(4.0f, 0.0f, -4.0f, 0.03f), { 0 } });
+	// spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), { 1 } });
+	// spheres_ssbo.append({ Vec4f(4.0f, 0.0f, -4.0f, 0.03f), { 0 } });
 
 #if 0
 	Array<TriangleGLSL> model_tris_ssbo(tris.size);
@@ -249,10 +249,7 @@ int main(int argc, char *argv[])
 
 			if (frame_count == 0)
 			{
-				CameraGLSL cam_glsl {};
-				cam_glsl.data1 = Vec4f(cam.origin.x, cam.origin.y, cam.origin.z, cam.fly_speed);
-				cam_glsl.data2 = Vec4f(cam.forward.x, cam.forward.y, cam.forward.z, cam.look_sens);
-				cam_glsl.data3 = Vec4f(cam.right.x, cam.right.y, cam.right.z, 0.0f);
+				CameraGLSL cam_glsl(cam.origin, cam.forward, cam.right, cam.fly_speed, cam.look_sens);
 				glNamedBufferSubData(cam.cam_ubo, 0, sizeof(CameraGLSL), &cam_glsl);
 			}
 

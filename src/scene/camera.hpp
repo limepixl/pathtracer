@@ -25,4 +25,11 @@ struct CameraGLSL
 	Vec4f data1; // o.x, o.y, o.z, speed
 	Vec4f data2; // f.x, f.y, f.z, sens
 	Vec4f data3; // r.x, r.y, r.z, 0
+
+	CameraGLSL() = default;
+	CameraGLSL(const Vec3f &origin,
+			   const Vec3f &forward,
+			   const Vec3f &right,
+			   float speed,
+			   float sens);
 };
