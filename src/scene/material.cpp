@@ -4,7 +4,9 @@
 
 Material CreateMaterial(MaterialType type, Vec3f diffuse, Vec3f specular, float n_spec, Vec3f Le, const char *name)
 {
-	if (type == MaterialType::MATERIAL_LAMBERTIAN || type == MaterialType::MATERIAL_PHONG || type == MaterialType::MATERIAL_BLINN_PHONG)
+	// NOTE: currently not importing models with O-N BRDF so I divide
+	// by PI in the shader. TODO: implement this when you get to models again
+	if (type == MaterialType::MATERIAL_LAMBERTIAN)
 	{
 		diffuse /= PI;
 	}
@@ -22,4 +24,10 @@ Material CreateMaterial(MaterialType type, Vec3f diffuse, Vec3f specular, float 
 	}
 
 	return result;
+}
+MaterialGLSL::MaterialGLSL(const Vec3f &diffuse, const Vec3f &specular, const Vec3f &Le, float diffuse_roughness, float specular_exponent, MaterialType type)
+{
+	data1 = Vec4f(diffuse.x, diffuse.y, diffuse.z, diffuse_roughness);
+	data2 = Vec4f(specular.x, specular.y, specular.z, specular_exponent);
+	data3 = Vec4f(Le.x, Le.y, Le.z, (float)type);
 }

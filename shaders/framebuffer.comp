@@ -445,9 +445,17 @@ vec3 estimator_path_tracing_naive(in vec3 ro, in vec3 rd, in uint rng_state)
 		float cos_theta_x = cos(theta_i);
 		float pdf = cos_theta_x / PI;
 
+		vec3 BRDF;
+
 		// Oren-Nayar diffuse BRDF
-		vec3 BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(theta_i, phi_i), vec2(theta_o, phi_o));
-		// vec3 BRDF = mat.data1.xyz / PI;
+		if(mat.data3.w == 1.0)
+		{
+			BRDF = oren_nayar_brdf(mat.data1.xyz, mat.data1.w, vec2(theta_i, phi_i), vec2(theta_o, phi_o));
+		}
+		else
+		{
+			BRDF = mat.data1.xyz / PI;
+		}
 
 		// update throughput
 		// The PI is here because we are sampling w.r.t the pdf

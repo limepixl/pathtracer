@@ -4,14 +4,11 @@
 enum MaterialType
 {
 	MATERIAL_LAMBERTIAN = 0,
-	MATERIAL_IDEAL_REFLECTIVE,
-	MATERIAL_BLINN_PHONG,
-	MATERIAL_PHONG
+	MATERIAL_OREN_NAYAR
 };
 
 struct Material
 {
-
 	MaterialType type;
 	Vec3f diffuse;
 	Vec3f specular;
@@ -30,4 +27,13 @@ struct MaterialGLSL
 	Vec4f data1; // diff.x, diff.y, diff.z, diff_roughness
 	Vec4f data2; // spec.x, spec.y, spec.z, n_spec
 	Vec4f data3; // Le.x, Le.y, Le.z, mat_type
+
+	MaterialGLSL() = default;
+
+	MaterialGLSL(const Vec3f &diffuse,
+				 const Vec3f &specular,
+				 const Vec3f &Le,
+				 float diffuse_roughness,
+				 float specular_exponent,
+				 MaterialType type);
 };

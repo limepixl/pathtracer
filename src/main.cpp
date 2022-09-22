@@ -78,8 +78,8 @@ int main(int argc, char *argv[])
 	// Set up data to be passed to SSBOs
 
 	Array<MaterialGLSL> materials_ssbo;
-	materials_ssbo.append({ Vec4f(0.0f), Vec4f(0.0f), Vec4f(10000.0f, 10000.0f, 10000.0f, 0.0f) });
-	materials_ssbo.append({ Vec4f(0.9f, 0.9f, 0.9f, 0.0f), Vec4f(0.0f), Vec4f(0.0f) });
+	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.0f), Vec3f(10000.0f), 0.0f, 0.0f, MaterialType::MATERIAL_LAMBERTIAN));
+	materials_ssbo.append(MaterialGLSL(Vec3f(0.9f), Vec3f(0.0f), Vec3f(0.0f), 0.0f, 0.0f, MaterialType::MATERIAL_OREN_NAYAR));
 
 	Array<SphereGLSL> spheres_ssbo;
 
