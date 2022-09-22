@@ -3,7 +3,9 @@
 #include "../defines.hpp"
 #include "mat3.hpp"
 #include "mat4.hpp"
-#include <cstdlib>
+
+constexpr float PI = 3.14159265f;
+constexpr float EPSILON = 0.0001f;
 
 /*
 	Functions
@@ -47,9 +49,6 @@ void Swap(float *v1, float *v2);
 
 Vec3f NormalizeVec3f(Vec3f vec);
 
-// float32 RandomNumberNormalized();
-// Vec2f RandomVec2f();
-
 float RandomNumberNormalizedPCG(pcg32_random_t *rngptr);
 Vec2f RandomVec2fPCG(pcg32_random_t *rngptr);
 
@@ -58,8 +57,6 @@ Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal);
 Vec3f MapToTriangle(Vec2f vec2, struct Triangle tri);
 
 Vec3f Reflect(Vec3f dir, Vec3f normal);
-
-float BalanceHeuristic(float pdf_a, float pdf_b);
 
 void OrthonormalBasis(Vec3f &n, Vec3f &t, Vec3f &bt);
 Mat3f ConstructTNB(Vec3f &n);

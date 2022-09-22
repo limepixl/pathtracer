@@ -217,11 +217,6 @@ Vec3f Reflect(Vec3f dir, Vec3f normal)
 	return 2.0f * Dot(normal, dir) * normal - dir;
 }
 
-float BalanceHeuristic(float pdf_a, float pdf_b)
-{
-	return pdf_a / (pdf_a + pdf_b);
-}
-
 // https://jcgt.org/published/0006/01/01/
 void OrthonormalBasis(Vec3f &n, Vec3f &t, Vec3f &bt)
 {

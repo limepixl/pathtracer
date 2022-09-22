@@ -1,5 +1,6 @@
 #include "material.hpp"
 #include <cstring>
+#include "../math/math.hpp"
 
 Material CreateMaterial(MaterialType type, Vec3f diffuse, Vec3f specular, float n_spec, Vec3f Le, const char *name)
 {

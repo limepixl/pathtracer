@@ -1,6 +1,5 @@
 #include "triangle.hpp"
 #include "../math/math.hpp"
-#include "scene.hpp"
 #include <cmath>
 
 float Area(Triangle *tri)
@@ -22,47 +21,6 @@ Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal, uint32 mat_i
 	Vec3f A = v1 - v0;
 	Vec3f B = v2 - v0;
 	return { v0, v1, v2, normal, A, B, mat_index };
-}
-
-// Moller–Trumbore ray-triangle intersection algorithm
-bool TriangleIntersect(Ray ray, Triangle &tri, HitData *data, float tmax)
-{
-	Vec3f pvec = Cross(ray.direction, tri.edge2);
-	float determinant = Dot(tri.edge1, pvec);
-
-	// Ray direction parallel to the triangle plane
-//#if TWO_SIDED_LIGHT
-//	if (Abs(determinant) < EPSILON)
-//		return false;
-//#else
-	if (determinant < EPSILON)
-		return false;
-//#endif
-
-	float inv_determinant = 1.0f / determinant;
-	Vec3f tvec = ray.origin - tri.v0;
-	float u = Dot(tvec, pvec) * inv_determinant;
-	if ((u < 0.0f) || (u > 1.0f))
-		return false;
-
-	Vec3f qvec = Cross(tvec, tri.edge1);
-	float v = inv_determinant * Dot(ray.direction, qvec);
-	if ((v < 0.0f) || (u + v > 1.0f))
-		return false;
-
-	// Computing t
-	float t = inv_determinant * Dot(tri.edge2, qvec);
-	if (t > TMIN && t < tmax)
-	{
-		data->t = t;
-		data->point = ray.origin + ray.direction * t;
-		data->normal = tri.normal;
-		data->mat_index = tri.mat_index;
-		data->object_type = ObjectType::TRIANGLE;
-		return true;
-	}
-
-	return false;
 }
 
 // TODO: replace with actual transformation matrices

@@ -46,13 +46,9 @@ struct Scene
 	Array<Triangle> tris;
 	Array<uint32> light_tris;
 	Array<struct Material *> materials;
-	// Array<BVHNode> bvh_tree;
 };
 
 Scene ConstructScene(Array<Sphere> spheres,
 					 Array<Triangle> modelTris,
 					 Array<uint32> light_tris,
-					 Array<struct Material *> materials
-					 /*Array<BVHNode> bvh_tree*/);
-
-bool Intersect(Ray ray, Scene scene, HitData *data);
+					 Array<struct Material *> materials);
