@@ -26,7 +26,7 @@ layout (std140, binding = 0) uniform Camera
 #define NUM_SHADOW_RAYS 1
 
 // Misc
-#define ENVIRONMENT_MAP_LE 0.0
+#define ENVIRONMENT_MAP_LE 1.0
 
 // SSBO helper structs
 
@@ -695,7 +695,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		// If there is at least 1 light source in the scene, and the material of the
 		// surface is diffuse, we can calculate the direct light contribution (NEE)
 		bool can_use_NEE = light_tri_indices.length() > 0;
-		can_use_NEE = can_use_NEE && abs(mat_x.data1.w) < EPSILON /*|| (abs(mat_x.data1.w - 3.0) < EPSILON && all(lessThan(mat_x.specular_spec.xyz, vec3(EPSILON)))))*/;
+		can_use_NEE = can_use_NEE && (mat_x.data3.w == 0.0 || mat_x.data3.w == 1.0);
 		can_use_NEE = can_use_NEE && all(lessThan(mat_x.data3.xyz, vec3(EPSILON)));
 
 		if (can_use_NEE)
@@ -750,7 +750,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 						float pdf_BSDF_sa = cos_theta_x / PI;
 
 						// weight for NEE
-						// float32 wNEE = BalanceHeuristic(pdf_light_sa, pdf_BSDF_sa) / pdf_light_sa;
+						// float wNEE = balance_heuristic(pdf_light_sa, pdf_BSDF_sa) / pdf_light_sa;
 						float wNEE = 1.0f / (pdf_light_sa + pdf_BSDF_sa);
 
 						color += light_source_mat.data3.xyz * mat_x.data1.xyz * cos_theta_x * throughput_term * wNEE;
@@ -790,28 +790,12 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		float wBSDF = 1.0f;
 
 		// If we can use NEE on the hit surface
-		if (mat_x.data1.w == 0.0 && mat_x.data3.x < EPSILON && cos_theta_y > 0.0)
+		if ((mat_x.data3.w == 0.0 || mat_x.data3.w == 1.0) && mat_x.data3.x < EPSILON && cos_theta_y > 0.0)
 		{
 			// If the hit surface is a light source, we need to calculate
 			// the pdf for NEE
 			if (mat_y.data3.x > EPSILON && light_tri_indices.length() > 0)
 			{
-				// float pdf_NEE_area = 0.0f;
-				/*
-				switch (data.object_type)
-				{
-				case ObjectType::SPHERE:
-					pdf_NEE_area = 1.0f / Area(&scene.spheres[data.object_index]);
-					break;
-				case ObjectType::TRIANGLE:
-					pdf_NEE_area = 1.0f / Area(&scene.tris[data.object_index]);
-					break;
-				default:
-					// printf("Light source type unsupported for sampling!\n");
-					break;
-				};
-				*/
-
 				// TODO: Replace this with the above
 				Triangle tri_NEE = triangles[data.mat_object_indices.y];
 
@@ -852,8 +836,10 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
-	// return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
-	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
+	return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
+	// return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
+
+	// TODO: Implement Oren-Nayar with MIS estimator
 	// return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 
