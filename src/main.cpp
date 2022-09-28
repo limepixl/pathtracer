@@ -84,11 +84,11 @@ int main(int argc, char *argv[])
 	Array<SphereGLSL> spheres_ssbo;
 
 	// Furnace test sphere
-	spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), {1} });
+	// spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), {1} });
 
 	// Point light and sphere next to it
-	// spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), { 1 } });
-	// spheres_ssbo.append({ Vec4f(4.0f, 0.0f, -4.0f, 0.03f), { 0 } });
+	spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), { 1 } });
+	spheres_ssbo.append({ Vec4f(4.0f, 0.0f, -4.0f, 0.03f), { 0 } });
 
 #if 0
 	Array<TriangleGLSL> model_tris_ssbo(tris.size);
