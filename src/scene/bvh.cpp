@@ -20,13 +20,13 @@ AABB ConstructAABBFromTris(Triangle *tris, uint32 num_tris)
 		Vec3f &v1 = tris[t_index].v1;
 		Vec3f &v2 = tris[t_index].v2;
 
-		aabb.bmin = MinComponentWise(aabb.bmin, v0);
-		aabb.bmin = MinComponentWise(aabb.bmin, v1);
-		aabb.bmin = MinComponentWise(aabb.bmin, v2);
+		aabb.bmin = pixl::min_component_wise(aabb.bmin, v0);
+		aabb.bmin = pixl::min_component_wise(aabb.bmin, v1);
+		aabb.bmin = pixl::min_component_wise(aabb.bmin, v2);
 
-		aabb.bmax = MaxComponentWise(aabb.bmax, v0);
-		aabb.bmax = MaxComponentWise(aabb.bmax, v1);
-		aabb.bmax = MaxComponentWise(aabb.bmax, v2);
+		aabb.bmax = pixl::max_component_wise(aabb.bmax, v0);
+		aabb.bmax = pixl::max_component_wise(aabb.bmax, v1);
+		aabb.bmax = pixl::max_component_wise(aabb.bmax, v2);
 	}
 
 	// Extend borders of AABB in order to get around
@@ -45,24 +45,24 @@ static void ExpandAABBWithTri(AABB &aabb, Triangle &tri)
 	Vec3f v1 = tri.v1 - offset_vec;
 	Vec3f v2 = tri.v2 - offset_vec;
 
-	aabb.bmin = MinComponentWise(aabb.bmin, v0);
-	aabb.bmin = MinComponentWise(aabb.bmin, v1);
-	aabb.bmin = MinComponentWise(aabb.bmin, v2);
+	aabb.bmin = pixl::min_component_wise(aabb.bmin, v0);
+	aabb.bmin = pixl::min_component_wise(aabb.bmin, v1);
+	aabb.bmin = pixl::min_component_wise(aabb.bmin, v2);
 
 	v0 = tri.v0 + offset_vec;
 	v1 = tri.v1 + offset_vec;
 	v2 = tri.v2 + offset_vec;
 
-	aabb.bmax = MaxComponentWise(aabb.bmax, v0);
-	aabb.bmax = MaxComponentWise(aabb.bmax, v1);
-	aabb.bmax = MaxComponentWise(aabb.bmax, v2);
+	aabb.bmax = pixl::max_component_wise(aabb.bmax, v0);
+	aabb.bmax = pixl::max_component_wise(aabb.bmax, v1);
+	aabb.bmax = pixl::max_component_wise(aabb.bmax, v2);
 }
 
 inline float squaredDist(AABB &aabb, Vec3f &point)
 {
-	float dx = Max(Max(aabb.bmin.x - point.x, 0.0f), point.x - aabb.bmax.x);
-	float dy = Max(Max(aabb.bmin.y - point.y, 0.0f), point.y - aabb.bmax.y);
-	float dz = Max(Max(aabb.bmin.z - point.z, 0.0f), point.z - aabb.bmax.z);
+	float dx = pixl::max(pixl::max(aabb.bmin.x - point.x, 0.0f), point.x - aabb.bmax.x);
+	float dy = pixl::max(pixl::max(aabb.bmin.y - point.y, 0.0f), point.y - aabb.bmax.y);
+	float dz = pixl::max(pixl::max(aabb.bmin.z - point.z, 0.0f), point.z - aabb.bmax.z);
 	return dx * dx + dy * dy + dz * dz;
 }
 
@@ -73,22 +73,22 @@ bool AABBIntersect(Ray ray, AABB aabb, float t)
 	float tx1 = (aabb.bmin.x - ray.origin.x) * ray.inv_dir.x;
 	float tx2 = (aabb.bmax.x - ray.origin.x) * ray.inv_dir.x;
 
-	float tmin = Min(tx1, tx2);
-	float tmax = Max(tx1, tx2);
+	float tmin = pixl::min(tx1, tx2);
+	float tmax = pixl::max(tx1, tx2);
 
 	float ty1 = (aabb.bmin.y - ray.origin.y) * ray.inv_dir.y;
 	float ty2 = (aabb.bmax.y - ray.origin.y) * ray.inv_dir.y;
 
-	tmin = Max(tmin, Min(ty1, ty2));
-	tmax = Min(tmax, Max(ty1, ty2));
+	tmin = pixl::max(tmin, pixl::min(ty1, ty2));
+	tmax = pixl::min(tmax, pixl::max(ty1, ty2));
 
 	float tz1 = (aabb.bmin.z - ray.origin.z) * ray.inv_dir.z;
 	float tz2 = (aabb.bmax.z - ray.origin.z) * ray.inv_dir.z;
 
-	tmin = Max(tmin, Min(tz1, tz2));
-	tmax = Min(tmax, Max(tz1, tz2));
+	tmin = pixl::max(tmin, pixl::min(tz1, tz2));
+	tmax = pixl::min(tmax, pixl::max(tz1, tz2));
 
-	return tmax >= Max(0.0f, tmin) && tmin < t;
+	return tmax >= pixl::max(0.0f, tmin) && tmin < t;
 }
 /*
 bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax)

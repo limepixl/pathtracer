@@ -29,12 +29,12 @@ void Camera::mouse_look(float xrel, float yrel)
 	if (ypos < -89.5f)
 		ypos = -89.5f;
 
-	forward.x = cosf(Radians(xpos)) * cosf(Radians(ypos));
-	forward.y = sinf(Radians(ypos));
-	forward.z = sinf(Radians(xpos)) * cosf(Radians(ypos));
-	forward = NormalizeVec3f(forward);
+	forward.x = cosf(pixl::radians(xpos)) * cosf(pixl::radians(ypos));
+	forward.y = sinf(pixl::radians(ypos));
+	forward.z = sinf(pixl::radians(xpos)) * cosf(pixl::radians(ypos));
+	forward = pixl::normalize(forward);
 
-	right = NormalizeVec3f(Cross(forward, Vec3f(0.0f, 1.0f, 0.0f)));
+	right = pixl::normalize(pixl::cross(forward, Vec3f(0.0f, 1.0f, 0.0f)));
 }
 
 void Camera::move(const uint8 *keyboard_state, uint32 delta_time, uint32 &frame_count)

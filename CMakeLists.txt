@@ -21,7 +21,6 @@ set(SOURCE_FILES
 	src/scene/material.cpp
 	src/scene/ray.cpp
 	src/scene/scene.cpp
-	src/scene/sphere.cpp
 	src/scene/triangle.cpp
 	src/display/display.cpp
 	src/resource/shader.cpp
@@ -41,7 +40,6 @@ set(SOURCE_FILES
 set(HEADER_FILES
 	src/loader.hpp
 	src/defines.hpp
-	# src/pathtracer.hpp
 
 	src/scene/bvh.hpp
 	src/scene/material.hpp

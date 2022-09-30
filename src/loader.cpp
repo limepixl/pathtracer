@@ -10,7 +10,7 @@
 
 static inline bool compare_tinyobjvec3_with_vec3f(const tinyobj::real_t* vec1, const Vec3f& vec2)
 {
-	return Abs(vec1[0] - vec2.x) < EPSILON && Abs(vec1[1] - vec2.y) < EPSILON && Abs(vec1[2] - vec2.z) < EPSILON;
+	return pixl::abs(vec1[0] - vec2.x) < EPSILON && pixl::abs(vec1[1] - vec2.y) < EPSILON && pixl::abs(vec1[2] - vec2.z) < EPSILON;
 }
 
 bool LoadModelFromObj(const char *file_name, const char *path,
@@ -140,12 +140,12 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 				Vec3f edge1 = v1 - v0;
 				Vec3f edge2 = v2 - v0;
 
-				Vec3f n = Cross(edge1, edge2);
+				Vec3f n = pixl::cross(edge1, edge2);
 				nv0 = n;
 				nv1 = n;
 				nv2 = n;
 			}
-			Vec3f normal = NormalizeVec3f(nv0 + nv1 + nv2);
+			Vec3f normal = pixl::normalize(nv0 + nv1 + nv2);
 
 			// Materials
 			uint32 mat_ID = (uint32)shapes[shape].mesh.material_ids[face];
@@ -162,7 +162,7 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 					Vec3f Le = out_materials[m]->Le;
 					float spec = out_materials[m]->n_spec;
 
-					if (Abs(spec - mat.shininess) < EPSILON && 
+					if (pixl::abs(spec - mat.shininess) < EPSILON &&
 						compare_tinyobjvec3_with_vec3f(mat.diffuse, diffuse) &&
 						compare_tinyobjvec3_with_vec3f(mat.specular, specular) &&
 						compare_tinyobjvec3_with_vec3f(mat.emission, Le))

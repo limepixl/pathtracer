@@ -4,7 +4,7 @@
 
 float Area(Triangle *tri)
 {
-	return sqrtf(Dot(tri->edge1, tri->edge1) * Dot(tri->edge2, tri->edge2)) / 2.0f;
+	return sqrtf(pixl::dot(tri->edge1, tri->edge1) * pixl::dot(tri->edge2, tri->edge2)) / 2.0f;
 }
 
 // NOTE: expects CCW winding order
@@ -12,7 +12,7 @@ Triangle CreateTriangle(Vec3f v0, Vec3f v1, Vec3f v2, uint32 mat_index)
 {
 	Vec3f A = v1 - v0;
 	Vec3f B = v2 - v0;
-	Vec3f normal = NormalizeVec3f(Cross(A, B));
+	Vec3f normal = pixl::normalize(pixl::cross(A, B));
 	return { v0, v1, v2, normal, A, B, mat_index };
 }
 

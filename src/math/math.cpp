@@ -6,7 +6,7 @@
 	Functions
 */
 
-float Sign(float value)
+float pixl::sign(float value)
 {
 	if (value < 0.0f)
 		return -1.0f;
@@ -17,12 +17,12 @@ float Sign(float value)
 	return value;
 }
 
-Vec3f Sign(Vec3f value)
+Vec3f pixl::sign(Vec3f value)
 {
-	return { Sign(value.x), Sign(value.y), Sign(value.z) };
+	return { pixl::sign(value.x), pixl::sign(value.y), pixl::sign(value.z) };
 }
 
-float Abs(float value)
+float pixl::abs(float value)
 {
 	if (value < 0.0f)
 		return -value;
@@ -30,17 +30,17 @@ float Abs(float value)
 	return value;
 }
 
-Vec3f Abs(Vec3f value)
+Vec3f pixl::abs(Vec3f value)
 {
-	return Vec3f(Abs(value.x), Abs(value.y), Abs(value.z));
+	return Vec3f(abs(value.x), abs(value.y), abs(value.z));
 }
 
-float Radians(float degrees)
+float pixl::radians(float degrees)
 {
 	return degrees * PI / 180.0f;
 }
 
-int16 Clamp(int16 value, int16 max)
+int16 pixl::clamp(int16 value, int16 max)
 {
 	if (value > max)
 		return max;
@@ -48,12 +48,12 @@ int16 Clamp(int16 value, int16 max)
 	return value;
 }
 
-float Dot(Vec3f vec1, Vec3f vec2)
+float pixl::dot(Vec3f vec1, Vec3f vec2)
 {
 	return (vec1.x * vec2.x) + (vec1.y * vec2.y) + (vec1.z * vec2.z);
 }
 
-Vec3f Cross(const Vec3f &a, const Vec3f &b)
+Vec3f pixl::cross(const Vec3f &a, const Vec3f &b)
 {
 	float x = a.y * b.z - a.z * b.y;
 	float y = a.z * b.x - a.x * b.z;
@@ -61,72 +61,72 @@ Vec3f Cross(const Vec3f &a, const Vec3f &b)
 	return Vec3f(x, y, z);
 }
 
-float Max(float a, float b)
+float pixl::max(float a, float b)
 {
 	return a > b ? a : b;
 }
 
-double Max(double a, double b)
+double pixl::max(double a, double b)
 {
 	return a > b ? a : b;
 }
 
-int32 Max(int32 a, int32 b)
+int32 pixl::max(int32 a, int32 b)
 {
 	return a > b ? a : b;
 }
 
-int16 Max(int16 a, int16 b)
+int16 pixl::max(int16 a, int16 b)
 {
 	return a > b ? a : b;
 }
 
-uint32 Max(uint32 a, uint32 b)
+uint32 pixl::max(uint32 a, uint32 b)
 {
 	return a > b ? a : b;
 }
 
-Vec3f MaxComponentWise(Vec3f &a, Vec3f &b)
+Vec3f pixl::max_component_wise(Vec3f &a, Vec3f &b)
 {
-	return Vec3f(Max(a.x, b.x), Max(a.y, b.y), Max(a.z, b.z));
+	return Vec3f(pixl::max(a.x, b.x), pixl::max(a.y, b.y), pixl::max(a.z, b.z));
 }
 
-float Min(float a, float b)
+float pixl::min(float a, float b)
 {
 	return a < b ? a : b;
 }
 
-double Min(double a, double b)
+double pixl::min(double a, double b)
 {
 	return a < b ? a : b;
 }
 
-uint32 Min(uint32 a, uint32 b)
+uint32 pixl::min(uint32 a, uint32 b)
 {
 	return a < b ? a : b;
 }
 
-uint16 Min(uint16 a, uint16 b)
+uint16 pixl::min(uint16 a, uint16 b)
 {
 	return a < b ? a : b;
 }
 
-Vec3f MinComponentWise(Vec3f &a, Vec3f &b)
+Vec3f pixl::min_component_wise(Vec3f &a, Vec3f &b)
 {
-	return Vec3f(Min(a.x, b.x), Min(a.y, b.y), Min(a.z, b.z));
+	return Vec3f(pixl::min(a.x, b.x), pixl::min(a.y, b.y), pixl::min(a.z, b.z));
 }
 
-float Step(float edge, float x)
+float pixl::step(float edge, float x)
 {
 	return x < edge ? 0.0f : 1.0f;
 }
 
-Vec3f Step(Vec3f edge, Vec3f x)
+Vec3f pixl::step(Vec3f edge, Vec3f x)
 {
-	return Vec3f(Step(edge.x, x.x), Step(edge.y, x.y), Step(edge.z, x.z));
+	return Vec3f(pixl::step(edge.x, x.x), pixl::step(edge.y, x.y), pixl::step(edge.z, x.z));
 }
 
-float Ceil(float num)
+float pixl::ceil(float num)
 {
 	if (num - (float)((int32)num) > 0.0f)
 		return float((int32)num + 1);
@@ -134,40 +134,40 @@ float Ceil(float num)
 	return num;
 }
 
-void Swap(float *v1, float *v2)
+void pixl::swap(float *v1, float *v2)
 {
 	float tmp = *v1;
 	*v1 = *v2;
 	*v2 = tmp;
 }
 
-Vec3f NormalizeVec3f(Vec3f vec)
+Vec3f pixl::normalize(Vec3f vec)
 {
-	return vec / sqrtf(Dot(vec, vec));
+	return vec / sqrtf(pixl::dot(vec, vec));
 }
 
 // PCG variants of the above functions
-float RandomNumberNormalizedPCG(pcg32_random_t *rngptr)
+float pixl::random_number_normalized_PCG(pcg32_random_t *rngptr)
 {
 	double d = ldexp(pcg32_random_r(rngptr), -32);
 	return (float)d;
 }
 
 // TODO: remove conditionals
-Vec2f RandomVec2fPCG(pcg32_random_t *rngptr)
+Vec2f pixl::random_Vec2f_PCG(pcg32_random_t *rngptr)
 {
-	float r1 = RandomNumberNormalizedPCG(rngptr);
+	float r1 = random_number_normalized_PCG(rngptr);
 	while (r1 < 0.0001f || r1 > 0.9999f)
-		r1 = RandomNumberNormalizedPCG(rngptr);
+		r1 = random_number_normalized_PCG(rngptr);
 
-	float r2 = RandomNumberNormalizedPCG(rngptr);
+	float r2 = random_number_normalized_PCG(rngptr);
 	while (r2 < 0.0001f || r2 > 0.9999f)
-		r2 = RandomNumberNormalizedPCG(rngptr);
+		r2 = random_number_normalized_PCG(rngptr);
 
 	return { r1, r2 };
 }
 
-Vec3f MapToUnitSphere(Vec2f vec2)
+Vec3f pixl::map_to_unit_sphere(Vec2f vec2)
 {
 	// First we map [0,1] to [0,2] and subtract one to map
 	// that to [-1, 1], which is the range of cosine.
@@ -188,13 +188,13 @@ Vec3f MapToUnitSphere(Vec2f vec2)
 	return Vec3f(sinTheta * cosPhi, cosTheta, sinTheta * sinPhi);
 }
 
-Vec3f MapToUnitHemisphereCosineWeightedCriver(Vec2f uv, Vec3f normal)
+Vec3f pixl::map_to_unit_hemisphere_cosine_weighted_criver(Vec2f uv, Vec3f normal)
 {
-	Vec3f p = MapToUnitSphere(uv);
-	return NormalizeVec3f(p + normal);
+	Vec3f p = map_to_unit_sphere(uv);
+	return normalize(p + normal);
 }
 
-Vec3f MapToTriangle(Vec2f vec2, Triangle tri)
+Vec3f pixl::map_to_triangle(Vec2f vec2, Triangle tri)
 {
 	float u = vec2.x;
 	float v = vec2.y;
@@ -212,13 +212,13 @@ Vec3f MapToTriangle(Vec2f vec2, Triangle tri)
 	return p + tri.v0;
 }
 
-Vec3f Reflect(Vec3f dir, Vec3f normal)
+Vec3f pixl::reflect(Vec3f dir, Vec3f normal)
 {
-	return 2.0f * Dot(normal, dir) * normal - dir;
+	return 2.0f * dot(normal, dir) * normal - dir;
 }
 
 // https://jcgt.org/published/0006/01/01/
-void OrthonormalBasis(Vec3f &n, Vec3f &t, Vec3f &bt)
+void pixl::orthonormal_basis(Vec3f &n, Vec3f &t, Vec3f &bt)
 {
 	float sign = copysignf(1.0f, n.z);
 	float a = -1.0f / (sign + n.z);
@@ -228,10 +228,10 @@ void OrthonormalBasis(Vec3f &n, Vec3f &t, Vec3f &bt)
 	bt = Vec3f(b, sign + n.y * n.y * a, -n.y);
 }
 
-Mat3f ConstructTNB(Vec3f &n)
+Mat3f pixl::construct_TNB_matrix(Vec3f &n)
 {
 	Vec3f t {}, bt {};
-	OrthonormalBasis(n, t, bt);
+	orthonormal_basis(n, t, bt);
 	Mat3f res(t, n, bt);
 	return TransposeMat3f(res);
 }
@@ -243,7 +243,7 @@ Mat3f ConstructTNB(Vec3f &n)
 bool operator==(const Vec3f &lhs, const Vec3f &rhs)
 {
 	Vec3f grace_interval(EPSILON);
-	Vec3f absdiff = Abs(lhs - rhs);
+	Vec3f absdiff = pixl::abs(lhs - rhs);
 	return absdiff <= grace_interval;
 }
 

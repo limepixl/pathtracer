@@ -80,7 +80,7 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &data1);
 	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &data2);
 	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &data3);
-	printf("Max size of work group (x, y, z): %d %d %d\n", data1, data2, data3);
+	printf("max size of work group (x, y, z): %d %d %d\n", data1, data2, data3);
 
 	// Turn off VSync
 	SDL_GL_SetSwapInterval(0);
