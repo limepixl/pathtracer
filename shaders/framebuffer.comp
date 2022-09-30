@@ -26,7 +26,7 @@ layout (std140, binding = 0) uniform Camera
 #define NUM_SHADOW_RAYS 1
 
 // Misc
-#define ENVIRONMENT_MAP_LE 0.0
+#define ENVIRONMENT_MAP_LE 1.0
 
 // SSBO helper structs
 
@@ -683,6 +683,12 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 	vec3 normal_y = data.normal;
 	Material mat_y = materials[data.mat_object_indices.x];
 
+	// Generate TNB matrix to map directions in terms of the normal vector
+	mat3 tnb = transpose(construct_tnb(data.normal));
+
+	float theta_o, phi_o;
+	cartesian_to_spherical(normalize(tnb * -rd), theta_o, phi_o);
+
 	// Add light contribution from first bounce if it hit a light source
 	color += throughput_term * mat_y.data3.xyz;
 
@@ -692,8 +698,6 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		vec3 x = y;
 		vec3 normal_x = normal_y;
 		Material mat_x = mat_y;
-
-		vec3 BRDF = mat_x.data1.xyz / PI;
 
 		uint num_light_sources = light_tri_indices.length() + light_sphere_indices.length();
 
@@ -760,6 +764,20 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 				// Visibility check means we have a clear line of sight!
 				if (shadow_hit_anything && all(lessThan(y_nee - (shadow_ro + shadow_rd * shadow_data.t), vec3(EPSILON))))
 				{
+					// Convert from Cartesian to Spherical coordinates
+					float shadow_theta_i, shadow_phi_i;
+					cartesian_to_spherical(normalize(tnb * shadow_rd), shadow_theta_i, shadow_phi_i);
+
+					vec3 BRDF;
+					if(abs(mat_x.data3.w - 1.0) < EPSILON)
+					{
+						BRDF = oren_nayar_brdf(mat_x.data1.xyz, mat_x.data1.w, vec2(shadow_theta_i, shadow_phi_i), vec2(theta_o, phi_o));
+					}
+					else if (abs(mat_x.data3.w) < EPSILON)
+					{
+						BRDF = mat_x.data1.xyz / PI;
+					}
+
 					float cos_theta_y = max(0.0, dot(shadow_data.normal, -shadow_rd));
 					if (cos_theta_y > 0.0)
 					{
@@ -788,6 +806,19 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), normal_x);
 		ro = x + EPSILON * normal_x;
 		rd = dir;
+
+		float theta_i, phi_i;
+		cartesian_to_spherical(normalize(tnb * rd), theta_i, phi_i);
+
+		vec3 BRDF;
+		if(abs(mat_x.data3.w - 1.0) < EPSILON)
+		{
+			BRDF = oren_nayar_brdf(mat_x.data1.xyz, mat_x.data1.w, vec2(theta_i, phi_i), vec2(theta_o, phi_o));
+		}
+		else if (abs(mat_x.data3.w) < EPSILON)
+		{
+			BRDF = mat_x.data1.xyz / PI;
+		}
 
 		float cos_theta_x = max(EPSILON, dot(normal_x, rd));
 
@@ -871,7 +902,7 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
 	// return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
-	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
+	// return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
 	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 
