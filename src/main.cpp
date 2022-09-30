@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[0]);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo[0]);
-		glNamedBufferStorage(ssbo[0], spheres_ssbo.size * sizeof(SphereGLSL), &(spheres_ssbo._data[0]), 0);
+		glNamedBufferStorage(ssbo[0], (GLsizeiptr)(spheres_ssbo.size * sizeof(SphereGLSL)), &(spheres_ssbo._data[0]), 0);
 		DeallocateArray(spheres_ssbo);
 	}
 #if 0
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[1]);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo[1]);
-		glNamedBufferStorage(ssbo[1], model_tris_ssbo.size * sizeof(TriangleGLSL), &(model_tris_ssbo[0]), 0);
+		glNamedBufferStorage(ssbo[1], (GLsizeiptr)(model_tris_ssbo.size * sizeof(TriangleGLSL)), &(model_tris_ssbo[0]), 0);
 		DeallocateArray(model_tris_ssbo);
 	}
 
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[2]);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo[2]);
-		glNamedBufferStorage(ssbo[2], emissive_tris.size * sizeof(uint32), &(emissive_tris[0]), 0);
+		glNamedBufferStorage(ssbo[2], (GLsizeiptr)(emissive_tris.size * sizeof(uint32)), &(emissive_tris[0]), 0);
 		DeallocateArray(emissive_tris);
 	}
 #endif
@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[3]);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo[3]);
-		glNamedBufferStorage(ssbo[3], materials_ssbo.size * sizeof(MaterialGLSL), &(materials_ssbo[0]), 0);
+		glNamedBufferStorage(ssbo[3], (GLsizeiptr)(materials_ssbo.size * sizeof(MaterialGLSL)), &(materials_ssbo[0]), 0);
 		DeallocateArray(materials_ssbo);
 	}
 #if 0
@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[4]);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo[4]);
-		glNamedBufferStorage(ssbo[4], bvh_ssbo.size * sizeof(BVHNodeGLSL), &(bvh_ssbo[0]), 0);
+		glNamedBufferStorage(ssbo[4], (GLsizeiptr)(bvh_ssbo.size * sizeof(BVHNodeGLSL)), &(bvh_ssbo[0]), 0);
 		DeallocateArray(bvh_ssbo);
 	}
 #endif
@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[5]);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ssbo[5]);
-		glNamedBufferStorage(ssbo[5], emissive_spheres_ssbo.size * sizeof(uint32), &(emissive_spheres_ssbo[0]), 0);
+		glNamedBufferStorage(ssbo[5], (GLsizeiptr)(emissive_spheres_ssbo.size * sizeof(uint32)), &(emissive_spheres_ssbo[0]), 0);
 		DeallocateArray(emissive_spheres_ssbo);
 	}
 	

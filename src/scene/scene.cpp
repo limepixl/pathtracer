@@ -1,5 +1,4 @@
 #include "scene.hpp"
-#include "sphere.hpp"
 #include "material.hpp"
 
 LightSource CreateLightSource(void *obj, LightSourceType type)

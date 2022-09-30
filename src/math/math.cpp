@@ -32,7 +32,7 @@ float pixl::abs(float value)
 
 Vec3f pixl::abs(Vec3f value)
 {
-	return Vec3f(abs(value.x), abs(value.y), abs(value.z));
+	return {abs(value.x), abs(value.y), abs(value.z)};
 }
 
 float pixl::radians(float degrees)
@@ -58,7 +58,7 @@ Vec3f pixl::cross(const Vec3f &a, const Vec3f &b)
 	float x = a.y * b.z - a.z * b.y;
 	float y = a.z * b.x - a.x * b.z;
 	float z = a.x * b.y - a.y * b.x;
-	return Vec3f(x, y, z);
+	return {x, y, z};
 }
 
 float pixl::max(float a, float b)
@@ -88,7 +88,7 @@ uint32 pixl::max(uint32 a, uint32 b)
 
 Vec3f pixl::max_component_wise(Vec3f &a, Vec3f &b)
 {
-	return Vec3f(pixl::max(a.x, b.x), pixl::max(a.y, b.y), pixl::max(a.z, b.z));
+	return {pixl::max(a.x, b.x), pixl::max(a.y, b.y), pixl::max(a.z, b.z)};
 }
 
 float pixl::min(float a, float b)
@@ -113,7 +113,7 @@ uint16 pixl::min(uint16 a, uint16 b)
 
 Vec3f pixl::min_component_wise(Vec3f &a, Vec3f &b)
 {
-	return Vec3f(pixl::min(a.x, b.x), pixl::min(a.y, b.y), pixl::min(a.z, b.z));
+	return {pixl::min(a.x, b.x), pixl::min(a.y, b.y), pixl::min(a.z, b.z)};
 }
 
 float pixl::step(float edge, float x)
@@ -123,7 +123,7 @@ float pixl::step(float edge, float x)
 
 Vec3f pixl::step(Vec3f edge, Vec3f x)
 {
-	return Vec3f(pixl::step(edge.x, x.x), pixl::step(edge.y, x.y), pixl::step(edge.z, x.z));
+	return {pixl::step(edge.x, x.x), pixl::step(edge.y, x.y), pixl::step(edge.z, x.z)};
 }
 
 float pixl::ceil(float num)
@@ -185,7 +185,7 @@ Vec3f pixl::map_to_unit_sphere(Vec2f vec2)
 	float cosPhi = cosf(Phi);
 
 	// Just a conversion between spherical and Cartesian coordinates
-	return Vec3f(sinTheta * cosPhi, cosTheta, sinTheta * sinPhi);
+	return {sinTheta * cosPhi, cosTheta, sinTheta * sinPhi};
 }
 
 Vec3f pixl::map_to_unit_hemisphere_cosine_weighted_criver(Vec2f uv, Vec3f normal)

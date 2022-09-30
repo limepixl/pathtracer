@@ -1,5 +1,4 @@
 #include "vec.hpp"
-#include "../defines.hpp"
 
 Vec3f operator+(const Vec3f &lhs, const Vec3f &rhs)
 {

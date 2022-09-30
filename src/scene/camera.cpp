@@ -1,9 +1,7 @@
 #include "camera.hpp"
-#include "../defines.hpp"
 #include "../math/math.hpp"
 #include <SDL.h>
 #include <glad/glad.h>
-#include <cstdio>
 #include <cmath>
 
 Camera::Camera(Vec3f orig, Vec3f fwd, Vec3f r, float speed, float sens)
