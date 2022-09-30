@@ -693,6 +693,8 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		vec3 normal_x = normal_y;
 		Material mat_x = mat_y;
 
+		vec3 BRDF = mat_x.data1.xyz / PI;
+
 		uint num_light_sources = light_tri_indices.length() + light_sphere_indices.length();
 
 		// If there is at least 1 light source in the scene, and the material of the
@@ -704,7 +706,6 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		if (can_use_NEE)
 		{
 			// sample light sources for direct illumination
-			// for (uint shadow_ray_index = 0; shadow_ray_index < NUM_SHADOW_RAYS; shadow_ray_index++)
 			{
 				// pick a light source
 				float pdf_pick_light = 1.0f / float(num_light_sources);
@@ -775,9 +776,9 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 
 						// weight for NEE
 						float wNEE = balance_heuristic(pdf_light_sa, pdf_BSDF_sa) / pdf_light_sa;
-						// float wNEE = 1.0f / (pdf_light_sa + pdf_BSDF_sa);
+						// float wNEE = 1.0f / (pdf_light_sa + pdf_BSDF_sa); // NOTE: an optimization
 
-						color += light_source_mat.data3.xyz * mat_x.data1.xyz * cos_theta_x * throughput_term * wNEE;
+						color += light_source_mat.data3.xyz * BRDF * cos_theta_x * throughput_term * wNEE;
 					}
 				}
 			}
@@ -788,7 +789,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		ro = x + EPSILON * normal_x;
 		rd = dir;
 
-		float cos_theta_x = max(0.0, dot(normal_x, rd));
+		float cos_theta_x = max(EPSILON, dot(normal_x, rd));
 
 		hit_anything = intersect(ro, rd, data);
 		if (!hit_anything)
@@ -796,7 +797,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 			// No intersection with scene, add env map contribution
 			if (b <= BOUNCE_COUNT)
 			{
-				color += throughput_term * PI * mat_x.data1.xyz * sky_color(rd) * ENVIRONMENT_MAP_LE;
+				color += throughput_term * BRDF * cos_theta_x * sky_color(rd) * ENVIRONMENT_MAP_LE / (cos_theta_x / PI);
 				break;
 			}
 		}
@@ -816,8 +817,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		// If we can use NEE on the hit surface
 		if ((mat_x.data3.w == 0.0 || mat_x.data3.w == 1.0) && all(lessThan(mat_x.data3.xyz, vec3(EPSILON))) && cos_theta_y > 0.0)
 		{
-			// If the hit surface is a light source, we need to calculate
-			// the pdf for NEE
+			// If the hit surface is a light source, we need to calculate the pdf for NEE
 			if (any(greaterThan(mat_y.data3.xyz, vec3(EPSILON))) && num_light_sources > 0)
 			{
 				float pdf_NEE_area = 0.0;
@@ -832,9 +832,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 				else if(data.object_type == 1)
 				{
 					Sphere sphere_NEE = spheres[data.mat_object_indices.y];
-
-					float radius = sphere_NEE.sphere_data.w;
-					pdf_NEE_area = 1.0 / area_sphere(radius);
+					pdf_NEE_area = 1.0 / area_sphere(sphere_NEE.sphere_data.w);
 				}
 
 				pdf_NEE_area /= float(num_light_sources);
@@ -843,11 +841,10 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 				wBSDF = balance_heuristic(pdf_BSDF_sa, pdf_NEE_sa);
 			}
 
-			if (b <= BOUNCE_COUNT)
-				color += throughput_term * mat_x.data1.xyz * mat_y.data3.xyz * PI * wBSDF;
+			color += throughput_term * BRDF * mat_y.data3.xyz * cos_theta_y * wBSDF / pdf_BSDF_sa;
 		}
 
-		throughput_term *= PI * mat_x.data1.xyz;
+		throughput_term *= BRDF * cos_theta_y / pdf_BSDF_sa;
 	}
 
 	return color;
@@ -874,9 +871,7 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
 	// return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
-	// return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
-
-	// TODO: Implement Oren-Nayar with MIS estimator
+	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
 	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 
