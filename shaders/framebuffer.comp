@@ -402,6 +402,57 @@ vec3 oren_nayar_brdf(vec3 albedo, float roughness, vec2 theta_phi_i, vec2 theta_
 	return (albedo / PI) * (A + B * max(0.0, cos(theta_phi_i.y - theta_phi_o.y)) * sin(alpha) * tan(beta));
 }
 
+float positive_characteristic_func(float value)
+{
+	return value > 0.0 ? 1.0 : 0.0;
+}
+
+// Trowbridge-Reitz NDF (also knows as the GGX NDF)
+// m - microfacet normal
+// n - surface normal
+float trowbridge_reitz_NDF(vec3 m, vec3 n, float alpha_ggx)
+{
+	float n_dot_m = dot(n,m);
+	float squared_alpha = alpha_ggx * alpha_ggx;
+	float result = positive_characteristic_func(n_dot_m) * squared_alpha;
+	result /= pow(PI * (1.0 + n_dot_m * n_dot_m * (squared_alpha - 1.0)), 2);
+	return result;
+}
+
+// Lambda function for GGX used in the Smith shadowing-masking function
+// NOTE: CHECK IN WHAT BASIS THE DIR IS!!!!!!!!!!
+float trowbridge_reitz_lambda(vec3 dir, float alpha_ggx)
+{
+	float cos_theta = dir.y;
+	float sin_theta_2 = max(0.0, 1.0 - cos_theta * cos_theta);
+	float tan_theta = sqrt(sin_theta_2) / cos_theta;
+	float a = 1.0 / (alpha_ggx * tan_theta);
+	return -0.5 + 0.5 * sqrt(1.0 + 1.0 / (a*a));
+}
+
+// Smith joing shadowing-masking function (height correlated form)
+float G2(vec3 l, vec3 v, vec3 m, float alpha_ggx)
+{
+	float result = positive_characteristic_func(dot(m,v)) * positive_characteristic_func(dot(m, l));
+	result /= (1.0 + trowbridge_reitz_lambda(v, alpha_ggx) + trowbridge_reitz_lambda(l, alpha_ggx));
+	return result;
+}
+
+// Schlick's approximation for the Fresnel term
+vec3 F(vec3 n, vec3 l, vec3 F0)
+{
+	return F0 + (1.0 - F0) * pow(1.0 - max(0.0, dot(n,l)), 5);
+}
+
+vec3 GGX_Smith_BRDF(vec3 l, vec3 v, vec3 n, vec3 F0, float alpha_ggx)
+{
+	vec3 h = l + v; h /= length(h);
+	vec3 result = F(h, l, F0) * G2(l, v, h, alpha_ggx) * trowbridge_reitz_NDF(h, n, alpha_ggx);
+	result /= 4 * abs(dot(n, l)) * abs(dot(n, v));
+
+	return result;
+}
+
 // Estimators
 
 vec3 estimator_path_tracing_naive(in vec3 ro, in vec3 rd, in uint rng_state)
