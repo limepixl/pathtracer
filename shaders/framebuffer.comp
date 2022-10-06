@@ -45,7 +45,7 @@ struct Sphere
 
 struct Material
 {
-	vec4 data1; // diff.x, diff.y, diff.z, diff_roughness
+	vec4 data1; // diff.x, diff.y, diff.z, rougness
 	vec4 data2; // spec.x, spec.y, spec.z, n_spec
 	vec4 data3; // Le.x, Le.y, Le.z, mat_type
 };
@@ -952,9 +952,9 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
-	// return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
+	return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
 	// return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
-	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
+	// return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 
 void main() 

@@ -25,9 +25,9 @@ Material CreateMaterial(MaterialType type, Vec3f diffuse, Vec3f specular, float 
 
 	return result;
 }
-MaterialGLSL::MaterialGLSL(const Vec3f &diffuse, const Vec3f &specular, const Vec3f &Le, float diffuse_roughness, float specular_exponent, MaterialType type)
+MaterialGLSL::MaterialGLSL(const Vec3f &diffuse, const Vec3f &specular, const Vec3f &Le, float roughness, float specular_exponent, MaterialType type)
 {
-	data1 = Vec4f(diffuse.x, diffuse.y, diffuse.z, diffuse_roughness);
+	data1 = Vec4f(diffuse.x, diffuse.y, diffuse.z, roughness);
 	data2 = Vec4f(specular.x, specular.y, specular.z, specular_exponent);
 	data3 = Vec4f(Le.x, Le.y, Le.z, (float)type);
 }

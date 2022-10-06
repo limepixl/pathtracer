@@ -4,7 +4,8 @@
 enum MaterialType
 {
 	MATERIAL_LAMBERTIAN = 0,
-	MATERIAL_OREN_NAYAR
+	MATERIAL_OREN_NAYAR,
+	MATERIAL_SPECULAR
 };
 
 struct Material
@@ -24,7 +25,7 @@ Material CreateMaterial(MaterialType type, Vec3f diffuse, Vec3f specular, float 
 
 struct MaterialGLSL
 {
-	Vec4f data1; // diff.x, diff.y, diff.z, diff_roughness
+	Vec4f data1; // diff.x, diff.y, diff.z, roughness
 	Vec4f data2; // spec.x, spec.y, spec.z, n_spec
 	Vec4f data3; // Le.x, Le.y, Le.z, mat_type
 
@@ -33,7 +34,7 @@ struct MaterialGLSL
 	MaterialGLSL(const Vec3f &diffuse,
 				 const Vec3f &specular,
 				 const Vec3f &Le,
-				 float diffuse_roughness,
+				 float roughness,
 				 float specular_exponent,
 				 MaterialType type);
 };
