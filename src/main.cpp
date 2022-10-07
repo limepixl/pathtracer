@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
 
 	Array<MaterialGLSL> materials_ssbo;
 	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.0f), Vec3f(10000.0f), 0.0f, 0.0f, MaterialType::MATERIAL_LAMBERTIAN));
-	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.01f, 0.0f, MaterialType::MATERIAL_SPECULAR));
+	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.0f, 0.0f, MaterialType::MATERIAL_SPECULAR));
 	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.025f, 0.0f, MaterialType::MATERIAL_SPECULAR));
 	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.075f, 0.0f, MaterialType::MATERIAL_SPECULAR));
 	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.1f, 0.0f, MaterialType::MATERIAL_SPECULAR));
