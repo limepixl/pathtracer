@@ -79,12 +79,29 @@ int main(int argc, char *argv[])
 
 	Array<MaterialGLSL> materials_ssbo;
 	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.0f), Vec3f(10000.0f), 0.0f, 0.0f, MaterialType::MATERIAL_LAMBERTIAN));
+	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.01f, 0.0f, MaterialType::MATERIAL_SPECULAR));
 	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.025f, 0.0f, MaterialType::MATERIAL_SPECULAR));
+	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.075f, 0.0f, MaterialType::MATERIAL_SPECULAR));
+	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.1f, 0.0f, MaterialType::MATERIAL_SPECULAR));
+	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.125f, 0.0f, MaterialType::MATERIAL_SPECULAR));
+	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.15f, 0.0f, MaterialType::MATERIAL_SPECULAR));
+	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.175f, 0.0f, MaterialType::MATERIAL_SPECULAR));
+	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.2f, 0.0f, MaterialType::MATERIAL_SPECULAR));
 
 	Array<SphereGLSL> spheres_ssbo;
 
-	// Furnace test sphere
-	spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), {1} });
+	// Single sphere
+	// spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), {1} });
+
+	// Grid of spheres
+	spheres_ssbo.append({ Vec4f(-0.99f,  0.33f, -4.0f, 0.33f), {1} });
+	spheres_ssbo.append({ Vec4f(-0.33f,  0.33f, -4.0f, 0.33f), {2} });
+	spheres_ssbo.append({ Vec4f( 0.33f,  0.33f, -4.0f, 0.33f), {3} });
+	spheres_ssbo.append({ Vec4f( 0.99f,  0.33f, -4.0f, 0.33f), {4} });
+	spheres_ssbo.append({ Vec4f(-0.99f, -0.33f, -4.0f, 0.33f), {5} });
+	spheres_ssbo.append({ Vec4f(-0.33f, -0.33f, -4.0f, 0.33f), {6} });
+	spheres_ssbo.append({ Vec4f( 0.33f, -0.33f, -4.0f, 0.33f), {7} });
+	spheres_ssbo.append({ Vec4f( 0.99f, -0.33f, -4.0f, 0.33f), {8} });
 
 	// Point light and sphere next to it
 //	spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), { 1 } });
