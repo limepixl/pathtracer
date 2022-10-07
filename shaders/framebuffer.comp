@@ -433,7 +433,6 @@ float trowbridge_reitz_lambda(vec3 dir, float alpha_ggx)
 // Smith joing shadowing-masking function (height correlated form)
 float G2(vec3 l, vec3 v, vec3 m, float alpha_ggx)
 {
-	return 1.0;
 	float result = positive_characteristic_func(dot(m,v)) * positive_characteristic_func(dot(m, l));
 	result /= (1.0 + trowbridge_reitz_lambda(v, alpha_ggx) + trowbridge_reitz_lambda(l, alpha_ggx));
 	return result;
@@ -520,9 +519,11 @@ vec3 estimator_path_tracing_naive(in vec3 ro, in vec3 rd, in uint rng_state)
 		// Specular BRDF
 		else if (mat.data3.w == 2.0)
 		{
-			vec3 l = rd;
-			vec3 n = data.normal;
-			vec3 v = -old_rd;
+			mat3 tnb = transpose(construct_tnb(data.normal));
+
+			vec3 l = normalize(tnb * rd);
+			vec3 n = normalize(tnb * data.normal);
+			vec3 v = normalize(tnb * -old_rd);
 
 			BRDF = GGX_Smith_BRDF(l, v, n, mat.data2.xyz, mat.data1.w);
 		}
