@@ -21,6 +21,9 @@ First tests of MIS between Naive and NEE
 MIS (Naive+NEE), Modified Blinn-Phong, Sweep SAH BVH
 ![bvh](https://raw.githubusercontent.com/limepixl/pathtracer/main/renders/mis_bvh_blinnphong_bunny.png)
 
+Specular BRDF (GGX NDF with Smith geometry func.), using GGX importance sampling - Metallic Gold material
+![specular](https://raw.githubusercontent.com/limepixl/pathtracer/main/renders/naive_specular_gold.png)
+
 ### Third-party libraries used:
 - Tiny OBJ Loader ([GitHub](https://github.com/tinyobjloader/tinyobjloader))
 - PCG Random Number Generation Library (Minimal C Edition) ([GitHub](https://github.com/imneme/pcg-c-basic))
