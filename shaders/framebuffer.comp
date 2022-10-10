@@ -427,7 +427,7 @@ vec3 importance_sample_trowbridge_reitz(vec3 wo, float alpha_ggx, in uint rng_st
 #if IMPORTANCE_SAMPLE_GGX
 	pdf = 1.0;
 #else
-	pdf = (alpha_squared * cos_theta) / max(EPSILON, 4.0 * abs(dot(wo, wm)) * PI * pow((alpha_squared - 1.0) * cos_theta * cos_theta + 1.0, 2.0));
+	pdf = (alpha_squared * cos_theta) / (4.0 * abs(dot(wo, wm)) * PI * pow((alpha_squared - 1.0) * cos_theta * cos_theta + 1.0, 2.0));
 #endif
 
 	// Generate the incident direction by reflecting the outgoing by the microfacet normal
@@ -566,7 +566,7 @@ vec3 estimator_path_tracing_naive(in vec3 ro, in vec3 rd, in uint rng_state)
 #if IMPORTANCE_SAMPLE_GGX_TERM_CANCEL
 			cos_theta_x = 1.0; // Gets cancelled out with importance sampling
 #else
-			cos_theta_x = max(EPSILON, dot(data.normal, rd));
+			cos_theta_x = abs(dot(data.normal, rd));
 #endif
 		}
 
