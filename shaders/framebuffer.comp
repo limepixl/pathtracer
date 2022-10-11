@@ -483,11 +483,11 @@ vec3 GGX_Smith_BRDF(vec3 wo, vec3 F0, float alpha_ggx, out vec3 wi, out float pd
 
 	// The below results from importance sampling the GGX NDF and having some terms cancel out
 	vec3 result = F(wm, wi, F0) * G2(wi, wo, wm, alpha_ggx) * abs(dot(wo, wm));
-	result /= max(EPSILON, abs(dot(wg, wo)) * abs(dot(wg, wm)));
+	result /= max(EPSILON * 10, abs(dot(wg, wo)) * abs(dot(wg, wm)));
 	return result;
 #else
 	vec3 result = F(wm, wi, F0) * G2(wi, wo, wm, alpha_ggx) * trowbridge_reitz_NDF(wm, wg, alpha_ggx);
-	result /= max(EPSILON, 4 * abs(dot(wg, wi)) * abs(dot(wg, wo)));
+	result /= max(EPSILON * 10, 4 * abs(dot(wg, wi)) * abs(dot(wg, wo)));
 	return result;
 #endif
 }
