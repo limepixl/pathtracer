@@ -27,6 +27,7 @@ layout (std140, binding = 0) uniform Camera
 
 // Misc
 #define ENVIRONMENT_MAP_LE 1.0
+#define IMPORTANCE_SAMPLE_GGX 1
 #define IMPORTANCE_SAMPLE_GGX_TERM_CANCEL 1
 
 // SSBO helper structs
@@ -424,7 +425,7 @@ vec3 importance_sample_trowbridge_reitz(vec3 wo, float alpha_ggx, in uint rng_st
 	float sin_theta = sin(theta);
 	vec3 wm = vec3(sin_theta * cos(phi), cos_theta, sin_theta * sin(phi));
 
-#if IMPORTANCE_SAMPLE_GGX
+#if IMPORTANCE_SAMPLE_GGX_TERM_CANCEL
 	pdf = 1.0;
 #else
 	pdf = (alpha_squared * cos_theta) / (4.0 * abs(dot(wo, wm)) * PI * pow((alpha_squared - 1.0) * cos_theta * cos_theta + 1.0, 2.0));
@@ -470,6 +471,17 @@ float G2(vec3 wi, vec3 wo, vec3 wm, float alpha_ggx)
 vec3 F(vec3 wm, vec3 wi, vec3 F0)
 {
 	return F0 + (vec3(1.0) - F0) * pow(1.0 - min(1.0, max(0.0, dot(wm, wi))), 5);
+}
+
+vec3 GGX_Smith_BRDF_non_IS(vec3 wo, vec3 wi, vec3 F0, float alpha_ggx)
+{
+	// n or wg is always up in tangent space
+	vec3 wg = vec3(0.0, 1.0, 0.0);
+	vec3 wm = normalize(wo + wi);
+
+	vec3 result = F(wm, wi, F0) * G2(wi, wo, wm, alpha_ggx) * trowbridge_reitz_NDF(wm, wg, alpha_ggx);
+	result /= max(EPSILON * 10, 4 * abs(dot(wg, wi)) * abs(dot(wg, wo)));
+	return result;
 }
 
 vec3 GGX_Smith_BRDF(vec3 wo, vec3 F0, float alpha_ggx, out vec3 wi, out float pdf, in uint rng_state)
@@ -559,14 +571,18 @@ vec3 estimator_path_tracing_naive(in vec3 ro, in vec3 rd, in uint rng_state)
 
 			vec3 wo = normalize(tnb * -old_rd);
 
+#if IMPORTANCE_SAMPLE_GGX
 			BRDF = GGX_Smith_BRDF(wo, mat.data2.xyz, mat.data1.w, rd, pdf, rng_state);
-
 			rd = normalize(inverse(tnb) * rd);
-
-#if IMPORTANCE_SAMPLE_GGX_TERM_CANCEL
+	#if IMPORTANCE_SAMPLE_GGX_TERM_CANCEL
 			cos_theta_x = 1.0; // Gets cancelled out with importance sampling
-#else
+	#else
 			cos_theta_x = abs(dot(data.normal, rd));
+	#endif
+#else
+			vec3 wi = normalize(tnb * rd);
+			BRDF = GGX_Smith_BRDF_non_IS(wo, wi, mat.data2.xyz, mat.data1.w);
+			pdf = cos_theta_x / PI;
 #endif
 		}
 
