@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 	// Set up data to be passed to SSBOs
 
 	Array<MaterialGLSL> materials_ssbo;
-	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.0f), Vec3f(100.0f), 0.0f, 0.0f, MaterialType::MATERIAL_LAMBERTIAN));
+	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.0f), Vec3f(10.0f), 0.0f, 0.0f, MaterialType::MATERIAL_LAMBERTIAN));
 	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.0f, 0.0f, MaterialType::MATERIAL_SPECULAR));
 	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.025f, 0.0f, MaterialType::MATERIAL_SPECULAR));
 	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.075f, 0.0f, MaterialType::MATERIAL_SPECULAR));
@@ -87,6 +87,8 @@ int main(int argc, char *argv[])
 	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.15f, 0.0f, MaterialType::MATERIAL_SPECULAR));
 	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.175f, 0.0f, MaterialType::MATERIAL_SPECULAR));
 	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.2f, 0.0f, MaterialType::MATERIAL_SPECULAR));
+
+	materials_ssbo.append(MaterialGLSL(Vec3f(0.95f), Vec3f(0.0f), Vec3f(0.0f), 0.0f, 0.0f, MaterialType::MATERIAL_OREN_NAYAR));
 
 	Array<SphereGLSL> spheres_ssbo;
 
@@ -101,8 +103,8 @@ int main(int argc, char *argv[])
 	spheres_ssbo.append(SphereGLSL(Vec3f( 0.99f, -0.33f, -4.0f), 0.33f, 8));
 
 	// Point light and sphere next to it
-//	spheres_ssbo.append(SphereGLSL(Vec3f(0.0f, 0.0f, -4.0f), 1.0f, 1));
-//	spheres_ssbo.append(SphereGLSL(Vec3f(0.0f, 0.0f, 0.0f), 0.3f, 0));
+	spheres_ssbo.append(SphereGLSL(Vec3f(0.0f, 1.0f, -4.0f), 0.3f, 9));
+	spheres_ssbo.append(SphereGLSL(Vec3f(0.0f, 0.0f, 1.0f), 1.0f, 0));
 
 #if 0
 	Array<TriangleGLSL> model_tris_ssbo(tris.size);
