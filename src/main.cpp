@@ -90,22 +90,19 @@ int main(int argc, char *argv[])
 
 	Array<SphereGLSL> spheres_ssbo;
 
-	// Single sphere
-	// spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), {1} });
-
 	// Grid of spheres
-	spheres_ssbo.append({ Vec4f(-0.99f,  0.33f, -4.0f, 0.33f), {1} });
-	spheres_ssbo.append({ Vec4f(-0.33f,  0.33f, -4.0f, 0.33f), {2} });
-	spheres_ssbo.append({ Vec4f( 0.33f,  0.33f, -4.0f, 0.33f), {3} });
-	spheres_ssbo.append({ Vec4f( 0.99f,  0.33f, -4.0f, 0.33f), {4} });
-	spheres_ssbo.append({ Vec4f(-0.99f, -0.33f, -4.0f, 0.33f), {5} });
-	spheres_ssbo.append({ Vec4f(-0.33f, -0.33f, -4.0f, 0.33f), {6} });
-	spheres_ssbo.append({ Vec4f( 0.33f, -0.33f, -4.0f, 0.33f), {7} });
-	spheres_ssbo.append({ Vec4f( 0.99f, -0.33f, -4.0f, 0.33f), {8} });
+	spheres_ssbo.append(SphereGLSL(Vec3f(-0.99f,  0.33f, -4.0f), 0.33f, 1));
+	spheres_ssbo.append(SphereGLSL(Vec3f(-0.33f,  0.33f, -4.0f), 0.33f, 2));
+	spheres_ssbo.append(SphereGLSL(Vec3f( 0.33f,  0.33f, -4.0f), 0.33f, 3));
+	spheres_ssbo.append(SphereGLSL(Vec3f( 0.99f,  0.33f, -4.0f), 0.33f, 4));
+	spheres_ssbo.append(SphereGLSL(Vec3f(-0.99f, -0.33f, -4.0f), 0.33f, 5));
+	spheres_ssbo.append(SphereGLSL(Vec3f(-0.33f, -0.33f, -4.0f), 0.33f, 6));
+	spheres_ssbo.append(SphereGLSL(Vec3f( 0.33f, -0.33f, -4.0f), 0.33f, 7));
+	spheres_ssbo.append(SphereGLSL(Vec3f( 0.99f, -0.33f, -4.0f), 0.33f, 8));
 
 	// Point light and sphere next to it
-//	spheres_ssbo.append({ Vec4f(0.0f, 0.0f, -4.0f, 1.0f), { 1 } });
-//	spheres_ssbo.append({ Vec4f(0.0f, 0.0f, 0.0f, 0.3f), { 0 } });
+//	spheres_ssbo.append(SphereGLSL(Vec3f(0.0f, 0.0f, -4.0f), 1.0f, 1));
+//	spheres_ssbo.append(SphereGLSL(Vec3f(0.0f, 0.0f, 0.0f), 0.3f, 0));
 
 #if 0
 	Array<TriangleGLSL> model_tris_ssbo(tris.size);
