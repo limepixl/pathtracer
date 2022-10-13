@@ -29,6 +29,7 @@ layout (std140, binding = 0) uniform Camera
 #define ENVIRONMENT_MAP_LE 0.0
 #define IMPORTANCE_SAMPLE_GGX 1
 #define IMPORTANCE_SAMPLE_GGX_TERM_CANCEL 1
+#define NEE_SPECULAR_ROUGHNESS_CUTOFF 0.01
 
 // SSBO helper structs
 
@@ -649,6 +650,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		Material mat = materials[data.mat_object_indices.x];
 
 		uint num_light_sources = light_tri_indices.length() + light_sphere_indices.length();
+		bool can_use_NEE = num_light_sources > 0 && (mat.data3.w == 0.0 || mat.data3.w == 1.0 || (mat.data3.w == 2.0 && mat.data1.w > NEE_SPECULAR_ROUGHNESS_CUTOFF));
 
 		// add light that is emitted from surface (but stop right afterwards)
 		if (bounce <= BOUNCE_COUNT && any(greaterThanEqual(mat.data3.xyz, vec3(EPSILON))))
@@ -660,7 +662,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		}
 		// If there is at least 1 light source in the scene and the material
 		// of the surface we hit is diffuse, we can use NEE.
-		else if (num_light_sources > 0 && (mat.data3.w == 0.0 || mat.data3.w == 1.0 || (mat.data3.w == 2.0 && mat.data1.w > 0.0)))
+		else if (can_use_NEE)
 		{
 			// sample light sources for direct illumination
 			vec3 direct_illumination = vec3(0.0);
@@ -742,7 +744,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 
 					// We want to only add light contribution from lights within
 					// the hemisphere solid angle above X, and not from lights behind it.
-					float cos_theta_x = abs(dot(data.normal, shadow_rd));
+					float cos_theta_x = max(0.0, cos(shadow_theta_i));
 
 					// We can sample the light from both sides, it doesn't have to
 					// be a one-sided light source.
@@ -784,7 +786,15 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		}
 		else if(mat.data3.w == 2.0)
 		{
-			prev_bounce_specular = true;
+			// If the roughness is smaller than the cutoff, then that means that the material
+			// is rough enough to have NEE applied to it, so direct lighting has already been
+			// computed. No need to signal via prev_bounce_specular to add any Le energy
+			// if the next bounce hits a light. Because then, we add direct light energy AND
+			// the next hit energy, which is double the energy!
+			if(mat.data1.w < NEE_SPECULAR_ROUGHNESS_CUTOFF)
+				prev_bounce_specular = true;
+			else
+				prev_bounce_specular = false;
 
 			vec3 wo = normalize(tnb * -old_rd);
 			vec3 wi = normalize(tnb * rd);
@@ -1041,8 +1051,8 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
-	return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
-//	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
+//	return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
+	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
 //	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 
