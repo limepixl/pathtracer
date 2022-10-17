@@ -29,7 +29,7 @@ layout (std140, binding = 0) uniform Camera
 #define ENVIRONMENT_MAP_LE 0.0
 #define IMPORTANCE_SAMPLE_GGX 1
 #define IMPORTANCE_SAMPLE_GGX_TERM_CANCEL 1
-#define NEE_SPECULAR_ROUGHNESS_CUTOFF 0.01
+#define NEE_SPECULAR_ROUGHNESS_CUTOFF 0.005
 
 // SSBO helper structs
 
@@ -991,7 +991,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 			// computed. No need to signal via prev_bounce_specular to add any Le energy
 			// if the next bounce hits a light. Because then, we add direct light energy AND
 			// the next hit energy, which is double the energy!
-			if(mat_x.data1.w < NEE_SPECULAR_ROUGHNESS_CUTOFF)
+			if(mat_x.data1.w <= NEE_SPECULAR_ROUGHNESS_CUTOFF)
 				prev_bounce_specular = true;
 			else
 				prev_bounce_specular = false;
@@ -1067,6 +1067,14 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 			throughput_term *= BRDF;
 		else
 			throughput_term *= BRDF * cos_theta_y / pdf_BSDF_sa;
+
+		if (!can_use_NEE)
+		{
+			if(mat_x.data3.w == 2.0 && bool(IMPORTANCE_SAMPLE_GGX) && bool(IMPORTANCE_SAMPLE_GGX_TERM_CANCEL))
+			{
+				color += throughput_term * mat_y.data3.xyz;
+			}
+		}
 	}
 
 	return color;
