@@ -650,7 +650,9 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		Material mat = materials[data.mat_object_indices.x];
 
 		uint num_light_sources = light_tri_indices.length() + light_sphere_indices.length();
-		bool can_use_NEE = num_light_sources > 0 && (mat.data3.w == 0.0 || mat.data3.w == 1.0 || (mat.data3.w == 2.0 && mat.data1.w > NEE_SPECULAR_ROUGHNESS_CUTOFF));
+		bool can_use_NEE = num_light_sources > 0;
+		can_use_NEE = can_use_NEE && (mat.data3.w == 0.0 || mat.data3.w == 1.0 || (mat.data3.w == 2.0 && mat.data1.w > NEE_SPECULAR_ROUGHNESS_CUTOFF));
+		can_use_NEE = can_use_NEE && all(lessThan(mat.data3.xyz, vec3(EPSILON)));
 
 		// add light that is emitted from surface (but stop right afterwards)
 		if (bounce <= BOUNCE_COUNT && any(greaterThanEqual(mat.data3.xyz, vec3(EPSILON))))
@@ -825,22 +827,19 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 	if (!hit_anything)
 	{
 		// No intersection with scene, add env map contribution
-		color += throughput_term * sky_color(rd) * ENVIRONMENT_MAP_LE;
-		return color;
+		return sky_color(rd) * ENVIRONMENT_MAP_LE;
 	}
 
 	vec3 y = ro + rd * data.t + EPSILON * data.normal;
 	vec3 normal_y = data.normal;
 	Material mat_y = materials[data.mat_object_indices.x];
 
-	// Generate TNB matrix to map directions in terms of the normal vector
-	mat3 tnb = transpose(construct_tnb(data.normal));
-
-	float theta_o, phi_o;
-	cartesian_to_spherical(normalize(tnb * -rd), theta_o, phi_o);
+	bool prev_bounce_specular = false;
 
 	// Add light contribution from first bounce if it hit a light source
-	color += throughput_term * mat_y.data3.xyz;
+	color += mat_y.data3.xyz;
+
+	uint num_light_sources = light_tri_indices.length() + light_sphere_indices.length();
 
 	uint num_bounces = BOUNCE_COUNT + 1;
 	for (uint b = 1; b < num_bounces; b++)
@@ -849,12 +848,16 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		vec3 normal_x = normal_y;
 		Material mat_x = mat_y;
 
-		uint num_light_sources = light_tri_indices.length() + light_sphere_indices.length();
+		// Generate TNB matrix to map directions in terms of the normal vector
+		mat3 tnb = transpose(construct_tnb(normal_x));
+
+		float theta_o, phi_o;
+		cartesian_to_spherical(normalize(tnb * -rd), theta_o, phi_o);
 
 		// If there is at least 1 light source in the scene, and the material of the
 		// surface is diffuse, we can calculate the direct light contribution (NEE)
 		bool can_use_NEE = num_light_sources > 0;
-		can_use_NEE = can_use_NEE && (mat_x.data3.w == 0.0 || mat_x.data3.w == 1.0);
+		can_use_NEE = can_use_NEE && (mat_x.data3.w == 0.0 || mat_x.data3.w == 1.0 || (mat_x.data3.w == 2.0 && mat_x.data1.w > NEE_SPECULAR_ROUGHNESS_CUTOFF));
 		can_use_NEE = can_use_NEE && all(lessThan(mat_x.data3.xyz, vec3(EPSILON)));
 
 		if (can_use_NEE)
@@ -919,13 +922,20 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 					cartesian_to_spherical(normalize(tnb * shadow_rd), shadow_theta_i, shadow_phi_i);
 
 					vec3 BRDF;
-					if(abs(mat_x.data3.w - 1.0) < EPSILON)
+					if(mat_x.data3.w == 1.0)
 					{
 						BRDF = oren_nayar_brdf(mat_x.data1.xyz, mat_x.data1.w, vec2(shadow_theta_i, shadow_phi_i), vec2(theta_o, phi_o));
 					}
-					else if (abs(mat_x.data3.w) < EPSILON)
+					else if (mat_x.data3.w == 0.0)
 					{
 						BRDF = mat_x.data1.xyz / PI;
+					}
+					else if (mat_x.data3.w == 2.0)
+					{
+						vec3 wo = normalize(tnb * -rd);
+						vec3 wi = normalize(tnb * shadow_rd);
+
+						BRDF = GGX_Smith_BRDF_non_IS(wo, wi, mat_x.data2.xyz, mat_x.data1.w);
 					}
 
 					float cos_theta_y = max(0.0, dot(shadow_data.normal, -shadow_rd));
@@ -944,7 +954,6 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 
 						// weight for NEE
 						float wNEE = balance_heuristic(pdf_light_sa, pdf_BSDF_sa) / pdf_light_sa;
-						// float wNEE = 1.0f / (pdf_light_sa + pdf_BSDF_sa); // NOTE: an optimization
 
 						color += light_source_mat.data3.xyz * BRDF * cos_theta_x * throughput_term * wNEE;
 					}
@@ -953,64 +962,93 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		}
 
 		// Pick a new direction
-		vec3 dir = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), normal_x);
+		vec3 old_rd = rd;
+		rd = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), normal_x);
 		ro = x + EPSILON * normal_x;
-		rd = dir;
 
 		float theta_i, phi_i;
 		cartesian_to_spherical(normalize(tnb * rd), theta_i, phi_i);
 
+		float cos_theta_x = abs(cos(theta_i));
+		float pdf_BSDF_sa = cos_theta_x / PI;
 		vec3 BRDF;
-		if(abs(mat_x.data3.w - 1.0) < EPSILON)
+		if(mat_x.data3.w == 1.0)
 		{
+			prev_bounce_specular = false;
+
 			BRDF = oren_nayar_brdf(mat_x.data1.xyz, mat_x.data1.w, vec2(theta_i, phi_i), vec2(theta_o, phi_o));
 		}
-		else if (abs(mat_x.data3.w) < EPSILON)
+		else if (mat_x.data3.w == 0.0)
 		{
+			prev_bounce_specular = false;
+
 			BRDF = mat_x.data1.xyz / PI;
 		}
+		else if (mat_x.data3.w == 2.0)
+		{
+			// If the roughness is smaller than the cutoff, then that means that the material
+			// is rough enough to have NEE applied to it, so direct lighting has already been
+			// computed. No need to signal via prev_bounce_specular to add any Le energy
+			// if the next bounce hits a light. Because then, we add direct light energy AND
+			// the next hit energy, which is double the energy!
+			if(mat_x.data1.w < NEE_SPECULAR_ROUGHNESS_CUTOFF)
+				prev_bounce_specular = true;
+			else
+				prev_bounce_specular = false;
 
-		float cos_theta_x = max(EPSILON, dot(normal_x, rd));
+			vec3 wo = normalize(tnb * -old_rd);
+			cos_theta_x = abs(dot(rd, normal_x));
+
+#if IMPORTANCE_SAMPLE_GGX
+			BRDF = GGX_Smith_BRDF(wo, mat_x.data2.xyz, mat_x.data1.w, rd, pdf_BSDF_sa, rng_state);
+			rd = normalize(inverse(tnb) * rd);
+	#if IMPORTANCE_SAMPLE_GGX_TERM_CANCEL
+			cos_theta_x = 1.0; // Gets cancelled out with importance sampling
+	#endif
+#else
+			vec3 wi = normalize(tnb * rd);
+			BRDF = GGX_Smith_BRDF_non_IS(wo, wi, mat_x.data2.xyz, mat_x.data1.w);
+			pdf_BSDF_sa = cos_theta_x / PI;
+#endif
+		}
 
 		hit_anything = intersect(ro, rd, data);
 		if (!hit_anything)
 		{
 			// No intersection with scene, add env map contribution
-			if (b <= BOUNCE_COUNT)
-			{
-				color += throughput_term * BRDF * cos_theta_x * sky_color(rd) * ENVIRONMENT_MAP_LE / (cos_theta_x / PI);
-				break;
-			}
+			color += ENVIRONMENT_MAP_LE * throughput_term * BRDF * cos_theta_x * sky_color(rd) / pdf_BSDF_sa;
+
+			return color;
 		}
 
-		float cos_theta_y = max(0.0, -dot(data.normal, rd));
+		float cos_theta_y = max(EPSILON, -dot(data.normal, rd));
 		normal_y = data.normal;
-
-		// Because the new ray direction is sampled using cosine weighted hemisphere
-		// sampling, the pdf is cos_theta / PI
-		float pdf_BSDF_sa = cos_theta_y / PI;
 
 		y = ro + rd * data.t + EPSILON * normal_y;
 		mat_y = materials[data.mat_object_indices.x];
 
-		float wBSDF = 1.0;
+		if(!prev_bounce_specular)
+			pdf_BSDF_sa = cos_theta_y / PI;
+		else
+			pdf_BSDF_sa = 1.0;
 
 		// If we can use NEE on the hit surface
-		if ((mat_x.data3.w == 0.0 || mat_x.data3.w == 1.0) && all(lessThan(mat_x.data3.xyz, vec3(EPSILON))) && cos_theta_y > 0.0)
+		float wBSDF = 1.0;
+		if (can_use_NEE && cos_theta_y > 0.0)
 		{
 			// If the hit surface is a light source, we need to calculate the pdf for NEE
-			if (any(greaterThan(mat_y.data3.xyz, vec3(EPSILON))) && num_light_sources > 0)
+			if (any(greaterThan(mat_y.data3.xyz, vec3(EPSILON))))
 			{
 				float pdf_NEE_area = 0.0;
 
 				// Triangle light source
-				if(data.object_type == 0)
+				if (data.object_type == 0)
 				{
 					Triangle tri_NEE = triangles[data.mat_object_indices.y];
 					pdf_NEE_area = 1.0 / area_triangle(tri_NEE.data1.xyz, tri_NEE.data2.xyz, tri_NEE.data3.xyz);
 				}
 				// Sphere light source
-				else if(data.object_type == 1)
+				else if (data.object_type == 1)
 				{
 					Sphere sphere_NEE = spheres[data.mat_object_indices.y];
 					pdf_NEE_area = 1.0 / area_sphere(sphere_NEE.sphere_data.w);
@@ -1025,7 +1063,10 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 			color += throughput_term * BRDF * mat_y.data3.xyz * cos_theta_y * wBSDF / pdf_BSDF_sa;
 		}
 
-		throughput_term *= BRDF * cos_theta_y / pdf_BSDF_sa;
+		if(mat_x.data3.w == 2.0 && bool(IMPORTANCE_SAMPLE_GGX) && bool(IMPORTANCE_SAMPLE_GGX_TERM_CANCEL))
+			throughput_term *= BRDF;
+		else
+			throughput_term *= BRDF * cos_theta_y / pdf_BSDF_sa;
 	}
 
 	return color;
@@ -1052,8 +1093,8 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
 //	return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
-	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
-//	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
+//	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
+	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 
 void main() 
