@@ -1080,6 +1080,11 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 	return color;
 }
 
+vec3 estimator_path_tracing_mis_REWORKED(in vec3 ro, in vec3 rd, in uint rng_state)
+{
+	return vec3(0.0, 0.0, 1.0);
+}
+
 vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 {
 	float grid_height = 2.0;
@@ -1102,7 +1107,8 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 
 //	return estimator_path_tracing_naive(cam_origin.xyz, ray_direction, rng_state);
 //	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
-	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
+//	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
+	return estimator_path_tracing_mis_REWORKED(cam_origin.xyz, ray_direction, rng_state);
 }
 
 void main() 
