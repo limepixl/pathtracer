@@ -31,6 +31,6 @@ MaterialGLSL::MaterialGLSL(const Vec3f &diffuse, const Vec3f &specular, const Ve
 	data2 = Vec4f(specular.x, specular.y, specular.z, specular_exponent);
 	data3 = Vec4f(Le.x, Le.y, Le.z, (float)type);
 
-	if(type == MaterialType::MATERIAL_SPECULAR)
+	if(type == MaterialType::MATERIAL_SPECULAR_METAL)
 		data1.w = pixl::max(0.01f, data1.w);
 }

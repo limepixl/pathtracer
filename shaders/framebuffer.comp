@@ -128,8 +128,6 @@ vec2 rand_vec2(inout uint rng_state)
 	return vec2(rand(rng_state), rand(rng_state));
 }
 
-// Math
-
 mat3 construct_tnb(in vec3 n)
 {
 	// Orthonormal basis
