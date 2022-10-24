@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
 
 	// Point light and sphere next to it
 	spheres_ssbo.append(SphereGLSL(Vec3f(0.0f, 1.0f, -3.0f), 0.3f, 9));
-//	spheres_ssbo.append(SphereGLSL(Vec3f(0.0f, 0.0f, 1.0f), 0.3f, 0));
+	spheres_ssbo.append(SphereGLSL(Vec3f(0.0f, 0.0f, 1.0f), 0.3f, 0));
 
 #if 0
 	Array<TriangleGLSL> model_tris_ssbo(tris.size);
