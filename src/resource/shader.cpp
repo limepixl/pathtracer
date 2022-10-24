@@ -61,6 +61,7 @@ uint32 LoadShaderFromFiles(const char *compute_source_path)
 		GLchar message[1024];
 		glGetShaderInfoLog(compute_shader, 1024, &log_length, message);
 		printf("SHADER COMPILATION ERROR:\n%s\n", message);
+		exit(-1);
 	}
 
 	fclose(compute_file);
@@ -79,6 +80,7 @@ uint32 LoadShaderFromFiles(const char *compute_source_path)
 		GLchar message[1024];
 		glGetProgramInfoLog(program, 1024, &log_length, message);
 		printf("ERROR (SHADER): Shader program linking error!:\n%s\n", message);
+		exit(-1);
 	}
 
 	glDeleteShader(compute_shader);
