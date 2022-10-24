@@ -760,22 +760,10 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		rd = normalize(inverse_tnb * wi);
 
 		vec3 BRDF = calc_BRDF(wo, wm, wi, mat, true, rng_state);
-		if(mat.data3.w == 1.0 || mat.data3.w == 0.0)
-		{
+		if(mat.data3.w == 2.0 && mat.data1.w <= NEE_SPECULAR_ROUGHNESS_CUTOFF)
+			prev_bounce_specular = true;
+		else
 			prev_bounce_specular = false;
-		}
-		else if(mat.data3.w == 2.0)
-		{
-			// If the roughness is smaller than the cutoff, then that means that the material
-			// is rough enough to have NEE applied to it, so direct lighting has already been
-			// computed. No need to signal via prev_bounce_specular to add any Le energy
-			// if the next bounce hits a light. Because then, we add direct light energy AND
-			// the next hit energy, which is double the energy!
-			if(mat.data1.w <= NEE_SPECULAR_ROUGHNESS_CUTOFF)
-				prev_bounce_specular = true;
-			else
-				prev_bounce_specular = false;
-		}
 
 		// Update the throughput term
 		throughput_term *= BRDF * cos_theta_x / pdf;
