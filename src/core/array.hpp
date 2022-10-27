@@ -59,6 +59,25 @@ struct Array
 		}
 	}
 
+	Array& operator=(const Array &other)
+	{
+		if(size > 0)
+		{
+			delete[] _data;
+			_data = nullptr;
+		}
+
+		if(other.internal_size > 0)
+		{
+			_data = new T[other.internal_size];
+			if(other.size > 0)
+				memcpy(_data, other._data, other.size * sizeof(T));
+		}
+		size = other.size;
+		internal_size = other.internal_size;
+		return *this;
+	}
+
 	~Array()
 	{
 		if(size > 0)
