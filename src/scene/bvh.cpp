@@ -325,7 +325,7 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 				}
 			}
 
-			DeallocateArray(partition_costs);
+//			DeallocateArray(partition_costs);
 
 			axis_costs[a] = min_cost;
 			axis_indices[a] = min_index;

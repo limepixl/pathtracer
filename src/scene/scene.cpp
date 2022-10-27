@@ -6,7 +6,7 @@ LightSource CreateLightSource(void *obj, LightSourceType type)
 	return { obj, type };
 }
 
-Scene ConstructScene(Array<Sphere> spheres,
+Scene ConstructScene(Array<SphereGLSL> spheres,
 					 Array<Triangle> tris,
 					 Array<uint32> light_tris,
 					 Array<Material *> materials

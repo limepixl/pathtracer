@@ -65,7 +65,7 @@ uint32 LoadShaderFromFiles(const char *compute_source_path)
 	}
 
 	fclose(compute_file);
-	DeallocateArray(shader_source);
+//	DeallocateArray(shader_source);
 
 	// Create program with loaded shader
 	uint32 program = glCreateProgram();
@@ -137,7 +137,7 @@ uint32 LoadShaderFromFiles(const char *vertex_source_path,
 	}
 
 	fclose(vertex_file);
-	DeallocateArray(shader_source);
+//	DeallocateArray(shader_source);
 
 	FILE *fragment_file = fopen(fragment_source_path, "rb");
 	if(fragment_file == nullptr)
@@ -175,7 +175,7 @@ uint32 LoadShaderFromFiles(const char *vertex_source_path,
 	}
 
 	fclose(fragment_file);
-	DeallocateArray(shader_source);
+//	DeallocateArray(shader_source);
 
 	// Create program with loaded shaders
 	uint32 program = glCreateProgram();

@@ -47,6 +47,27 @@ struct Array
 		}
 	}
 
+	Array(const Array &other)
+	{
+		size = other.size;
+		internal_size = size;
+		_data = nullptr;
+		if(size > 0)
+		{
+			_data = new T[size];
+			memcpy(_data, other._data, size * sizeof(T));
+		}
+	}
+
+	~Array()
+	{
+		if(size > 0)
+		{
+			delete[] _data;
+			_data = nullptr;
+		}
+	}
+
 	void append(T element)
 	{
 		// If the array has max elements, expand it
@@ -130,15 +151,15 @@ struct Array
 };
 
 // TODO: move to destructor + copy constructor
-template <typename T>
-void DeallocateArray(Array<T> &arr)
-{
-	if (arr._data != nullptr)
-	{
-		delete[] arr._data;
-		arr._data = nullptr;
-	}
-
-	arr.size = 0;
-	arr.internal_size = 0;
-}
+//template <typename T>
+//void DeallocateArray(Array<T> &arr)
+//{
+//	if (arr._data != nullptr)
+//	{
+//		delete[] arr._data;
+//		arr._data = nullptr;
+//	}
+//
+//	arr.size = 0;
+//	arr.internal_size = 0;
+//}

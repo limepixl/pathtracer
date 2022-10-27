@@ -3,6 +3,8 @@
 #include "../defines.hpp"
 #include "../math/vec.hpp"
 #include "ray.hpp"
+#include "../scene/triangle.hpp"
+#include "../scene/sphere.hpp"
 
 enum ObjectType
 {
@@ -36,19 +38,17 @@ struct LightSource
 
 LightSource CreateLightSource(void *obj, LightSourceType type);
 
-struct Sphere;
-struct Triangle;
 struct BVHNode;
 
 struct Scene
 {
-	Array<Sphere> spheres;
+	Array<SphereGLSL> spheres;
 	Array<Triangle> tris;
 	Array<uint32> light_tris;
 	Array<struct Material *> materials;
 };
 
-Scene ConstructScene(Array<Sphere> spheres,
+Scene ConstructScene(Array<SphereGLSL> spheres,
 					 Array<Triangle> modelTris,
 					 Array<uint32> light_tris,
 					 Array<struct Material *> materials);
