@@ -99,10 +99,8 @@ cmake_print_variables(CMAKE_CXX_FLAGS_DEBUG)
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC thirdparty/glad/include thirdparty/SDL2-2.0.22/include thirdparty/tinyobjloader thirdparty/stb)
 target_link_directories(${PROJECT_NAME} PUBLIC thirdparty/SDL2-2.0.22/lib/x64)
 
-# TODO: Make SDL2 part of the project source tree
-if(UNIX)
-	target_link_libraries(${PROJECT_NAME} PUBLIC SDL2)
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-	target_link_libraries(${PROJECT_NAME} PUBLIC SDL2main SDL2)
+target_link_libraries(${PROJECT_NAME} PUBLIC SDL2)
+if (WIN32)
+	target_link_libraries(${PROJECT_NAME} PUBLIC SDL2main)
 endif()
 configure_file(thirdparty/SDL2-2.0.22/lib/x64/SDL2.dll ${CMAKE_BINARY_DIR}/SDL2.dll COPYONLY)
