@@ -168,17 +168,3 @@ struct Array
 		size = 0;
 	}
 };
-
-// TODO: move to destructor + copy constructor
-//template <typename T>
-//void DeallocateArray(Array<T> &arr)
-//{
-//	if (arr._data != nullptr)
-//	{
-//		delete[] arr._data;
-//		arr._data = nullptr;
-//	}
-//
-//	arr.size = 0;
-//	arr.internal_size = 0;
-//}

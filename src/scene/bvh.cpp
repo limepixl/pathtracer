@@ -153,7 +153,6 @@ bool IntersectBVHStack(Ray ray, Scene scene, HitData *data, float &tmax)
 		}
 	}
 
-	DeallocateArray(stack);
 	return hit_anything;
 }
 */
@@ -324,8 +323,6 @@ bool ConstructBVHSweepSAH(Triangle *tris, uint32 num_tris, Array<BVHNode> &bvh_t
 					min_index = i;
 				}
 			}
-
-//			DeallocateArray(partition_costs);
 
 			axis_costs[a] = min_cost;
 			axis_indices[a] = min_index;
