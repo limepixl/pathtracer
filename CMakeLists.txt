@@ -67,10 +67,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 include(CheckIPOSupported)
 check_ipo_supported(RESULT result)
 if(result)
-
 	message("-- Enabled Link-Time Optimization (LTO)!")
 	set_target_properties(${PROJECT_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
-
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
@@ -96,11 +94,25 @@ cmake_print_variables(CMAKE_CXX_FLAGS)
 cmake_print_variables(CMAKE_CXX_FLAGS_RELEASE)
 cmake_print_variables(CMAKE_CXX_FLAGS_DEBUG)
 
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC thirdparty/glad/include thirdparty/SDL2-2.0.22/include thirdparty/tinyobjloader thirdparty/stb)
-target_link_directories(${PROJECT_NAME} PUBLIC thirdparty/SDL2-2.0.22/lib/x64)
+set(SDL_JOYSTICK OFF)
+set(SDL_CONTROLLER OFF)
+set(SDL_HAPTIC OFF)
+set(SDL_AUDIO OFF)
+set(SDL_SHARED ON)
+set(SDL_STATIC OFF)
+add_subdirectory(thirdparty/SDL2-2.24.1/)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC SDL2)
-if (WIN32)
-	target_link_libraries(${PROJECT_NAME} PUBLIC SDL2main)
+target_include_directories(${PROJECT_NAME} PUBLIC thirdparty/SDL2-2.24.1/include thirdparty/glad/include thirdparty/tinyobjloader thirdparty/stb)
+target_link_libraries(${PROJECT_NAME} PUBLIC SDL2 SDL2main)
+
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		$<TARGET_FILE_DIR:${PROJECT_NAME}>/thirdparty/SDL2-2.24.1/SDL2d.dll
+		$<TARGET_FILE_DIR:${PROJECT_NAME}>/SDL2d.dll)
+else()
+	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		$<TARGET_FILE_DIR:${PROJECT_NAME}>/thirdparty/SDL2-2.24.1/SDL2.dll
+		$<TARGET_FILE_DIR:${PROJECT_NAME}>/SDL2.dll)
 endif()
-configure_file(thirdparty/SDL2-2.0.22/lib/x64/SDL2.dll ${CMAKE_BINARY_DIR}/SDL2.dll COPYONLY)
