@@ -974,7 +974,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 			color += throughput_term * BRDF * mat_y.data3.xyz * cos_theta_y * wBSDF / pdf_BSDF_sa;
 		}
 
-		throughput_term *= BRDF * cos_theta_x * wBSDF / pdf_BSDF_sa;
+		throughput_term *= BRDF * cos_theta_x / pdf_BSDF_sa;
 
 		if (!can_use_NEE)
 		{
