@@ -28,7 +28,7 @@ layout (std140, binding = 0) uniform Camera
 // Misc
 #define ENVIRONMENT_MAP_LE 0.0
 #define IMPORTANCE_SAMPLE_GGX 1
-#define NEE_SPECULAR_ROUGHNESS_CUTOFF 0.01
+#define NEE_SPECULAR_ROUGHNESS_CUTOFF 0.0
 
 // SSBO helper structs
 
@@ -794,7 +794,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 	vec3 normal_y = data.normal;
 	Material mat_y = materials[data.mat_object_indices.x];
 
-	bool prev_bounce_specular = false;
+//	bool prev_bounce_specular = false;
 
 	// Add light contribution from first bounce if it hit a light source
 	color += mat_y.data3.xyz;
@@ -884,7 +884,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 
 					vec3 BRDF = calc_BRDF(wo, wm, wi, mat_x, true, rng_state);
 
-					float cos_theta_y = max(0.0, dot(shadow_data.normal, -shadow_rd));
+					float cos_theta_y = dot(shadow_data.normal, -shadow_rd);
 					if (cos_theta_y > 0.0)
 					{
 						float pdf_pick_point_on_light = 1.0f / light_area;
@@ -896,7 +896,11 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 						float pdf_NEE_sa = pdf_light_area * squared_dist / cos_theta_y;
 
 						// PDF in terms of solid angle, for picking ray from cos. weighted hemisphere
-						float pdf_BSDF_sa = cos_theta_x / PI;
+						float pdf_BSDF_sa;
+						if(mat_x.data3.w == 2.0 && bool(IMPORTANCE_SAMPLE_GGX))
+							pdf_BSDF_sa = 1.0;
+						else if(mat_x.data3.w == 1.0 && mat_x.data3.w == 0.0)
+							pdf_BSDF_sa = cos_theta_x / PI;
 
 						// weight for NEE
 						float wNEE = balance_heuristic(pdf_NEE_sa, pdf_BSDF_sa);
@@ -919,10 +923,10 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		rd = normalize(inverse_tnb * wi);
 
 		vec3 BRDF = calc_BRDF(wo, wm, wi, mat_x, false, rng_state);
-		if(mat_x.data3.w == 2.0 && !can_use_NEE)
-			prev_bounce_specular = true;
-		else
-			prev_bounce_specular = false;
+//		if(mat_x.data3.w == 2.0 && !can_use_NEE)
+//			prev_bounce_specular = true;
+//		else
+//			prev_bounce_specular = false;
 
 		hit_anything = intersect(ro, rd, data);
 		if (!hit_anything)
@@ -933,7 +937,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 			return color;
 		}
 
-		float cos_theta_y = max(0.0, -dot(data.normal, rd));
+		float cos_theta_y = dot(data.normal, -rd);
 		normal_y = data.normal;
 
 		y = ro + rd * data.t + EPSILON * normal_y;
@@ -970,7 +974,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 			color += throughput_term * BRDF * mat_y.data3.xyz * cos_theta_y * wBSDF / pdf_BSDF_sa;
 		}
 
-		throughput_term *= BRDF * cos_theta_x / pdf_BSDF_sa;
+		throughput_term *= BRDF * cos_theta_x * wBSDF / pdf_BSDF_sa;
 
 		if (!can_use_NEE)
 		{
