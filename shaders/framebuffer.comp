@@ -438,13 +438,16 @@ vec3 importance_sample_trowbridge_reitz(vec3 wo, float alpha_ggx, inout uint rng
 // Trowbridge-Reitz NDF (also knows as the GGX NDF)
 // m - microfacet normal
 // n - surface normal
+// TODO: the NDF term is causing fireflies!
 float trowbridge_reitz_NDF(vec3 wm, vec3 wg, float alpha_ggx)
 {
 	float wg_dot_wm = dot(wg, wm);
-	float squared_alpha = max(EPSILON, alpha_ggx * alpha_ggx);
-	float result = positive_characteristic_func(wg_dot_wm) * squared_alpha;
-	result /= (PI * pow(1.0 + wg_dot_wm * wg_dot_wm * (squared_alpha - 1.0), 2));
-	return result;
+	float squared_alpha = max(EPSILON * 10, alpha_ggx * alpha_ggx);
+
+	float denominator = (PI * pow(1.0 + wg_dot_wm * wg_dot_wm * (squared_alpha - 1.0), 2));
+
+	float result = positive_characteristic_func(wg_dot_wm) * squared_alpha / denominator;
+	return min(15, result);
 }
 
 // Lambda function for GGX used in the Smith shadowing-masking function
@@ -661,7 +664,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		if (any(greaterThanEqual(mat.data3.xyz, vec3(EPSILON))))
 		{
 			if(bounce == 0 || (bounce > 0 && prev_bounce_specular))
-				color = throughput_term * mat.data3.xyz;
+				color += throughput_term * mat.data3.xyz;
 
 			return color;
 		}
@@ -794,7 +797,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 	vec3 normal_y = data.normal;
 	Material mat_y = materials[data.mat_object_indices.x];
 
-//	bool prev_bounce_specular = false;
+	bool prev_bounce_specular = false;
 
 	// Add light contribution from first bounce if it hit a light source
 	color += mat_y.data3.xyz;
@@ -896,11 +899,9 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 						float pdf_NEE_sa = pdf_light_area * squared_dist / cos_theta_y;
 
 						// PDF in terms of solid angle, for picking ray from cos. weighted hemisphere
-						float pdf_BSDF_sa;
-						if(mat_x.data3.w == 2.0 && bool(IMPORTANCE_SAMPLE_GGX))
-							pdf_BSDF_sa = 1.0;
-						else if(mat_x.data3.w == 1.0 && mat_x.data3.w == 0.0)
-							pdf_BSDF_sa = cos_theta_x / PI;
+						// NOTE: We do not use importance sampling for GGX here because we are
+						// importance sampling only the light sources.
+						float pdf_BSDF_sa = cos_theta_x / PI;
 
 						// weight for NEE
 						float wNEE = balance_heuristic(pdf_NEE_sa, pdf_BSDF_sa);
@@ -923,10 +924,10 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		rd = normalize(inverse_tnb * wi);
 
 		vec3 BRDF = calc_BRDF(wo, wm, wi, mat_x, false, rng_state);
-//		if(mat_x.data3.w == 2.0 && !can_use_NEE)
-//			prev_bounce_specular = true;
-//		else
-//			prev_bounce_specular = false;
+		if(mat_x.data3.w == 2.0 && !can_use_NEE)
+			prev_bounce_specular = true;
+		else
+			prev_bounce_specular = false;
 
 		hit_anything = intersect(ro, rd, data);
 		if (!hit_anything)
