@@ -226,6 +226,7 @@ int main(int argc, char *argv[])
 	uint32 last_time = 0;
 	uint32 last_report = 0;
 	uint32 frame_count = 0;
+	uint32 view_mode = 3;
 
 	Camera cam(Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec3f(1.0f, 0.0f, 0.0f), 0.005f, 0.05f);
 
@@ -242,6 +243,18 @@ int main(int argc, char *argv[])
 			{
 				cam.mouse_look((float)e.motion.xrel, (float)e.motion.yrel);
 				frame_count = 0;
+			}
+			else if (e.type == SDL_KEYDOWN)
+			{
+				switch(e.key.keysym.sym)
+				{
+				case SDLK_1: case SDLK_2: case SDLK_3:
+					view_mode = e.key.keysym.sym - '0';
+					frame_count = 0;
+					break;
+				default:
+					break;
+				}
 			}
 		}
 
@@ -263,7 +276,7 @@ int main(int argc, char *argv[])
 				glNamedBufferSubData(cam.cam_ubo, 0, sizeof(CameraGLSL), &cam_glsl);
 			}
 
-			glUniform2ui(frame_data_location, pcg32_random(), frame_count++);
+			glUniform3ui(frame_data_location, pcg32_random(), frame_count++, view_mode);
 
 			const uint32 num_groups_x = width / 8;
 			const uint32 num_groups_y = height / 8;
@@ -287,7 +300,15 @@ int main(int argc, char *argv[])
 			std::string new_title = "Pathtracer | ";
 			new_title += std::to_string(delta_time) + "ms | ";
 			new_title += std::to_string(fps) + "fps | ";
-			new_title += std::to_string(frame_count) + " total frame count";
+			new_title += std::to_string(frame_count) + " total frame count | ";
+
+			if(view_mode == 1)
+				new_title += std::string("BRDF importance sampling");
+			else if(view_mode == 2)
+				new_title += std::string("Next Event Estimation");
+			else
+				new_title += std::string("Multiple Importance Sampling (MIS): BRDF+NEE");
+
 			UpdateDisplayTitle(display, new_title.c_str());
 			last_report = current_time;
 		}

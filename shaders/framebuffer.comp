@@ -3,7 +3,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 layout(rgba32f, binding = 0) restrict uniform image2D screen;
 
 // Uniform variables
-uniform uvec2 u_frame_data; // seed, frame#
+uniform uvec3 u_frame_data; // seed, frame#, view_mode
 uniform sampler2D u_cubemap;
 
 layout (std140, binding = 0) uniform Camera
@@ -1014,10 +1014,13 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 point_on_grid = grid_origin + u * grid_x + v * grid_y;
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
-//	return estimator_path_tracing_BRDF(cam_origin.xyz, ray_direction, rng_state);
-//	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
-	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
-//	return estimator_path_tracing_mis_REWORKED(cam_origin.xyz, ray_direction, rng_state);
+	uint view_mode = u_frame_data.z;
+	if(view_mode == 1)
+		return estimator_path_tracing_BRDF(cam_origin.xyz, ray_direction, rng_state);
+	else if(view_mode == 2)
+		return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
+	else// if(view_mode == 3)
+		return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 
 void main() 
