@@ -415,7 +415,7 @@ float positive_characteristic_func(float value)
 
 vec3 importance_sample_trowbridge_reitz(vec3 wo, float alpha_ggx, inout uint rng_state, out vec3 wi)
 {
-	float alpha_squared = max(EPSILON, alpha_ggx * alpha_ggx);
+	float alpha_squared = alpha_ggx * alpha_ggx;
 
 	// Generate 2 random numbers for theta and phi, respectively
 	vec2 e = rand_vec2(rng_state);
@@ -447,7 +447,7 @@ float trowbridge_reitz_NDF(vec3 wm, vec3 wg, float alpha_ggx)
 	float denominator = (PI * pow(1.0 + wg_dot_wm * wg_dot_wm * (squared_alpha - 1.0), 2));
 
 	float result = positive_characteristic_func(wg_dot_wm) * squared_alpha / denominator;
-	return min(15, result);
+	return result;
 }
 
 // Lambda function for GGX used in the Smith shadowing-masking function
@@ -657,7 +657,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 
 		uint num_light_sources = light_tri_indices.length() + light_sphere_indices.length();
 		bool can_use_NEE = num_light_sources > 0;
-		can_use_NEE = can_use_NEE && (mat.data3.w == 0.0 || mat.data3.w == 1.0 || (mat.data3.w == 2.0 && mat.data1.w > NEE_SPECULAR_ROUGHNESS_CUTOFF));
+		can_use_NEE = can_use_NEE && (mat.data3.w == 0.0 || mat.data3.w == 1.0 || (mat.data3.w == 2.0 && mat.data1.w * mat.data1.w > NEE_SPECULAR_ROUGHNESS_CUTOFF));
 		can_use_NEE = can_use_NEE && all(lessThan(mat.data3.xyz, vec3(EPSILON)));
 
 		// add light that is emitted from surface (but stop right afterwards)
@@ -763,7 +763,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		rd = normalize(inverse_tnb * wi);
 
 		vec3 BRDF = calc_BRDF(wo, wm, wi, mat, true, rng_state);
-		if(mat.data3.w == 2.0 && mat.data1.w <= NEE_SPECULAR_ROUGHNESS_CUTOFF)
+		if(mat.data3.w == 2.0 && mat.data1.w * mat.data1.w <= NEE_SPECULAR_ROUGHNESS_CUTOFF)
 			prev_bounce_specular = true;
 		else
 			prev_bounce_specular = false;
@@ -810,6 +810,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		vec3 x = y;
 		vec3 normal_x = normal_y;
 		Material mat_x = mat_y;
+		float alpha_squared = mat_x.data1.w * mat_x.data1.w;
 
 		// Generate TNB matrix to map directions in terms of the normal vector
 		mat3 tnb = transpose(construct_tnb(normal_x));
@@ -820,7 +821,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		// If there is at least 1 light source in the scene, and the material of the
 		// surface is diffuse, we can calculate the direct light contribution (NEE)
 		bool can_use_NEE = num_light_sources > 0;
-		can_use_NEE = can_use_NEE && (mat_x.data3.w == 0.0 || mat_x.data3.w == 1.0 || (mat_x.data3.w == 2.0 && mat_x.data1.w > NEE_SPECULAR_ROUGHNESS_CUTOFF));
+		can_use_NEE = can_use_NEE && (mat_x.data3.w == 0.0 || mat_x.data3.w == 1.0 || (mat_x.data3.w == 2.0 && alpha_squared > NEE_SPECULAR_ROUGHNESS_CUTOFF));
 		can_use_NEE = can_use_NEE && all(lessThan(mat_x.data3.xyz, vec3(EPSILON)));
 
 		if (can_use_NEE)
@@ -830,7 +831,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 			for (uint shadow_ray_index = 0; shadow_ray_index < NUM_SHADOW_RAYS; shadow_ray_index++)
 			{
 				// pick a light source
-				float pdf_pick_light = 1.0f / float(num_light_sources);
+				float pdf_pick_light = 1.0 / float(num_light_sources);
 
 				int picked_light_source = int((pcg(rng_state) % num_light_sources));
 
@@ -890,7 +891,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 					float cos_theta_y = dot(shadow_data.normal, -shadow_rd);
 					if (cos_theta_y > 0.0)
 					{
-						float pdf_pick_point_on_light = 1.0f / light_area;
+						float pdf_pick_point_on_light = 1.0 / light_area;
 
 						// PDF in terms of area, for picking point on light source k
 						float pdf_light_area = pdf_pick_light * pdf_pick_point_on_light;
@@ -1019,7 +1020,7 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 		return estimator_path_tracing_BRDF(cam_origin.xyz, ray_direction, rng_state);
 	else if(view_mode == 2)
 		return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
-	else// if(view_mode == 3)
+	else
 		return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 

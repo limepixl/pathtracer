@@ -12,8 +12,8 @@ typedef int   int32;
 typedef long  int64;
 // NOTE: This only holds for LLP64
 
-constexpr uint32 WIDTH = 1280;
-constexpr uint32 HEIGHT = 720;
+constexpr uint32 WIDTH = 1600;
+constexpr uint32 HEIGHT = 900;
 
 constexpr uint8 BVH_NUM_LEAF_TRIS = 8;
 
