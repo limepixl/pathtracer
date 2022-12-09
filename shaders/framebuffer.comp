@@ -26,9 +26,9 @@ layout (std140, binding = 0) uniform Camera
 #define NUM_SHADOW_RAYS 1
 
 // Misc
-#define ENVIRONMENT_MAP_LE 0.0
-#define IMPORTANCE_SAMPLE_GGX 1
-#define NEE_SPECULAR_ROUGHNESS_CUTOFF 0.0
+#define ENVIRONMENT_MAP_LE 				1.0
+#define IMPORTANCE_SAMPLE_GGX 			1
+#define NEE_SPECULAR_ROUGHNESS_CUTOFF 	0.0
 
 // SSBO helper structs
 

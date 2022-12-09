@@ -16,10 +16,11 @@ endif()
 set(SOURCE_FILES 
 	src/main.cpp
 	src/loader.cpp
+	src/loader_remake.cpp
 
 	src/scene/bvh.cpp
 	src/scene/material.cpp
-        src/scene/scene.cpp
+	src/scene/scene.cpp
 	src/scene/triangle.cpp
 	src/display/display.cpp
 	src/resource/shader.cpp
@@ -30,14 +31,14 @@ set(SOURCE_FILES
 	src/math/math.cpp
 	src/math/vec.cpp
 
-	
 	thirdparty/stb/stb_image.c
 	thirdparty/pcg-c-basic-0.9/pcg_basic.c
 	thirdparty/glad/src/glad.c
-)
+	thirdparty/cgltf-1.13/cgltf.c)
 
 set(HEADER_FILES
 	src/loader.hpp
+	src/loader_remake.h
 	src/defines.hpp
 
 	src/scene/bvh.hpp
@@ -53,9 +54,7 @@ set(HEADER_FILES
 	src/math/mat3.hpp
 	src/math/mat4.hpp
 	src/math/math.hpp
-	src/math/vec.hpp
-
-)
+	src/math/vec.hpp)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 
@@ -102,7 +101,13 @@ set(SDL_SHARED ON)
 set(SDL_STATIC OFF)
 add_subdirectory(thirdparty/SDL2-2.24.1/)
 
-target_include_directories(${PROJECT_NAME} PUBLIC thirdparty/SDL2-2.24.1/include thirdparty/glad/include thirdparty/tinyobjloader thirdparty/stb)
+target_include_directories(${PROJECT_NAME} PUBLIC
+		thirdparty/SDL2-2.24.1/include
+		thirdparty/glad/include
+		thirdparty/tinyobjloader
+		thirdparty/stb
+		thirdparty/cgltf-1.13)
+
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL2 SDL2main)
 
 if(CMAKE_BUILD_TYPE MATCHES Debug)
