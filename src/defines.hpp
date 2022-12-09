@@ -12,16 +12,7 @@ typedef int   int32;
 typedef long  int64;
 // NOTE: This only holds for LLP64
 
-constexpr uint32 WIDTH = 1600;
-constexpr uint32 HEIGHT = 900;
+constexpr uint32 WIDTH = 1280;
+constexpr uint32 HEIGHT = 720;
 
 constexpr uint8 BVH_NUM_LEAF_TRIS = 8;
-
-// ASSERT writes to 0x0, which will throw an access
-// violation exception. ASSERT is used when we want
-// some expression to be different from zero.
-#define ASSERT(expression) \
-	if (!(expression))     \
-	{                      \
-		*(int *)NULL = 0;  \
-	}
