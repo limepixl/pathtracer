@@ -14,7 +14,7 @@ struct Vec3f
 {
 	float x, y, z;
 
-	Vec3f() = default;
+	Vec3f();
 	explicit Vec3f(float v);
 	Vec3f(float x, float y, float z);
 };
@@ -40,7 +40,7 @@ struct Vec2f
 {
 	float x, y;
 
-	Vec2f() = default;
+	Vec2f();
 	explicit Vec2f(float v);
 	Vec2f(float x, float y);
 };
