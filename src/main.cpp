@@ -11,6 +11,8 @@
 #include <glad/glad.h>
 #include <SDL.h>
 
+#include "loader_remake.h"
+
 int main(int argc, char *argv[])
 {
 	(void)argc; (void)argv;
@@ -18,8 +20,12 @@ int main(int argc, char *argv[])
 	uint32 width = (uint32)WIDTH;
 	uint32 height = (uint32)HEIGHT;
 
+	bool loadedModel = LoadGLTF("res/models/Avocado_scaled.glb");
+	(void)loadedModel;
+
 	Display display = CreateDisplay("Pathtracer", width, height);
 	InitRenderBuffer(display);
+
 #if 0
 	Array<Triangle> tris;
 	Array<Material *> materials;
