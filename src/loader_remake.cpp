@@ -26,7 +26,7 @@ bool LoadGLTF(const char *path)
 		cgltf_size num_buffer_views = data->buffer_views_count;
 		cgltf_size num_textures = data->textures_count;
 
-		printf("Loaded GLTF data from path: %s\n", path);
+		printf("Loading glTF data from path: %s\n", path);
 		printf("--> Number of meshes: %zu\n", num_meshes);
 		printf("--> Number of buffers: %zu\n", num_buffers);
 		printf("--> Number of buffer views: %zu\n", num_buffer_views);
@@ -35,6 +35,7 @@ bool LoadGLTF(const char *path)
 		Array<Vec3f> positions;
 		Array<Vec3f> normals;
 		Array<Vec2f> tex_coords;
+		Array<uint16> indices;
 
 		for (cgltf_size mesh_index = 0; mesh_index < num_meshes; mesh_index++)
 		{
@@ -55,6 +56,7 @@ bool LoadGLTF(const char *path)
 					return false;
 				}
 
+				// Load attribute data that primitive uses
 				for (cgltf_size attr_index = 0;
 					 attr_index < primitive->attributes_count;
 					 attr_index++)
@@ -65,11 +67,12 @@ bool LoadGLTF(const char *path)
 						attribute->type == cgltf_attribute_type_texcoord)
 					{
 						cgltf_accessor *accessor = attribute->data;
+						cgltf_buffer_view *view = accessor->buffer_view;
+						cgltf_size stride = view->stride != 0 ? view->stride : accessor->stride;
+
 						for (uint32 i = 0; i < accessor->count; i++)
 						{
-							cgltf_buffer_view *view = accessor->buffer_view;
-							cgltf_size stride = view->stride != 0 ? view->stride : accessor->stride;
-							float *start = (float *)((uint8 *)view->buffer->data + stride * i);
+							float *start = (float *)((uint8 *)view->buffer->data + view->offset + stride * i);
 
 							if(accessor->type == cgltf_type_vec3)
 							{
@@ -107,12 +110,34 @@ bool LoadGLTF(const char *path)
 						}
 					}
 				}
+
+				// Load indices that primitive uses
+				{
+					cgltf_accessor *indices_accessor = primitive->indices;
+					if (indices_accessor->type != cgltf_type_scalar ||
+						indices_accessor->component_type != cgltf_component_type_r_16u)
+					{
+						printf("ERROR (glTF Loader): Indices accessor type or component type is wrong!\n");
+						cgltf_free(data);
+						return false;
+					}
+
+					cgltf_buffer_view *view = indices_accessor->buffer_view;
+					cgltf_size stride = view->stride != 0 ? view->stride : indices_accessor->stride;
+
+					for (uint32 i = 0; i < indices_accessor->count; i++)
+					{
+						uint16 val = *(uint16 *)((uint8 *)view->buffer->data + view->offset + stride * i);
+						indices.append(val);
+					}
+				}
 			}
 		}
 
-		printf("--- Num loaded vertices: %u\n", positions.size);
-		printf("--- Num loaded normals: %u\n", normals.size);
-		printf("--- Num loaded texture coordinates: %u\n", tex_coords.size);
+		printf("--> Num loaded vertices: %u\n", positions.size);
+		printf("--> Num loaded normals: %u\n", normals.size);
+		printf("--> Num loaded texture coordinates: %u\n", tex_coords.size);
+		printf("--> Num loaded indices: %u\n", indices.size);
 
 		return true;
 	}
