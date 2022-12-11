@@ -55,6 +55,7 @@ namespace pixl
 
 	float random_number_normalized_PCG(pcg32_random_t *rngptr);
 	Vec2f random_Vec2f_PCG(pcg32_random_t *rngptr);
+	Vec3f random_Vec3f_PCG(pcg32_random_t *rngptr);
 
 	Vec3f map_to_unit_sphere(Vec2f vec2);
 	Vec3f map_to_unit_hemisphere_cosine_weighted_criver(Vec2f uv, Vec3f normal);

@@ -167,6 +167,23 @@ Vec2f pixl::random_Vec2f_PCG(pcg32_random_t *rngptr)
 	return { r1, r2 };
 }
 
+Vec3f pixl::random_Vec3f_PCG(pcg32_random_t *rngptr)
+{
+	float r1 = random_number_normalized_PCG(rngptr);
+	while (r1 < 0.0001f || r1 > 0.9999f)
+		r1 = random_number_normalized_PCG(rngptr);
+
+	float r2 = random_number_normalized_PCG(rngptr);
+	while (r2 < 0.0001f || r2 > 0.9999f)
+		r2 = random_number_normalized_PCG(rngptr);
+
+	float r3 = random_number_normalized_PCG(rngptr);
+	while (r1 < 0.0001f || r1 > 0.9999f)
+		r1 = random_number_normalized_PCG(rngptr);
+
+	return { r1, r2, r3 };
+}
+
 Vec3f pixl::map_to_unit_sphere(Vec2f vec2)
 {
 	// First we map [0,1] to [0,2] and subtract one to map
