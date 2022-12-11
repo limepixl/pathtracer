@@ -1,4 +1,4 @@
 #pragma once
-#include <cgltf.h>
+#include "core/array.hpp"
 
-bool LoadGLTF(const char *path);
+bool LoadGLTF(const char *path, Array<struct Triangle> &out_tris);

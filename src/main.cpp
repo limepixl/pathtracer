@@ -20,8 +20,9 @@ int main(int argc, char *argv[])
 	uint32 width = (uint32)WIDTH;
 	uint32 height = (uint32)HEIGHT;
 
-	bool loadedModel = LoadGLTF("res/models/Avocado_scaled.glb");
-	(void)loadedModel;
+	Array<Triangle> modelTris;
+	bool isLoaded = LoadGLTF("res/models/Avocado_scaled.glb", modelTris);
+	(void)isLoaded;
 
 	Display display = CreateDisplay("Pathtracer", width, height);
 	InitRenderBuffer(display);

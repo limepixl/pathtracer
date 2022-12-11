@@ -1,11 +1,12 @@
 #include "loader_remake.h"
 #include "defines.hpp"
+#include <cgltf.h>
 #include <cstdio>
 
-#include "core/array.hpp"
 #include "math/vec.hpp"
+#include "scene/triangle.hpp"
 
-bool LoadGLTF(const char *path)
+bool LoadGLTF(const char *path, Array<Triangle> &out_tris)
 {
 	cgltf_options options = {};
 	cgltf_data *data = nullptr;
@@ -134,10 +135,49 @@ bool LoadGLTF(const char *path)
 			}
 		}
 
+		// We need to duplicate the triangle data as the engine doesn't support indices
+		Array<Vec3f> indexed_positions;
+		Array<Vec3f> indexed_normals;
+		Array<Vec2f> indexed_tex_coords;
+
+		for (uint32 i = 0; i < indices.size; i+= 3)
+		{
+			uint16 i0 = indices[i];
+			uint16 i1 = indices[i + 1];
+			uint16 i2 = indices[i + 2];
+
+			Vec3f v0 = positions[i0];
+			Vec3f v1 = positions[i1];
+			Vec3f v2 = positions[i2];
+			indexed_positions.append(v0);
+			indexed_positions.append(v1);
+			indexed_positions.append(v2);
+
+			Vec3f n0 = normals[i0];
+			Vec3f n1 = normals[i1];
+			Vec3f n2 = normals[i2];
+			indexed_normals.append(n0);
+			indexed_normals.append(n1);
+			indexed_normals.append(n2);
+
+//			Vec2f uv0 = tex_coords[i0];
+//			Vec2f uv1 = tex_coords[i1];
+//			Vec2f uv2 = tex_coords[i2];
+//			indexed_tex_coords.append(uv0);
+//			indexed_tex_coords.append(uv1);
+//			indexed_tex_coords.append(uv2);
+
+			// TODO: Material index
+			// TODO: Use loaded normals if available
+			Triangle tri = CreateTriangle(v0, v1, v2, 0);
+			out_tris.append(tri);
+		}
+
 		printf("--> Num loaded vertices: %u\n", positions.size);
 		printf("--> Num loaded normals: %u\n", normals.size);
-		printf("--> Num loaded texture coordinates: %u\n", tex_coords.size);
+		printf("--> Num loaded UVs: %u\n", tex_coords.size);
 		printf("--> Num loaded indices: %u\n", indices.size);
+		printf("--> Num loaded tris: %u\n", out_tris.size);
 
 		return true;
 	}
