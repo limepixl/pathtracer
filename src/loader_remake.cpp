@@ -3,10 +3,12 @@
 #include <cgltf.h>
 #include <cstdio>
 
+#include "math/math.hpp"
 #include "math/vec.hpp"
+#include "scene/material.hpp"
 #include "scene/triangle.hpp"
 
-bool LoadGLTF(const char *path, Array<Triangle> &out_tris)
+bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<Material> &out_mats)
 {
 	cgltf_options options = {};
 	cgltf_data *data = nullptr;
@@ -131,6 +133,24 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris)
 						uint16 val = *(uint16 *)((uint8 *)view->buffer->data + view->offset + stride * i);
 						indices.append(val);
 					}
+				}
+
+				// Load material that primitve uses
+				{
+					cgltf_material *material = primitive->material; (void)material;
+
+					// TODO: implement actual material reading. For now, to debug the
+					// geometry part of the loader I use random Lambertian colors
+
+					pcg32_random_t tmp_random;
+					Material tmp_mat = CreateMaterial(MaterialType::MATERIAL_LAMBERTIAN,
+													  pixl::random_Vec3f_PCG(&tmp_random),
+													  Vec3f(0.0f),
+													  0.0f,
+													  Vec3f(0.0f),
+													  material->name);
+
+					out_mats.append(tmp_mat);
 				}
 			}
 		}
