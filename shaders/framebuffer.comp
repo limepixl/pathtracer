@@ -350,13 +350,15 @@ bool intersect_bvh_stack(in vec3 ro, in vec3 rd, inout HitData data, inout float
 			else
 			{
 				// If leaf node, test against triangles of node
+				HitData current_data;
 				for (uint i = 0; i < num_node_tris; i++)
 				{
-					if (intersect_triangle(ro, rd, node_left + i, data, tmax))
+					if (intersect_triangle(ro, rd, node_left + i, current_data, tmax))
 					{
 						// Found closer hit, store it.
 						hit_anything = true;
-						tmax = data.t;
+						tmax = current_data.t;
+						data = current_data;
 					}
 				}
 			}
@@ -371,23 +373,34 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 	bool hit_anything = false;
 	float tmax = TMAX;
 
-	// hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
-
-	for(uint i = 0; i < spheres.length(); i++)
+	uint num_tris = triangles.length();
+	for (uint i = 0; i < num_tris; i++)
 	{
-		Sphere current_sphere = spheres[i];
-		float current_t = intersect_sphere(ro, rd, current_sphere);
-		if(current_t >= TMIN && current_t <= tmax)
+		if (intersect_triangle(ro, rd, i, result, tmax))
 		{
-			tmax = current_t;
+			// Found closer hit, store it.
 			hit_anything = true;
-			result.t = current_t;
-			result.normal = (ro + rd * current_t - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
-			result.mat_object_indices.x = current_sphere.mat_index.x;
-			result.mat_object_indices.y = i;
-			result.object_type = 1;
+			tmax = result.t;
 		}
 	}
+
+//	hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
+
+//	for(uint i = 0; i < spheres.length(); i++)
+//	{
+//		Sphere current_sphere = spheres[i];
+//		float current_t = intersect_sphere(ro, rd, current_sphere);
+//		if(current_t >= TMIN && current_t <= tmax)
+//		{
+//			tmax = current_t;
+//			hit_anything = true;
+//			result.t = current_t;
+//			result.normal = (ro + rd * current_t - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
+//			result.mat_object_indices.x = current_sphere.mat_index.x;
+//			result.mat_object_indices.y = i;
+//			result.object_type = 1;
+//		}
+//	}
 
 	return hit_anything;
 }
