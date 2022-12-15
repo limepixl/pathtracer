@@ -25,6 +25,11 @@ Material CreateMaterial(MaterialType type, Vec3f diffuse, Vec3f specular, float 
 
 	return result;
 }
+
+MaterialGLSL::MaterialGLSL()
+	: data1(0.0f), data2(0.0f), data3(0.0f)
+{}
+
 MaterialGLSL::MaterialGLSL(const Vec3f &diffuse, const Vec3f &specular, const Vec3f &Le, float roughness, float specular_exponent, MaterialType type)
 {
 	data1 = Vec4f(diffuse.x, diffuse.y, diffuse.z, roughness);
@@ -34,3 +39,5 @@ MaterialGLSL::MaterialGLSL(const Vec3f &diffuse, const Vec3f &specular, const Ve
 	if(type == MaterialType::MATERIAL_SPECULAR_METAL)
 		data1.w = pixl::max(0.01f, data1.w);
 }
+
+
