@@ -8,7 +8,7 @@
 #include "scene/material.hpp"
 #include "scene/triangle.hpp"
 
-bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<Material> &out_mats)
+bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &out_mats)
 {
 	cgltf_options options = {};
 	cgltf_data *data = nullptr;
@@ -142,13 +142,12 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<Material> &out_
 					// TODO: implement actual material reading. For now, to debug the
 					// geometry part of the loader I use random Lambertian colors
 
-					pcg32_random_t tmp_random;
-					Material tmp_mat = CreateMaterial(MaterialType::MATERIAL_LAMBERTIAN,
-													  pixl::random_Vec3f_PCG(&tmp_random),
-													  Vec3f(0.0f),
-													  0.0f,
-													  Vec3f(0.0f),
-													  material->name);
+					MaterialGLSL tmp_mat(Vec3f(0.9f, 0.9f, 0.9f),
+										 Vec3f(0.0f),
+										 Vec3f(0.0f),
+										 0.0f,
+										 0.0f,
+										 MaterialType::MATERIAL_LAMBERTIAN);
 
 					out_mats.append(tmp_mat);
 				}
