@@ -75,7 +75,7 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 
 						for (uint32 i = 0; i < accessor->count; i++)
 						{
-							float *start = (float *)((uint8 *)view->buffer->data + view->offset + stride * i);
+							float *start = (float *)((uint8 *)view->buffer->data + view->offset + accessor->offset + stride * i);
 
 							if(accessor->type == cgltf_type_vec3)
 							{
