@@ -117,8 +117,9 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 				// Load indices that primitive uses
 				{
 					cgltf_accessor *indices_accessor = primitive->indices;
-					if (indices_accessor->type != cgltf_type_scalar ||
-						indices_accessor->component_type != cgltf_component_type_r_16u)
+					if (indices_accessor != nullptr &&
+					   (indices_accessor->type != cgltf_type_scalar ||
+						indices_accessor->component_type != cgltf_component_type_r_16u))
 					{
 						printf("ERROR (glTF Loader): Indices accessor type or component type is wrong!\n");
 						cgltf_free(data);
@@ -159,7 +160,7 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 		Array<Vec3f> indexed_normals;
 		Array<Vec2f> indexed_tex_coords;
 
-		for (uint32 i = 0; i < indices.size; i+= 3)
+		for (uint32 i = 0; i <= indices.size - 3; i+= 3)
 		{
 			uint16 i0 = indices[i];
 			uint16 i1 = indices[i + 1];
@@ -172,12 +173,16 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 			indexed_positions.append(v1);
 			indexed_positions.append(v2);
 
-			Vec3f n0 = normals[i0];
-			Vec3f n1 = normals[i1];
-			Vec3f n2 = normals[i2];
-			indexed_normals.append(n0);
-			indexed_normals.append(n1);
-			indexed_normals.append(n2);
+			Vec3f n0, n1, n2;
+			if(normals.size > 0)
+			{
+				n0 = normals[i0];
+				n1 = normals[i1];
+				n2 = normals[i2];
+				indexed_normals.append(n0);
+				indexed_normals.append(n1);
+				indexed_normals.append(n2);
+			}
 
 //			Vec2f uv0 = tex_coords[i0];
 //			Vec2f uv1 = tex_coords[i1];
@@ -186,10 +191,16 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 //			indexed_tex_coords.append(uv1);
 //			indexed_tex_coords.append(uv2);
 
-			// TODO: Material index
-			// TODO: Use loaded normals if available
-			Triangle tri = CreateTriangle(v0, v1, v2, 0);
-			out_tris.append(tri);
+			if(normals.size > 0)
+			{
+				Triangle tri = CreateTriangle(v0, v1, v2, pixl::normalize(n0 + n1 + n2), 0);
+				out_tris.append(tri);
+			}
+			else
+			{
+				Triangle tri = CreateTriangle(v0, v1, v2, 0);
+				out_tris.append(tri);
+			}
 		}
 
 		printf("--> Num loaded vertices: %u\n", positions.size);
@@ -198,6 +209,7 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 		printf("--> Num loaded indices: %u\n", indices.size);
 		printf("--> Num loaded tris: %u\n", out_tris.size);
 
+		cgltf_free(data);
 		return true;
 	}
 
