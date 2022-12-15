@@ -140,17 +140,33 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 				{
 					cgltf_material *material = primitive->material; (void)material;
 
-					// TODO: implement actual material reading. For now, to debug the
-					// geometry part of the loader I use random Lambertian colors
+					MaterialGLSL result_mat;
 
-					MaterialGLSL tmp_mat(Vec3f(0.9f, 0.9f, 0.9f),
-										 Vec3f(0.0f),
-										 Vec3f(0.0f),
-										 0.0f,
-										 0.0f,
-										 MaterialType::MATERIAL_LAMBERTIAN);
+					if(material->has_pbr_metallic_roughness)
+					{
+						cgltf_pbr_metallic_roughness &mat_properties = material->pbr_metallic_roughness;
 
-					out_mats.append(tmp_mat);
+						cgltf_float *base_color_arr = mat_properties.base_color_factor;
+						if (base_color_arr[3] < 0.99f)
+						{
+							printf("ERROR (glTF Loader): Currently not supporting base color with any transparency!\n");
+							cgltf_free(data);
+							return false;
+						}
+
+						if(mat_properties.metallic_factor < EPSILON)
+						{
+							// Material is assumed to be perfectly diffuse
+							result_mat.data1 = Vec4f(base_color_arr[0], base_color_arr[1], base_color_arr[2], mat_properties.roughness_factor);
+
+							if(mat_properties.roughness_factor > 0.0f)
+								result_mat.data3.w = (float) MaterialType::MATERIAL_OREN_NAYAR;
+							else
+								result_mat.data3.w = (float) MaterialType::MATERIAL_LAMBERTIAN;
+						}
+					}
+
+					out_mats.append(result_mat);
 				}
 			}
 		}
