@@ -29,4 +29,6 @@ struct TriangleGLSL
 	Vec4f data1; // v0.x, v0.y, v0.z, mat_index
 	Vec4f data2; // v1.x, v1.y, v1.z, 0
 	Vec4f data3; // v2.x, v2.y, v2.z, 0
+	Vec4f data4; // uv0.x, uv0.y, uv1.x, uv1.y
+	Vec4f data5; // uv2.x, uv2.y, 0, 0
 };

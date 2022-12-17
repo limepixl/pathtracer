@@ -32,11 +32,14 @@ layout (std140, binding = 0) uniform Camera
 
 // SSBO helper structs
 
+// TODO: optimize the memory layout of this once it works
 struct Triangle
 {
-	vec4  data1;  // v0.x, v0.y, v0.z, mat_index
-	vec4  data2;  // v1.x, v1.y, v1.z, 0
-	vec4  data3;  // v2.x, v2.y, v2.z, 0
+	vec4 data1;  // v0.x, v0.y, v0.z, mat_index
+	vec4 data2;  // v1.x, v1.y, v1.z, 0
+	vec4 data3;  // v2.x, v2.y, v2.z, 0
+	vec4 data4;  // uv0.x, uv0.y, uv1.x, uv1.y
+	vec4 data5;  // uv2.x, uv2.y, 0, 0
 };
 
 struct Sphere
@@ -197,6 +200,7 @@ struct HitData
 	vec3 normal;
 	uvec2 mat_object_indices;
 	uint object_type; // 0 tri, 1 sphere
+	vec3 barycentric_coords;
 };
 
 // Intersection
@@ -273,6 +277,8 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 		data.mat_object_indices.x = uint(tri.data1.w);
 		data.mat_object_indices.y = tri_index;
 		data.object_type = 0;
+		data.barycentric_coords = vec3(u, v, 1.0 - u - v);
+
 		return true;
 	}
 
