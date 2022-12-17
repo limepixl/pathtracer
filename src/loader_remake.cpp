@@ -164,6 +164,13 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 							else
 								result_mat.data3.w = (float) MaterialType::MATERIAL_LAMBERTIAN;
 						}
+						else
+						{
+							// Material is assumed to be metallic
+							result_mat.data1.w = mat_properties.roughness_factor;
+							result_mat.data2 = Vec4f(base_color_arr[0], base_color_arr[1], base_color_arr[2], 0.0f);
+							result_mat.data3.w = (float) MaterialType::MATERIAL_SPECULAR_METAL;
+						}
 					}
 
 					out_mats.append(result_mat);
