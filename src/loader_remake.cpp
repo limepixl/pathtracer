@@ -207,21 +207,25 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 				indexed_normals.append(n2);
 			}
 
-//			Vec2f uv0 = tex_coords[i0];
-//			Vec2f uv1 = tex_coords[i1];
-//			Vec2f uv2 = tex_coords[i2];
-//			indexed_tex_coords.append(uv0);
-//			indexed_tex_coords.append(uv1);
-//			indexed_tex_coords.append(uv2);
+			Vec2f uv0, uv1, uv2;
+			if(tex_coords.size > 0)
+			{
+				uv0 = tex_coords[i0];
+				uv1 = tex_coords[i1];
+				uv2 = tex_coords[i2];
+				indexed_tex_coords.append(uv0);
+				indexed_tex_coords.append(uv1);
+				indexed_tex_coords.append(uv2);
+			}
 
 			if(normals.size > 0)
 			{
-				Triangle tri = CreateTriangle(v0, v1, v2, pixl::normalize(n0 + n1 + n2), 0);
+				Triangle tri(v0, v1, v2, pixl::normalize(n0 + n1 + n2), 0);
 				out_tris.append(tri);
 			}
 			else
 			{
-				Triangle tri = CreateTriangle(v0, v1, v2, 0);
+				Triangle tri(v0, v1, v2, 0);
 				out_tris.append(tri);
 			}
 		}

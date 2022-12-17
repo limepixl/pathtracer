@@ -239,7 +239,7 @@ bool LoadModelFromObj(const char *file_name, const char *path,
 			Vec3f v0(vertex0[0], vertex0[1], vertex0[2]);
 			Vec3f v1(vertex1[0], vertex1[1], vertex1[2]);
 			Vec3f v2(vertex2[0], vertex2[1], vertex2[2]);
-			Triangle tri = CreateTriangle(v0, v1, v2, normal, triangle_mat_index);
+			Triangle tri(v0, v1, v2, normal, triangle_mat_index);
 
 			if (out_materials[triangle_mat_index]->Le >= Vec3f(0.1f, 0.1f, 0.1f))
 			{
