@@ -20,7 +20,6 @@ set(SOURCE_FILES
 
 	src/scene/bvh.cpp
 	src/scene/material.cpp
-	src/scene/scene.cpp
 	src/scene/triangle.cpp
 	src/display/display.cpp
 	src/resource/shader.cpp
@@ -44,7 +43,6 @@ set(HEADER_FILES
 	src/scene/bvh.hpp
 	src/scene/material.hpp
 	src/scene/ray.hpp
-	src/scene/scene.hpp
 	src/scene/sphere.hpp
 	src/scene/triangle.hpp
 	src/display/display.hpp

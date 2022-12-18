@@ -3,6 +3,7 @@
 #include "scene/material.hpp"
 #include "scene/sphere.hpp"
 #include "scene/camera.hpp"
+#include "scene/triangle.hpp"
 
 #include <SDL_events.h>
 #include <string>

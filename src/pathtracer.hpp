@@ -1,7 +1,6 @@
 #pragma once
 #include "math/math.hpp"
 #include "scene/material.hpp"
-#include "scene/scene.hpp"
 #include "scene/sphere.hpp"
 #include "scene/triangle.hpp"
 #include <cmath>
