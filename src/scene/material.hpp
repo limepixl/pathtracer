@@ -28,6 +28,7 @@ struct MaterialGLSL
 	Vec4f data1; // diff.x, diff.y, diff.z, roughness
 	Vec4f data2; // spec.x, spec.y, spec.z, n_spec
 	Vec4f data3; // Le.x, Le.y, Le.z, mat_type
+	Vec4f data4; // diffuse_tex_indx, 0, 0, 0
 
 	MaterialGLSL();
 
@@ -36,5 +37,6 @@ struct MaterialGLSL
 				 const Vec3f &Le,
 				 float roughness,
 				 float specular_exponent,
+				 int diffuse_tex_index,
 				 MaterialType type);
 };

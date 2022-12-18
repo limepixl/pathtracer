@@ -20,9 +20,15 @@ int main(int argc, char *argv[])
 	uint32 width = (uint32)WIDTH;
 	uint32 height = (uint32)HEIGHT;
 
+	Display display = CreateDisplay("Pathtracer", width, height);
+	InitRenderBuffer(display);
+
 	Array<Triangle> model_tris;
 	Array<MaterialGLSL> model_mats;
-	bool isLoaded = LoadGLTF("res/models/Fox.glb", model_tris, model_mats);
+	GLuint texture_array;
+	Mat4f model_matrix;
+
+	bool isLoaded = LoadGLTF("res/models/BoxTextured.glb", model_tris, model_mats, model_matrix, texture_array);
 	if (!isLoaded)
 	{
 		printf("Failed to load model!\n");
@@ -30,9 +36,8 @@ int main(int argc, char *argv[])
 	}
 
 	// Apply model matrix to tris
-	Mat4f model_matrix;
-	model_matrix = ScaleMat4f(Vec3f(0.05f), model_matrix);
-	model_matrix = TranslationMat4f(Vec3f(0.0f, 0.0f, -3.0f), model_matrix);
+//	model_matrix = ScaleMat4f(Vec3f(0.05f), model_matrix);
+//	model_matrix = TranslationMat4f(Vec3f(0.0f, 0.0f, -3.0f), model_matrix);
 
 	Array<TriangleGLSL> model_tris_ssbo(model_tris.size);
 	for (uint32 i = 0; i < model_tris.size; i++)
@@ -58,9 +63,6 @@ int main(int argc, char *argv[])
 
 		model_tris_ssbo.append(tmp);
 	}
-
-	Display display = CreateDisplay("Pathtracer", width, height);
-	InitRenderBuffer(display);
 
 #if 0
 	// Construct BVH tree and sort triangle list according to it
@@ -202,6 +204,7 @@ int main(int argc, char *argv[])
 
 	glUseProgram(display.compute_shader_program);
 	int32 frame_data_location = (int32)glGetUniformLocation(display.compute_shader_program, "u_frame_data");
+	int32 textures_uniform_location = (int32)glGetUniformLocation(display.compute_shader_program, "u_textures");
 
 	uint32 last_time = 0;
 	uint32 last_report = 0;
@@ -250,6 +253,12 @@ int main(int argc, char *argv[])
 			// Compute shader data and dispatch
 			glUseProgram(display.compute_shader_program);
 
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, display.cubemap_texture);
+
+			glBindTextureUnit(2, texture_array);
+			glUniform1i(textures_uniform_location, 2);
+
 			if (frame_count == 0)
 			{
 				CameraGLSL cam_glsl(cam.origin, cam.forward, cam.right, cam.fly_speed, cam.look_sens);
@@ -262,6 +271,9 @@ int main(int argc, char *argv[])
 			const uint32 num_groups_y = height / 8;
 			glDispatchCompute(num_groups_x, num_groups_y, 1);
 			glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 		glPopDebugGroup();
 
@@ -269,7 +281,11 @@ int main(int argc, char *argv[])
 		{
 			// Full screen quad drawing
 			glUseProgram(display.rb_shader_program);
+			glBindTextureUnit(0, display.render_buffer_texture);
 			glDrawArrays(GL_TRIANGLES, 0, 6);
+
+			// Clean up state
+			glBindTextureUnit(0, 0);
 		}
 		glPopDebugGroup();
 

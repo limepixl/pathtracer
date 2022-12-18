@@ -5,6 +5,7 @@ layout(rgba32f, binding = 0) restrict uniform image2D screen;
 // Uniform variables
 uniform uvec3 u_frame_data; // seed, frame#, view_mode
 uniform sampler2D u_cubemap;
+uniform sampler2DArray u_textures;
 
 layout (std140, binding = 0) uniform Camera
 {
@@ -53,6 +54,7 @@ struct Material
 	vec4 data1; // diff.x, diff.y, diff.z, rougness
 	vec4 data2; // spec.x, spec.y, spec.z, n_spec
 	vec4 data3; // Le.x, Le.y, Le.z, mat_type
+	vec4 data4; // diffuse_tex_indx, 0, 0, 0
 };
 
 struct BVHNode
@@ -200,7 +202,7 @@ struct HitData
 	vec3 normal;
 	uvec2 mat_object_indices;
 	uint object_type; // 0 tri, 1 sphere
-	vec3 barycentric_coords;
+	vec2 uvs;
 };
 
 // Intersection
@@ -277,7 +279,9 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 		data.mat_object_indices.x = uint(tri.data1.w);
 		data.mat_object_indices.y = tri_index;
 		data.object_type = 0;
-		data.barycentric_coords = vec3(u, v, 1.0 - u - v);
+
+		float w = 1.0 - u - v;
+		data.uvs = w * tri.data4.xy + u * tri.data4.zw + v * tri.data5.xy;
 
 		return true;
 	}
@@ -590,6 +594,8 @@ vec3 estimator_path_tracing_BRDF(in vec3 ro, in vec3 rd, in uint rng_state)
 			color += throughput_term * sky_color(rd) * ENVIRONMENT_MAP_LE;
 			return color;
 		}
+
+		return texture(u_textures, vec3(data.uvs, 0)).xyz;
 
 		Material mat = materials[data.mat_object_indices.x];
 

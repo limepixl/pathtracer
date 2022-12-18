@@ -8,7 +8,10 @@
 #include "scene/material.hpp"
 #include "scene/triangle.hpp"
 
-bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &out_mats)
+#include <stb_image.h>
+#include <glad/glad.h>
+
+bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &out_mats, Mat4f &model_matrix, uint32 &texture_array)
 {
 	cgltf_options options = {};
 	cgltf_data *data = nullptr;
@@ -39,6 +42,14 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 		Array<Vec3f> normals;
 		Array<Vec2f> tex_coords;
 		Array<uint16> indices;
+
+		int32 num_loaded_textures = 0;
+		if(num_textures > 0)
+		{
+			glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &texture_array);
+			glBindTextureUnit(2, texture_array);
+			glTextureStorage3D(texture_array, 1, GL_RGB32F, 256, 256, 3);
+		}
 
 		for (cgltf_size mesh_index = 0; mesh_index < num_meshes; mesh_index++)
 		{
@@ -154,6 +165,41 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 							return false;
 						}
 
+						// FIXME: This is dumb
+						if(mat_properties.base_color_texture.texture != nullptr)
+						{
+							cgltf_image *image = mat_properties.base_color_texture.texture->image;
+
+							void *image_data_start = (void *)((uint8 *)image->buffer_view->buffer->data + image->buffer_view->offset);
+							cgltf_size len = image->buffer_view->size;
+
+							int w = -1; int h = -1;
+							int channels = -1;
+
+							stbi_uc *image_data = stbi_load_from_memory((stbi_uc *) image_data_start, (int) len,&w, &h, &channels, 0);
+							if(image_data == nullptr)
+							{
+								printf("ERROR (glTF Loader / Textures): Failed to load texture!\n");
+								cgltf_free(data);
+								return false;
+							}
+
+							// TODO: Abstract away texture loading and keep track how
+							// many textures the program has actually loaded, globally
+							// NOTE: Now the textures that the Display creation creates
+							// are just the framebuffer and the skybox textures.
+							int32 texture_index = num_loaded_textures++;
+
+							glTextureParameteri(texture_array, GL_TEXTURE_MIN_FILTER, mat_properties.base_color_texture.texture->sampler->min_filter);
+							glTextureParameteri(texture_array, GL_TEXTURE_MAG_FILTER, mat_properties.base_color_texture.texture->sampler->mag_filter);
+							glTextureParameteri(texture_array, GL_TEXTURE_WRAP_S, mat_properties.base_color_texture.texture->sampler->wrap_s);
+							glTextureParameteri(texture_array, GL_TEXTURE_WRAP_T, mat_properties.base_color_texture.texture->sampler->wrap_t);
+
+							glTextureSubImage3D(texture_array, 0, 0, 0, texture_index, w, h, 1, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+
+							stbi_image_free(image_data);
+						}
+
 						if(mat_properties.metallic_factor < EPSILON)
 						{
 							// Material is assumed to be perfectly diffuse
@@ -179,12 +225,12 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 		}
 
 		// We need to duplicate the triangle data as the engine doesn't support indices
-		Array<Vec3f> indexed_positions;
-		Array<Vec3f> indexed_normals;
-		Array<Vec2f> indexed_tex_coords;
-
 		for (uint32 i = 0; i <= indices.size - 3; i+= 3)
 		{
+			Array<Vec3f> tri_positions;
+			Array<Vec3f> tri_normals;
+			Array<Vec2f> tri_tex_coords;
+
 			uint16 i0 = indices[i];
 			uint16 i1 = indices[i + 1];
 			uint16 i2 = indices[i + 2];
@@ -192,9 +238,9 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 			Vec3f v0 = positions[i0];
 			Vec3f v1 = positions[i1];
 			Vec3f v2 = positions[i2];
-			indexed_positions.append(v0);
-			indexed_positions.append(v1);
-			indexed_positions.append(v2);
+			tri_positions.append(v0);
+			tri_positions.append(v1);
+			tri_positions.append(v2);
 
 			Vec3f n0, n1, n2;
 			if(normals.size > 0)
@@ -202,9 +248,9 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 				n0 = normals[i0];
 				n1 = normals[i1];
 				n2 = normals[i2];
-				indexed_normals.append(n0);
-				indexed_normals.append(n1);
-				indexed_normals.append(n2);
+				tri_normals.append(n0);
+				tri_normals.append(n1);
+				tri_normals.append(n2);
 			}
 
 			Vec2f uv0, uv1, uv2;
@@ -213,20 +259,28 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 				uv0 = tex_coords[i0];
 				uv1 = tex_coords[i1];
 				uv2 = tex_coords[i2];
-				indexed_tex_coords.append(uv0);
-				indexed_tex_coords.append(uv1);
-				indexed_tex_coords.append(uv2);
+				tri_tex_coords.append(uv0);
+				tri_tex_coords.append(uv1);
+				tri_tex_coords.append(uv2);
 			}
 
-			if(normals.size > 0)
+			Triangle tri(tri_positions, tri_normals, tri_tex_coords, 0);
+			out_tris.append(tri);
+		}
+
+		// Find model matrix if any
+		for (cgltf_size node_index = 0; node_index < data->nodes_count; node_index++)
+		{
+			cgltf_node *node = &data->nodes[node_index];
+			if (node->has_matrix)
 			{
-				Triangle tri(v0, v1, v2, pixl::normalize(n0 + n1 + n2), 0);
-				out_tris.append(tri);
-			}
-			else
-			{
-				Triangle tri(v0, v1, v2, 0);
-				out_tris.append(tri);
+				cgltf_float *m = node->matrix;
+				model_matrix = Mat4f(Vec4f(m[0], m[4], m[8],  m[12]),
+									 Vec4f(m[1], m[5], m[9],  m[13]),
+									 Vec4f(m[2], m[6], m[10], m[14]),
+									 Vec4f(m[3], m[7], m[11], m[15]));
+
+				break;
 			}
 		}
 

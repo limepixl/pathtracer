@@ -20,12 +20,13 @@ Triangle::Triangle (Vec3f v0, Vec3f v1, Vec3f v2, uint32 mat_index)
 }
 
 Triangle::Triangle (Vec3f v0, Vec3f v1, Vec3f v2, Vec3f normal, uint32 mat_index)
-	: v0(v0), v1(v1), v2(v2), normal(normal), mat_index(mat_index),
-	  uv0(0.0f), uv1(0.0f), uv2(0.0f)
+	: v0(v0), v1(v1), v2(v2), normal(normal),
+	  uv0(0.0f), uv1(0.0f), uv2(0.0f),
+	  mat_index(mat_index)
 {}
 
 Triangle::Triangle(Array<Vec3f> &vertices, Array<Vec3f> &normals, Array<Vec2f> &tex_coords, uint32 mat_index)
-	: v0(vertices[0]), v1(vertices[1]), v2(vertices[2]),
+	:  v0(vertices[0]  ),  v1(vertices[1]  ),  v2(vertices[2]  ),
 	  uv0(tex_coords[0]), uv1(tex_coords[1]), uv2(tex_coords[2]),
 	  mat_index(mat_index)
 {

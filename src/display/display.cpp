@@ -178,6 +178,9 @@ bool InitRenderBuffer(Display &window)
 		stbi_image_free(data);
 	}
 
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
 	return true;
 }
 
