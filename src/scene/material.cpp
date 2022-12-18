@@ -5,7 +5,7 @@
 Material CreateMaterial(MaterialType type, Vec3f diffuse, Vec3f specular, float n_spec, Vec3f Le, const char *name)
 {
 	// NOTE: currently not importing models with O-N BRDF so I divide
-	// by PI in the shader. TODO: implement this when you get to models again
+	// by PI in the shader.
 	if (type == MaterialType::MATERIAL_LAMBERTIAN)
 	{
 		diffuse /= PI;

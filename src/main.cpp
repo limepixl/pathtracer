@@ -1,4 +1,3 @@
-#include "loader.hpp"
 #include "scene/bvh.hpp"
 #include "scene/material.hpp"
 #include "scene/sphere.hpp"

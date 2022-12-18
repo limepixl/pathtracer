@@ -15,7 +15,6 @@ endif()
 # List of project source and header files
 set(SOURCE_FILES 
 	src/main.cpp
-	src/loader.cpp
 	src/loader_remake.cpp
 
 	src/scene/bvh.cpp
@@ -36,7 +35,6 @@ set(SOURCE_FILES
 	thirdparty/cgltf-1.13/cgltf.c)
 
 set(HEADER_FILES
-	src/loader.hpp
 	src/loader_remake.h
 	src/defines.hpp
 
@@ -102,7 +100,6 @@ add_subdirectory(thirdparty/SDL2-2.24.1/)
 target_include_directories(${PROJECT_NAME} PUBLIC
 		thirdparty/SDL2-2.24.1/include
 		thirdparty/glad/include
-		thirdparty/tinyobjloader
 		thirdparty/stb
 		thirdparty/cgltf-1.13)
 

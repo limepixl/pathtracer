@@ -153,7 +153,6 @@ float pixl::random_number_normalized_PCG(pcg32_random_t *rngptr)
 	return (float)d;
 }
 
-// TODO: remove conditionals
 Vec2f pixl::random_Vec2f_PCG(pcg32_random_t *rngptr)
 {
 	float r1 = random_number_normalized_PCG(rngptr);
