@@ -11,7 +11,7 @@
 #include <glad/glad.h>
 #include <SDL.h>
 
-#include "loader_remake.h"
+#include "loader.h"
 
 int main(int argc, char *argv[])
 {

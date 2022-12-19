@@ -1,5 +1,5 @@
-#include "loader_remake.h"
 #include "defines.hpp"
+#include "loader.h"
 #include <cgltf.h>
 #include <cstdio>
 

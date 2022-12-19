@@ -15,7 +15,7 @@ endif()
 # List of project source and header files
 set(SOURCE_FILES 
 	src/main.cpp
-	src/loader_remake.cpp
+	src/loader.cpp
 
 	src/scene/bvh.cpp
 	src/scene/material.cpp
@@ -35,7 +35,7 @@ set(SOURCE_FILES
 	thirdparty/cgltf-1.13/cgltf.c)
 
 set(HEADER_FILES
-	src/loader_remake.h
+	src/loader.h
 	src/defines.hpp
 
 	src/scene/bvh.hpp
