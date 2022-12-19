@@ -20,6 +20,7 @@ set(SOURCE_FILES
 	src/scene/bvh.cpp
 	src/scene/material.cpp
 	src/scene/triangle.cpp
+	src/scene/mesh.cpp
 	src/display/display.cpp
 	src/resource/shader.cpp
 	src/scene/camera.cpp
@@ -43,6 +44,7 @@ set(HEADER_FILES
 	src/scene/ray.hpp
 	src/scene/sphere.hpp
 	src/scene/triangle.hpp
+	src/scene/mesh.h
 	src/display/display.hpp
 	src/resource/shader.hpp
 	src/core/array.hpp

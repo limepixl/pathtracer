@@ -23,12 +23,9 @@ int main(int argc, char *argv[])
 	Display display = CreateDisplay("Pathtracer", width, height);
 	InitRenderBuffer(display);
 
-	Array<Triangle> model_tris;
-	Array<MaterialGLSL> model_mats;
-	GLuint texture_array;
-	Mat4f model_matrix;
+	Mesh mesh;
 
-	bool isLoaded = LoadGLTF("res/models/BoxTextured.glb", model_tris, model_mats, model_matrix, texture_array);
+	bool isLoaded = LoadGLTF("res/models/BoxTextured.glb", mesh);
 	if (!isLoaded)
 	{
 		printf("Failed to load model!\n");
@@ -36,16 +33,16 @@ int main(int argc, char *argv[])
 	}
 
 	// Apply model matrix to tris
-//	model_matrix = ScaleMat4f(Vec3f(0.05f), model_matrix);
-//	model_matrix = TranslationMat4f(Vec3f(0.0f, 0.0f, -3.0f), model_matrix);
+//	mesh.model_matrix = ScaleMat4f(Vec3f(0.05f), model_matrix);
+	mesh.model_matrix = TranslationMat4f(Vec3f(0.0f, 0.0f, -3.0f), mesh.model_matrix);
 
-	Array<TriangleGLSL> model_tris_ssbo(model_tris.size);
-	for (uint32 i = 0; i < model_tris.size; i++)
+	Array<TriangleGLSL> model_tris_ssbo(mesh.triangles.size);
+	for (uint32 i = 0; i < mesh.triangles.size; i++)
 	{
-		Triangle &current_tri = model_tris[i];
-		current_tri.v0 = model_matrix * current_tri.v0;
-		current_tri.v1 = model_matrix * current_tri.v1;
-		current_tri.v2 = model_matrix * current_tri.v2;
+		Triangle &current_tri = mesh.triangles[i];
+		current_tri.v0 = mesh.model_matrix * current_tri.v0;
+		current_tri.v1 = mesh.model_matrix * current_tri.v1;
+		current_tri.v2 = mesh.model_matrix * current_tri.v2;
 
 		Vec3f &v0 = current_tri.v0;
 		Vec3f &v1 = current_tri.v1;
@@ -80,10 +77,10 @@ int main(int argc, char *argv[])
 #endif
 
 	// Find all emissive triangles in scene
-	Array<uint32> emissive_tris(model_tris.size);
-	for (uint32 i = 0; i < model_tris.size; i++)
+	Array<uint32> emissive_tris(mesh.triangles.size);
+	for (uint32 i = 0; i < mesh.triangles.size; i++)
 	{
-		MaterialGLSL current_mat = model_mats[model_tris[i].mat_index];
+		MaterialGLSL current_mat = mesh.materials[mesh.triangles[i].mat_index];
 		if (current_mat.data3.x >= EPSILON || current_mat.data3.y >= EPSILON || current_mat.data3.z >= EPSILON)
 			emissive_tris.append(i);
 	}
@@ -177,11 +174,11 @@ int main(int argc, char *argv[])
 		glNamedBufferStorage(ssbo[2], (GLsizeiptr)(emissive_tris.size * sizeof(uint32)), &(emissive_tris[0]), 0);
 	}
 
-	if(model_mats.size > 0)
+	if(mesh.materials.size > 0)
 	{
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[3]);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo[3]);
-		glNamedBufferStorage(ssbo[3], (GLsizeiptr)(model_mats.size * sizeof(MaterialGLSL)), &(model_mats[0]), 0);
+		glNamedBufferStorage(ssbo[3], (GLsizeiptr)(mesh.materials.size * sizeof(MaterialGLSL)), &(mesh.materials[0]), 0);
 	}
 
 #if 0
@@ -256,8 +253,8 @@ int main(int argc, char *argv[])
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, display.cubemap_texture);
 
-			glBindTextureUnit(2, texture_array);
-			glUniform1i(textures_uniform_location, 2);
+			glBindTextureUnit(mesh.texture_unit, mesh.texture_array);
+			glUniform1i(textures_uniform_location, mesh.texture_unit);
 
 			if (frame_count == 0)
 			{

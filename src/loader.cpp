@@ -11,7 +11,7 @@
 #include <stb_image.h>
 #include <glad/glad.h>
 
-bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &out_mats, Mat4f &model_matrix, uint32 &texture_array)
+bool LoadGLTF(const char *path, Mesh &out_mesh)
 {
 	cgltf_options options = {};
 	cgltf_data *data = nullptr;
@@ -46,9 +46,10 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 		int32 num_loaded_textures = 0;
 		if(num_textures > 0)
 		{
-			glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &texture_array);
-			glBindTextureUnit(2, texture_array);
-			glTextureStorage3D(texture_array, 1, GL_RGB32F, 256, 256, 3);
+			glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &out_mesh.texture_array);
+			glBindTextureUnit(2, out_mesh.texture_array);
+			glTextureStorage3D(out_mesh.texture_array, 1, GL_RGB32F, 256, 256, (GLsizei) num_textures);
+			out_mesh.texture_unit = 2;
 		}
 
 		for (cgltf_size mesh_index = 0; mesh_index < num_meshes; mesh_index++)
@@ -189,13 +190,14 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 							// NOTE: Now the textures that the Display creation creates
 							// are just the framebuffer and the skybox textures.
 							int32 texture_index = num_loaded_textures++;
+							result_mat.data4.x = (float) texture_index;
 
-							glTextureParameteri(texture_array, GL_TEXTURE_MIN_FILTER, mat_properties.base_color_texture.texture->sampler->min_filter);
-							glTextureParameteri(texture_array, GL_TEXTURE_MAG_FILTER, mat_properties.base_color_texture.texture->sampler->mag_filter);
-							glTextureParameteri(texture_array, GL_TEXTURE_WRAP_S, mat_properties.base_color_texture.texture->sampler->wrap_s);
-							glTextureParameteri(texture_array, GL_TEXTURE_WRAP_T, mat_properties.base_color_texture.texture->sampler->wrap_t);
+							glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_MIN_FILTER, mat_properties.base_color_texture.texture->sampler->min_filter);
+							glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_MAG_FILTER, mat_properties.base_color_texture.texture->sampler->mag_filter);
+							glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_WRAP_S, mat_properties.base_color_texture.texture->sampler->wrap_s);
+							glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_WRAP_T, mat_properties.base_color_texture.texture->sampler->wrap_t);
 
-							glTextureSubImage3D(texture_array, 0, 0, 0, texture_index, w, h, 1, GL_RGB, GL_UNSIGNED_BYTE, image_data);
+							glTextureSubImage3D(out_mesh.texture_array, 0, 0, 0, texture_index, w, h, 1, GL_RGB, GL_UNSIGNED_BYTE, image_data);
 
 							stbi_image_free(image_data);
 						}
@@ -219,7 +221,7 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 						}
 					}
 
-					out_mats.append(result_mat);
+					out_mesh.materials.append(result_mat);
 				}
 			}
 		}
@@ -265,7 +267,7 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 			}
 
 			Triangle tri(tri_positions, tri_normals, tri_tex_coords, 0);
-			out_tris.append(tri);
+			out_mesh.triangles.append(tri);
 		}
 
 		// Find model matrix if any
@@ -275,10 +277,10 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 			if (node->has_matrix)
 			{
 				cgltf_float *m = node->matrix;
-				model_matrix = Mat4f(Vec4f(m[0], m[4], m[8],  m[12]),
-									 Vec4f(m[1], m[5], m[9],  m[13]),
-									 Vec4f(m[2], m[6], m[10], m[14]),
-									 Vec4f(m[3], m[7], m[11], m[15]));
+				out_mesh.model_matrix = Mat4f(Vec4f(m[0], m[4], m[8],  m[12]),
+									 		  Vec4f(m[1], m[5], m[9],  m[13]),
+									 		  Vec4f(m[2], m[6], m[10], m[14]),
+									 		  Vec4f(m[3], m[7], m[11], m[15]));
 
 				break;
 			}
@@ -288,7 +290,7 @@ bool LoadGLTF(const char *path, Array<Triangle> &out_tris, Array<MaterialGLSL> &
 		printf("--> Num loaded normals: %u\n", normals.size);
 		printf("--> Num loaded UVs: %u\n", tex_coords.size);
 		printf("--> Num loaded indices: %u\n", indices.size);
-		printf("--> Num loaded tris: %u\n", out_tris.size);
+		printf("--> Num loaded tris: %u\n", out_mesh.triangles.size);
 
 		cgltf_free(data);
 		return true;
