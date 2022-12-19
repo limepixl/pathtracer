@@ -254,7 +254,7 @@ int main(int argc, char *argv[])
 			glBindTexture(GL_TEXTURE_2D, display.cubemap_texture);
 
 			glBindTextureUnit(mesh.texture_unit, mesh.texture_array);
-			glUniform1i(textures_uniform_location, mesh.texture_unit);
+			glUniform1i(textures_uniform_location, (GLint) mesh.texture_unit);
 
 			if (frame_count == 0)
 			{
