@@ -166,7 +166,6 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 							return false;
 						}
 
-						// FIXME: This is dumb
 						if(mat_properties.base_color_texture.texture != nullptr)
 						{
 							cgltf_image *image = mat_properties.base_color_texture.texture->image;
@@ -207,8 +206,14 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 							// Material is assumed to be perfectly diffuse
 							result_mat.data1 = Vec4f(base_color_arr[0], base_color_arr[1], base_color_arr[2], mat_properties.roughness_factor);
 
-							if(mat_properties.roughness_factor > 0.0f)
+							if(mat_properties.roughness_factor > EPSILON)
+							{
 								result_mat.data3.w = (float) MaterialType::MATERIAL_OREN_NAYAR;
+								// NOTE: this maps [0,1] to [0, 0.35] which is only based on hearsay and not any maths
+								// as I could not find a specific resource that outlines the max realistic roughness for O-N
+								// TODO: Implement other better purely diffuse material
+								result_mat.data1.w *= 0.35f;
+							}
 							else
 								result_mat.data3.w = (float) MaterialType::MATERIAL_LAMBERTIAN;
 						}
