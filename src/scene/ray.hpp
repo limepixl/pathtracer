@@ -4,7 +4,7 @@
 
 struct Ray
 {
-	Vec3f origin;
-	Vec3f direction;
-	Vec3f inv_dir;
+  Vec3f origin;
+  Vec3f direction;
+  Vec3f inv_dir;
 };
