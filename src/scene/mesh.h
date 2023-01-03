@@ -5,18 +5,18 @@
 
 struct Mesh
 {
-	Array<struct Triangle> triangles;
-	Array<struct MaterialGLSL> materials;
+    Array<struct Triangle> triangles;
+    Array<struct MaterialGLSL> materials;
 
-	Mat4f model_matrix;
-	uint32 texture_array{};
-	uint32 texture_unit{};
+    Mat4f model_matrix;
+    uint32 texture_array {};
+    uint32 texture_unit {};
 
-	Mesh() = default;
+    Mesh() = default;
 
-	Mesh(Array<struct Triangle> &triangles,
-		 Array<struct MaterialGLSL> &materials,
-		 Mat4f &model_matrix,
-		 uint32 texture_array,
-		 uint32 texture_unit);
+    Mesh(Array<struct Triangle> &triangles,
+         Array<struct MaterialGLSL> &materials,
+         Mat4f &model_matrix,
+         uint32 texture_array,
+         uint32 texture_unit);
 };

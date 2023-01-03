@@ -5,22 +5,25 @@
 
 struct Display
 {
-	// Window specific data
-	uint32 width, height;
-	SDL_Window *window_handle;
-	SDL_GLContext context;
-	bool is_open;
+    // Window specific data
+    uint32 width, height;
+    SDL_Window *window_handle;
+    SDL_GLContext context;
+    bool is_open;
 
-	// Render buffer data
-	uint32 vao;
-	uint32 render_buffer_texture;
-	uint32 rb_shader_program;
-	uint32 compute_shader_program;
+    // Render buffer data
+    uint32 vao;
+    uint32 render_buffer_texture;
+    uint32 rb_shader_program;
+    uint32 compute_shader_program;
 
-	uint32 cubemap_texture;
+    uint32 cubemap_texture;
 };
 
-Display CreateDisplay(const char* title, uint32 width, uint32 height);
+Display CreateDisplay(const char *title, uint32 width, uint32 height);
+
 bool InitRenderBuffer(Display &window);
+
 void CloseDisplay(Display &window);
+
 void UpdateDisplayTitle(Display &window, const char *new_title);
