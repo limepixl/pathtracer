@@ -177,7 +177,7 @@ bool InitRenderBuffer(Display &window)
     int w, h, c;
     uint8 *data;
     stbi_hdr_to_ldr_gamma(1.0);
-    data = stbi_load("cubemaps/solitude_interior_4k.hdr", &w, &h, &c, 3);
+    data = stbi_load("res/cubemaps/solitude_interior_4k.hdr", &w, &h, &c, 3);
     if (data != nullptr)
     {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
