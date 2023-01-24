@@ -35,9 +35,6 @@ Specular BRDF (GGX NDF with Smith geometry func.), using GGX importance sampling
 - stb libraries ([GitHub](https://github.com/nothings/stb))
 
 ### To-Do List:
-- Textures
 - Implement more variance reduction techniques (stratified sampling, BRDF sampling, low discrepancy sequences).
-- More advanced BRDFs and BSDFs
-- GLTF model support
 - Russian Roulette
 - Measuring different radiometric quantities (for example intensity, to get an orthographic projection)
