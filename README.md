@@ -24,6 +24,9 @@ MIS (Naive+NEE), Modified Blinn-Phong, Sweep SAH BVH
 Specular BRDF (GGX NDF with Smith geometry func.), using GGX importance sampling - Metallic Gold material
 ![specular](https://raw.githubusercontent.com/limepixl/pathtracer/main/renders/naive_specular_gold.png)
 
+(WIP) glTF Model support
+![gltf](https://raw.githubusercontent.com/limepixl/pathtracer/main/renders/gltf_support.png)
+
 ### Third-party libraries used:
 - Tiny OBJ Loader ([GitHub](https://github.com/tinyobjloader/tinyobjloader))
 - PCG Random Number Generation Library (Minimal C Edition) ([GitHub](https://github.com/imneme/pcg-c-basic))

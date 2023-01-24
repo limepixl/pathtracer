@@ -1,261 +1,335 @@
-#include "loader.hpp"
 #include "defines.hpp"
+#include "loader.h"
+#include <cgltf.h>
+#include <cstdio>
+
 #include "math/math.hpp"
+#include "math/vec.hpp"
 #include "scene/material.hpp"
 #include "scene/triangle.hpp"
 
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
-#include <string>
+#include <stb_image.h>
+#include <glad/glad.h>
 
-static inline bool compare_tinyobjvec3_with_vec3f(const tinyobj::real_t* vec1, const Vec3f& vec2)
+bool LoadGLTF(const char *path, Mesh &out_mesh)
 {
-	return pixl::abs(vec1[0] - vec2.x) < EPSILON && pixl::abs(vec1[1] - vec2.y) < EPSILON && pixl::abs(vec1[2] - vec2.z) < EPSILON;
-}
+    cgltf_options options = {};
+    cgltf_data *data = nullptr;
 
-bool LoadModelFromObj(const char *file_name, const char *path,
-					  Array<struct Triangle> &out_tris,
-					  Array<struct Material *> &out_materials)
-{
-	printf("Loading %s model from path: %s\n", file_name, path);
+    // Parse GLTF / GLB file with given options and put metadata into `data`
+    cgltf_result result = cgltf_parse_file(&options, path, &data);
 
-	tinyobj::attrib_t attrib = {};
-	std::vector<tinyobj::shape_t> shapes;
-	std::vector<tinyobj::material_t> materials;
-	std::string warning, error;
+    if (result == cgltf_result_success)
+    {
+        result = cgltf_load_buffers(&options, data, path);
+    }
 
-	std::string final_path = std::string(path) + std::string(file_name);
-	bool res = tinyobj::LoadObj(&attrib, &shapes, &materials, &warning, &error, final_path.c_str(), path);
+    if (result == cgltf_result_success)
+    {
+        result = cgltf_validate(data);
+    }
 
-	// Print out any warnings or errors that tinyobjloader returned
-	if (!warning.empty())
-		printf("WARNING: %s\n", warning.c_str());
+    if (result == cgltf_result_success)
+    {
+        cgltf_size num_meshes = data->meshes_count;
+        cgltf_size num_buffers = data->buffers_count;
+        cgltf_size num_buffer_views = data->buffer_views_count;
+        cgltf_size num_textures = data->textures_count;
 
-	if (!error.empty())
-		printf("ERROR: %s\n", error.c_str());
+        printf("Loading glTF data from path: %s\n", path);
+        printf("--> Number of meshes: %zu\n", num_meshes);
+        printf("--> Number of buffers: %zu\n", num_buffers);
+        printf("--> Number of buffer views: %zu\n", num_buffer_views);
+        printf("--> Number of textures: %zu\n", num_textures);
 
-	if (!res)
-	{
-		printf("Failed to load obj file at path: %s\n", final_path.c_str());
-		return false;
-	}
+        Array<Vec3f> positions;
+        Array<Vec3f> normals;
+        Array<Vec2f> tex_coords;
+        Array<uint16> indices;
 
-	// int64 numVertices = (int64)(attrib.vertices.size() / 3);
-	uint32 num_normals = (uint32)(attrib.normals.size() / 3);
-	// int64 numUVs = (int64)(attrib.texcoords.size() / 2);
-	// uint32 num_materials = (uint32)(materials.size());
-	uint32 num_shapes = (uint32)(shapes.size());
+        int32 num_loaded_textures = 0;
+        if (num_textures > 0)
+        {
+            glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &out_mesh.texture_array);
+            glBindTextureUnit(2, out_mesh.texture_array);
+            glTextureStorage3D(out_mesh.texture_array, 1, GL_RGB32F, 512, 512, (GLsizei) num_textures);
+            out_mesh.texture_unit = 2;
+        }
 
-	// Initialize out materials
-	int32 num_loaded_materials = 0;
-	// printf("Loaded %llu materials!\n", materials.size());
+        for (cgltf_size mesh_index = 0; mesh_index < num_meshes; mesh_index++)
+        {
+            cgltf_mesh *mesh = &data->meshes[mesh_index];
+            cgltf_size num_mesh_primitives = mesh->primitives_count;
 
-	// Keep track of emissive triangles so that we can keep them as
-	// light sources for NEE later on
-	std::vector<uint32> emissive_tris;
+            for (cgltf_size mesh_prim_index = 0; mesh_prim_index < num_mesh_primitives; mesh_prim_index++)
+            {
+                cgltf_primitive *primitive = &mesh->primitives[mesh_prim_index];
 
-	// TODO: compute AABB while loading
+                // Only supporting triangles as primitives (for now)
+                if (primitive->type != cgltf_primitive_type_triangles)
+                {
+                    printf("ERROR (glTF Loader): Only triangles are supported as primitives!");
+                    cgltf_free(data);
+                    return false;
+                }
 
-	std::vector<Triangle> tris;
-	for (uint32 shape = 0; shape < num_shapes; shape++)
-	{
-		// This shape's indices
-		// NOTE: assuming mesh is trangulated (which tinyobjloader does by default
-		// if the mesh isn't triangulated fully), each face consists of 3 vertices
-		uint32 num_faces = (uint32)(shapes[shape].mesh.indices.size() / 3);
+                // Load attribute data that primitive uses
+                for (cgltf_size attr_index = 0; attr_index < primitive->attributes_count; attr_index++)
+                {
+                    cgltf_attribute *attribute = &primitive->attributes[attr_index];
+                    if (attribute->type == cgltf_attribute_type_position ||
+                        attribute->type == cgltf_attribute_type_normal ||
+                        attribute->type == cgltf_attribute_type_texcoord)
+                    {
+                        cgltf_accessor *accessor = attribute->data;
+                        cgltf_buffer_view *view = accessor->buffer_view;
+                        cgltf_size stride = view->stride != 0 ? view->stride : accessor->stride;
 
-		for (uint32 face = 0; face < num_faces; face++)
-		{
-			tinyobj::index_t index0 = shapes[shape].mesh.indices[3 * face];
-			tinyobj::index_t index1 = shapes[shape].mesh.indices[3 * face + 1];
-			tinyobj::index_t index2 = shapes[shape].mesh.indices[3 * face + 2];
+                        for (uint32 i = 0; i < accessor->count; i++)
+                        {
+                            float *start = (float *) ((uint8 *) view->buffer->data + view->offset + accessor->offset +
+                                                      stride * i);
 
-			// TODO: get texture coordinates
+                            if (accessor->type == cgltf_type_vec3)
+                            {
+                                Vec3f vec3;
+                                vec3.x = *((float *) start);
+                                vec3.y = *((float *) start + 1);
+                                vec3.z = *((float *) start + 2);
 
-			// Get vertex data
-			float vertex0[3];
-			float vertex1[3];
-			float vertex2[3];
-			for (uint32 component = 0; component < 3; component++)
-			{
-				// Vertex indices are separate from uv and normal indices
-				int v0 = index0.vertex_index;
-				int v1 = index1.vertex_index;
-				int v2 = index2.vertex_index;
+                                if (attribute->type == cgltf_attribute_type_position)
+                                {
+                                    positions.append(vec3);
+                                }
+                                else if (attribute->type == cgltf_attribute_type_normal)
+                                {
+                                    normals.append(vec3);
+                                }
+                                else
+                                {
+                                    printf("ERROR (glTF Loader): This attribute type is unsupported!\n");
+                                    cgltf_free(data);
+                                    return false;
+                                }
+                            }
+                            else if (accessor->type == cgltf_type_vec2)
+                            {
+                                Vec2f vec2;
+                                vec2.x = *((float *) start);
+                                vec2.y = *((float *) start + 1);
 
-				if (v0 < 0 || v1 < 0 || v2 < 0)
-				{
-					printf("INVALID INDICES!\n");
-					return false;
-				}
+                                if (attribute->type == cgltf_attribute_type_texcoord)
+                                {
+                                    tex_coords.append(vec2);
+                                }
+                                else
+                                {
+                                    printf("ERROR (glTF Loader): This attribute type is unsupported!\n");
+                                    cgltf_free(data);
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                }
 
-				vertex0[component] = attrib.vertices[3 * (uint32)v0 + component];
-				vertex1[component] = attrib.vertices[3 * (uint32)v1 + component];
-				vertex2[component] = attrib.vertices[3 * (uint32)v2 + component];
-			}
+                // Load indices that primitive uses
+                {
+                    cgltf_accessor *indices_accessor = primitive->indices;
+                    if (indices_accessor != nullptr && (indices_accessor->type != cgltf_type_scalar ||
+                                                        indices_accessor->component_type != cgltf_component_type_r_16u))
+                    {
+                        printf("ERROR (glTF Loader): Indices accessor type or component type is wrong!\n");
+                        cgltf_free(data);
+                        return false;
+                    }
 
-			// Get normal data
-			Vec3f nv0 {}, nv1 {}, nv2 {};
-			float normalv0[3];
-			float normalv1[3];
-			float normalv2[3];
-			if (num_normals > 0)
-			{
-				int n0 = index0.normal_index;
-				int n1 = index1.normal_index;
-				int n2 = index2.normal_index;
+                    cgltf_buffer_view *view = indices_accessor->buffer_view;
+                    cgltf_size stride = view->stride != 0 ? view->stride : indices_accessor->stride;
 
-				if (n0 < 0)
-					n0 += num_normals;
+                    for (uint32 i = 0; i < indices_accessor->count; i++)
+                    {
+                        uint16 val = *(uint16 *) ((uint8 *) view->buffer->data + view->offset + stride * i);
+                        indices.append(val);
+                    }
+                }
 
-				if (n1 < 0)
-					n1 += num_normals;
+                // Load material that primitve uses
+                {
+                    cgltf_material *material = primitive->material;
+                    (void) material;
 
-				if (n2 < 0)
-					n2 += num_normals;
+                    MaterialGLSL result_mat;
 
-				for (uint32 component = 0; component < 3; component++)
-				{
-					normalv0[component] = attrib.normals[3 * (uint32)n0 + component];
-					normalv1[component] = attrib.normals[3 * (uint32)n1 + component];
-					normalv2[component] = attrib.normals[3 * (uint32)n2 + component];
+                    if (material->has_pbr_metallic_roughness)
+                    {
+                        cgltf_pbr_metallic_roughness &mat_properties = material->pbr_metallic_roughness;
 
-					// Average out all vertex normals for each face
-					nv0 = Vec3f(normalv0[0], normalv0[1], normalv0[2]);
-					nv1 = Vec3f(normalv1[0], normalv1[1], normalv1[2]);
-					nv2 = Vec3f(normalv2[0], normalv2[1], normalv2[2]);
-				}
-			}
-			else
-			{
-				// If there are no provided normals by the OBJ model,
-				// then assume CCW winding order and calcualte the normals.
-				// This makes each face have effectively one normal, so they
-				// won't be interpolated between adjacent faces / shared vertices.
+                        cgltf_float *base_color_arr = mat_properties.base_color_factor;
+                        if (base_color_arr[3] < 0.99f)
+                        {
+                            printf("ERROR (glTF Loader): Currently not supporting base color with any transparency!\n");
+                            cgltf_free(data);
+                            return false;
+                        }
 
-				Vec3f v0(vertex0[0], vertex0[1], vertex0[2]);
-				Vec3f v1(vertex1[0], vertex1[1], vertex1[2]);
-				Vec3f v2(vertex2[0], vertex2[1], vertex2[2]);
+                        if (mat_properties.base_color_texture.texture != nullptr)
+                        {
+                            cgltf_image *image = mat_properties.base_color_texture.texture->image;
 
-				Vec3f edge1 = v1 - v0;
-				Vec3f edge2 = v2 - v0;
+                            void *image_data_start = (void *) ((uint8 *) image->buffer_view->buffer->data +
+                                                               image->buffer_view->offset);
+                            cgltf_size len = image->buffer_view->size;
 
-				Vec3f n = pixl::cross(edge1, edge2);
-				nv0 = n;
-				nv1 = n;
-				nv2 = n;
-			}
-			Vec3f normal = pixl::normalize(nv0 + nv1 + nv2);
+                            int w = -1;
+                            int h = -1;
+                            int channels = -1;
 
-			// Materials
-			uint32 mat_ID = (uint32)shapes[shape].mesh.material_ids[face];
-			tinyobj::material_t mat = materials[mat_ID];
-			uint32 triangle_mat_index = 0;
+                            stbi_uc *image_data = stbi_load_from_memory((stbi_uc *) image_data_start,
+                                                                        (int) len,
+                                                                        &w,
+                                                                        &h,
+                                                                        &channels,
+                                                                        3);
+                            if (image_data == nullptr)
+                            {
+                                printf("ERROR (glTF Loader / Textures): Failed to load texture!\n");
+                                cgltf_free(data);
+                                return false;
+                            }
 
-			bool unique = true;
-			for (uint32 m = 0; m < (uint32)num_loaded_materials; m++)
-			{
-				//if (!strcmp(mat.name.c_str(), out_materials[m]->name))
-				{
-					Vec3f diffuse = out_materials[m]->diffuse * PI;
-					Vec3f specular = out_materials[m]->specular;
-					Vec3f Le = out_materials[m]->Le;
-					float spec = out_materials[m]->n_spec;
+                            // TODO: Abstract away texture loading and keep track how
+                            // many textures the program has actually loaded, globally
+                            // NOTE: Now the textures that the Display creation creates
+                            // are just the framebuffer and the skybox textures.
+                            int32 texture_index = num_loaded_textures++;
+                            result_mat.data4.x = (float) texture_index;
 
-					if (pixl::abs(spec - mat.shininess) < EPSILON &&
-						compare_tinyobjvec3_with_vec3f(mat.diffuse, diffuse) &&
-						compare_tinyobjvec3_with_vec3f(mat.specular, specular) &&
-						compare_tinyobjvec3_with_vec3f(mat.emission, Le))
-					{
-						unique = false;
-						triangle_mat_index = m;
-						break;
-					}
-				}
-			}
+                            cgltf_sampler *sampler = mat_properties.base_color_texture.texture->sampler;
+                            glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_MIN_FILTER, sampler->min_filter);
+                            glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_MAG_FILTER, sampler->mag_filter);
+                            glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_WRAP_S, sampler->wrap_s);
+                            glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_WRAP_T, sampler->wrap_t);
 
-			if (unique)
-			{
-				// Vec3f ambient = Vec3f(mat.ambient[0], mat.ambient[1], mat.ambient[2]);
-				Vec3f diffuse(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2]);
-				Vec3f specular(mat.specular[0], mat.specular[1], mat.specular[2]);
-				Vec3f emission(mat.emission[0], mat.emission[1], mat.emission[2]);
+                            glTextureSubImage3D(out_mesh.texture_array,
+                                                0,
+                                                0,
+                                                0,
+                                                texture_index,
+                                                w,
+                                                h,
+                                                1,
+                                                GL_RGB,
+                                                GL_UNSIGNED_BYTE,
+                                                image_data);
 
-				// Purely diffuse (Lambertian) material
-				if (mat.illum == 1 || (mat.illum == 2 && specular == Vec3f(0.0f)))
-				{
-					Material *tmp_mat = (Material *)malloc(sizeof(Material));
-					*tmp_mat = CreateMaterial(MaterialType::MATERIAL_LAMBERTIAN,
-											  diffuse,
-											  specular,
-											  mat.shininess,
-											  emission,
-											  mat.name.c_str());
+                            stbi_image_free(image_data);
+                        }
 
-					out_materials.append(tmp_mat);
-					triangle_mat_index = (uint32)num_loaded_materials++;
-				}
+                        if (mat_properties.metallic_factor < EPSILON)
+                        {
+                            // Material is assumed to be perfectly diffuse
+                            result_mat.data1 = Vec4f(base_color_arr[0],
+                                                     base_color_arr[1],
+                                                     base_color_arr[2],
+                                                     mat_properties.roughness_factor);
 
-				// TODO: replace with better BRDF
-				else
-				{
-					printf("UNSUPPORTED MATERIAL!\n");
-					exit(-1);
-				}
+                            if (mat_properties.roughness_factor > EPSILON)
+                            {
+                                result_mat.data3.w = (float) MaterialType::MATERIAL_OREN_NAYAR;
+                                // NOTE: this maps [0,1] to [0, 0.35] which is only based on hearsay and not any maths
+                                // as I could not find a specific resource that outlines the max realistic roughness for O-N
+                                // TODO: Implement other better purely diffuse material
+                                result_mat.data1.w *= 0.35f;
+                            }
+                            else
+                            {
+                                result_mat.data3.w = (float) MaterialType::MATERIAL_LAMBERTIAN;
+                            }
+                        }
+                        else
+                        {
+                            // Material is assumed to be metallic
+                            result_mat.data1.w = mat_properties.roughness_factor;
+                            result_mat.data2 = Vec4f(base_color_arr[0], base_color_arr[1], base_color_arr[2], 0.0f);
+                            result_mat.data3.w = (float) MaterialType::MATERIAL_SPECULAR_METAL;
+                        }
+                    }
 
-				// Blinn-Phong BRDF with Lambertian diffuse
-				//else if (mat.illum == 2)
-				//{
-				//	Material *tmp_mat = (Material *)malloc(sizeof(Material));
-				//	*tmp_mat = CreateMaterial(MaterialType::MATERIAL_PHONG,
-				//							  diffuse,
-				//							  specular,
-				//							  mat.shininess,
-				//							  emission,
-				//							  mat.name.c_str());
+                    out_mesh.materials.append(result_mat);
+                }
+            }
+        }
 
-				//	AppendToArray(out_materials, tmp_mat);
-				//	triangle_mat_index = (uint32)num_loaded_materials++;
-				//}
+        // We need to duplicate the triangle data as the engine doesn't support indices
+        for (uint32 i = 0; i <= indices.size - 3; i += 3)
+        {
+            Array<Vec3f> tri_positions;
+            Array<Vec3f> tri_normals;
+            Array<Vec2f> tri_tex_coords;
 
-				//// Reflection
-				//// TODO: fix hack
-				//else if (mat.illum == 5 || (mat.illum == 2 && specular == Vec3f(1.0f)))
-				//{
-				//	Material *tmp_mat = (Material *)malloc(sizeof(Material));
-				//	*tmp_mat = CreateMaterial(MaterialType::MATERIAL_IDEAL_REFLECTIVE,
-				//							  diffuse,
-				//							  specular,
-				//							  mat.shininess,
-				//							  emission,
-				//							  mat.name.c_str());
+            uint16 i0 = indices[i];
+            uint16 i1 = indices[i + 1];
+            uint16 i2 = indices[i + 2];
 
-				//	AppendToArray(out_materials, tmp_mat);
-				//	triangle_mat_index = (uint32)num_loaded_materials++;
-				//}
-			}
+            Vec3f v0 = positions[i0];
+            Vec3f v1 = positions[i1];
+            Vec3f v2 = positions[i2];
+            tri_positions.append(v0);
+            tri_positions.append(v1);
+            tri_positions.append(v2);
 
-			// Create triangle
-			Vec3f v0(vertex0[0], vertex0[1], vertex0[2]);
-			Vec3f v1(vertex1[0], vertex1[1], vertex1[2]);
-			Vec3f v2(vertex2[0], vertex2[1], vertex2[2]);
-			Triangle tri = CreateTriangle(v0, v1, v2, normal, triangle_mat_index);
+            Vec3f n0, n1, n2;
+            if (normals.size > 0)
+            {
+                n0 = normals[i0];
+                n1 = normals[i1];
+                n2 = normals[i2];
+                tri_normals.append(n0);
+                tri_normals.append(n1);
+                tri_normals.append(n2);
+            }
 
-			if (out_materials[triangle_mat_index]->Le >= Vec3f(0.1f, 0.1f, 0.1f))
-			{
-				emissive_tris.push_back((uint32)tris.size());
-			}
+            Vec2f uv0, uv1, uv2;
+            if (tex_coords.size > 0)
+            {
+                uv0 = tex_coords[i0];
+                uv1 = tex_coords[i1];
+                uv2 = tex_coords[i2];
+                tri_tex_coords.append(uv0);
+                tri_tex_coords.append(uv1);
+                tri_tex_coords.append(uv2);
+            }
 
-			tris.push_back(tri);
-		}
-	}
+            Triangle tri(tri_positions, tri_normals, tri_tex_coords, 0);
+            out_mesh.triangles.append(tri);
+        }
 
-	out_tris = Array<Triangle>((unsigned int)tris.size());
-	for (auto &tri : tris)
-		out_tris.append(tri);
+        // Find model matrix if any
+        for (cgltf_size node_index = 0; node_index < data->nodes_count; node_index++)
+        {
+            cgltf_node *node = &data->nodes[node_index];
+            if (node->has_matrix)
+            {
+                cgltf_float *m = node->matrix;
+                out_mesh.model_matrix = Mat4f(Vec4f(m[0], m[4], m[8], m[12]),
+                                              Vec4f(m[1], m[5], m[9], m[13]),
+                                              Vec4f(m[2], m[6], m[10], m[14]),
+                                              Vec4f(m[3], m[7], m[11], m[15]));
 
-	printf("Finished loading .obj model!\n");
-	printf("--- Number of triangles: %u\n", out_tris.size);
-	printf("--- Number of materials: %u\n", out_materials.size);
-	return true;
+                break;
+            }
+        }
+
+        printf("--> Num loaded vertices: %u\n", positions.size);
+        printf("--> Num loaded normals: %u\n", normals.size);
+        printf("--> Num loaded UVs: %u\n", tex_coords.size);
+        printf("--> Num loaded indices: %u\n", indices.size);
+        printf("--> Num loaded tris: %u\n", out_mesh.triangles.size);
+
+        cgltf_free(data);
+        return true;
+    }
+
+    return false;
 }
