@@ -1,4 +1,0 @@
-- Optimize compute shader
-- Implement a better BRDF that isn't Phong
-- Tonemapping
-- Move to moving view matrix rather than moving camera and pixel grid

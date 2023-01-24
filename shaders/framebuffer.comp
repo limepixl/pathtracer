@@ -5,6 +5,7 @@ layout(rgba32f, binding = 0) restrict uniform image2D screen;
 // Uniform variables
 uniform uvec3 u_frame_data; // seed, frame#, view_mode
 uniform sampler2D u_cubemap;
+uniform sampler2DArray u_textures;
 
 layout (std140, binding = 0) uniform Camera
 {
@@ -26,17 +27,20 @@ layout (std140, binding = 0) uniform Camera
 #define NUM_SHADOW_RAYS 1
 
 // Misc
-#define ENVIRONMENT_MAP_LE 0.0
-#define IMPORTANCE_SAMPLE_GGX 1
-#define NEE_SPECULAR_ROUGHNESS_CUTOFF 0.0
+#define ENVIRONMENT_MAP_LE 				1.0
+#define IMPORTANCE_SAMPLE_GGX 			1
+#define NEE_SPECULAR_ROUGHNESS_CUTOFF 	0.0
 
 // SSBO helper structs
 
+// TODO: optimize the memory layout of this once it works
 struct Triangle
 {
-	vec4  data1;  // v0.x, v0.y, v0.z, mat_index
-	vec4  data2;  // v1.x, v1.y, v1.z, 0
-	vec4  data3;  // v2.x, v2.y, v2.z, 0
+	vec4 data1;  // v0.x, v0.y, v0.z, mat_index
+	vec4 data2;  // v1.x, v1.y, v1.z, 0
+	vec4 data3;  // v2.x, v2.y, v2.z, 0
+	vec4 data4;  // uv0.x, uv0.y, uv1.x, uv1.y
+	vec4 data5;  // uv2.x, uv2.y, 0, 0
 };
 
 struct Sphere
@@ -50,6 +54,7 @@ struct Material
 	vec4 data1; // diff.x, diff.y, diff.z, rougness
 	vec4 data2; // spec.x, spec.y, spec.z, n_spec
 	vec4 data3; // Le.x, Le.y, Le.z, mat_type
+	vec4 data4; // diffuse_tex_indx, 0, 0, 0
 };
 
 struct BVHNode
@@ -197,6 +202,7 @@ struct HitData
 	vec3 normal;
 	uvec2 mat_object_indices;
 	uint object_type; // 0 tri, 1 sphere
+	vec2 uvs;
 };
 
 // Intersection
@@ -273,6 +279,10 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 		data.mat_object_indices.x = uint(tri.data1.w);
 		data.mat_object_indices.y = tri_index;
 		data.object_type = 0;
+
+		float w = 1.0 - u - v;
+		data.uvs = w * tri.data4.xy + u * tri.data4.zw + v * tri.data5.xy;
+
 		return true;
 	}
 
@@ -350,13 +360,15 @@ bool intersect_bvh_stack(in vec3 ro, in vec3 rd, inout HitData data, inout float
 			else
 			{
 				// If leaf node, test against triangles of node
+				HitData current_data;
 				for (uint i = 0; i < num_node_tris; i++)
 				{
-					if (intersect_triangle(ro, rd, node_left + i, data, tmax))
+					if (intersect_triangle(ro, rd, node_left + i, current_data, tmax))
 					{
 						// Found closer hit, store it.
 						hit_anything = true;
-						tmax = data.t;
+						tmax = current_data.t;
+						data = current_data;
 					}
 				}
 			}
@@ -371,23 +383,34 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 	bool hit_anything = false;
 	float tmax = TMAX;
 
-	// hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
-
-	for(uint i = 0; i < spheres.length(); i++)
+	uint num_tris = triangles.length();
+	for (uint i = 0; i < num_tris; i++)
 	{
-		Sphere current_sphere = spheres[i];
-		float current_t = intersect_sphere(ro, rd, current_sphere);
-		if(current_t >= TMIN && current_t <= tmax)
+		if (intersect_triangle(ro, rd, i, result, tmax))
 		{
-			tmax = current_t;
+			// Found closer hit, store it.
 			hit_anything = true;
-			result.t = current_t;
-			result.normal = (ro + rd * current_t - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
-			result.mat_object_indices.x = current_sphere.mat_index.x;
-			result.mat_object_indices.y = i;
-			result.object_type = 1;
+			tmax = result.t;
 		}
 	}
+
+//	hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
+
+//	for(uint i = 0; i < spheres.length(); i++)
+//	{
+//		Sphere current_sphere = spheres[i];
+//		float current_t = intersect_sphere(ro, rd, current_sphere);
+//		if(current_t >= TMIN && current_t <= tmax)
+//		{
+//			tmax = current_t;
+//			hit_anything = true;
+//			result.t = current_t;
+//			result.normal = (ro + rd * current_t - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
+//			result.mat_object_indices.x = current_sphere.mat_index.x;
+//			result.mat_object_indices.y = i;
+//			result.object_type = 1;
+//		}
+//	}
 
 	return hit_anything;
 }
@@ -525,25 +548,32 @@ vec3 pick_wi(in vec3 wo, in Material mat, in HitData data, in bool using_NEE, ou
 	return vec3(1.0 / 0.0);
 }
 
-vec3 calc_BRDF(in vec3 wo, in vec3 wm, in vec3 wi, in Material mat, in bool using_NEE, inout uint rng_state)
+vec3 calc_BRDF(in vec3 wo, in vec3 wm, in vec3 wi, in Material mat, in vec2 uvs, in bool using_NEE, inout uint rng_state)
 {
+	vec3 albedo = mat.data1.xyz;
+	if(mat.data4.x > -1)
+		albedo = albedo * texture(u_textures, vec3(uvs, mat.data4.x)).xyz;
+
 	// Oren-Nayar diffuse BRDF
 	if(mat.data3.w == 1.0)
 	{
-		return oren_nayar_brdf(mat.data1.xyz, mat.data1.w, wi, wo);
+		return oren_nayar_brdf(albedo, mat.data1.w, wi, wo);
 	}
 	// Lambertian diffuse BRDF
 	if (mat.data3.w == 0.0)
 	{
-		return mat.data1.xyz / PI;
+		return albedo / PI;
 	}
 	// Specular BRDF
 	if (mat.data3.w == 2.0)
 	{
+		vec3 specular_factor = mat.data2.xyz;
+		vec3 F0 = specular_factor * texture(u_textures, vec3(uvs, mat.data4.x)).xyz;
+
 		if(bool(IMPORTANCE_SAMPLE_GGX) && !using_NEE)
-			return GGX_Smith_BRDF(wo, wm, wi, mat.data2.xyz, mat.data1.w, rng_state);
+			return GGX_Smith_BRDF(wo, wm, wi, F0, mat.data1.w, rng_state);
 		else
-			return GGX_Smith_BRDF_non_IS(wo, wi, mat.data2.xyz, mat.data1.w);
+			return GGX_Smith_BRDF_non_IS(wo, wi, F0, mat.data1.w);
 	}
 
 	// ERROR: material not handled!
@@ -591,7 +621,7 @@ vec3 estimator_path_tracing_BRDF(in vec3 ro, in vec3 rd, in uint rng_state)
 		vec3 wi = pick_wi(wo, mat, data, false, wm, cos_theta, pdf, rng_state);
 		rd = normalize(inverse_tnb * wi);
 
-		vec3 BRDF = calc_BRDF(wo, wm, wi, mat, false, rng_state);
+		vec3 BRDF = calc_BRDF(wo, wm, wi, mat, data.uvs, false, rng_state);
 
 		// update throughput
 		throughput_term *= cos_theta * BRDF / pdf;
@@ -732,7 +762,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 					vec3 wi = normalize(tnb * shadow_rd);
 					vec3 wm = normalize(tnb * data.normal);
 
-					vec3 BRDF = calc_BRDF(wo, wm, wi, mat, true, rng_state);
+					vec3 BRDF = calc_BRDF(wo, wm, wi, mat, data.uvs, true, rng_state);
 
 					// We want to only add light contribution from lights within
 					// the hemisphere solid angle above X, and not from lights behind it.
@@ -762,7 +792,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		vec3 wi = pick_wi(wo, mat, data, true, wm, cos_theta_x, pdf, rng_state);
 		rd = normalize(inverse_tnb * wi);
 
-		vec3 BRDF = calc_BRDF(wo, wm, wi, mat, true, rng_state);
+		vec3 BRDF = calc_BRDF(wo, wm, wi, mat, data.uvs, true, rng_state);
 		if(mat.data3.w == 2.0 && mat.data1.w * mat.data1.w <= NEE_SPECULAR_ROUGHNESS_CUTOFF)
 			prev_bounce_specular = true;
 		else
@@ -886,7 +916,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 					vec3 wi = normalize(tnb * shadow_rd);
 					vec3 wm = normalize(tnb * data.normal);
 
-					vec3 BRDF = calc_BRDF(wo, wm, wi, mat_x, true, rng_state);
+					vec3 BRDF = calc_BRDF(wo, wm, wi, mat_x, data.uvs, true, rng_state);
 
 					float cos_theta_y = dot(shadow_data.normal, -shadow_rd);
 					if (cos_theta_y > 0.0)
@@ -924,7 +954,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		vec3 wi = pick_wi(wo, mat_x, data, false, wm, cos_theta_x, pdf_BSDF_sa, rng_state);
 		rd = normalize(inverse_tnb * wi);
 
-		vec3 BRDF = calc_BRDF(wo, wm, wi, mat_x, false, rng_state);
+		vec3 BRDF = calc_BRDF(wo, wm, wi, mat_x, data.uvs, false, rng_state);
 		if(mat_x.data3.w == 2.0 && !can_use_NEE)
 			prev_bounce_specular = true;
 		else
