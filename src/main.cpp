@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 
     Mesh mesh;
 
-    bool isLoaded = LoadGLTF("res/models/BoxTextured.glb", mesh);
+    bool isLoaded = LoadGLTF("res/models/Cube.glb", mesh);
     if (!isLoaded)
     {
         printf("Failed to load model!\n");

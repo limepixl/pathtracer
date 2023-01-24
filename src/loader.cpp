@@ -52,7 +52,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
         {
             glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &out_mesh.texture_array);
             glBindTextureUnit(2, out_mesh.texture_array);
-            glTextureStorage3D(out_mesh.texture_array, 1, GL_RGB32F, 256, 256, (GLsizei) num_textures);
+            glTextureStorage3D(out_mesh.texture_array, 1, GL_RGB32F, 512, 512, (GLsizei) num_textures);
             out_mesh.texture_unit = 2;
         }
 
@@ -190,7 +190,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
                                                                         &w,
                                                                         &h,
                                                                         &channels,
-                                                                        0);
+                                                                        3);
                             if (image_data == nullptr)
                             {
                                 printf("ERROR (glTF Loader / Textures): Failed to load texture!\n");
