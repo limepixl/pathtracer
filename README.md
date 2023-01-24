@@ -2,13 +2,13 @@
 This project started as a playground and implementation of light transport theory and concepts in the form of a unidirectional pathtracer. It is currently a Work In Progress, with a lot of features to work on still.
 
 ### Current list of features:
-- Simple BRDFs (Lambertian, Oren-Nayar)
+- Physically based BRDFs (Lambertian, Oren-Nayar, Specular (GGX))
 - Naive BRDF sampling
 - NEE (Next Event Estimation / Direct light sampling)
 - MIS (Multiple Importance Sampling between Naive and NEE)
 - OpenGL Compute Shader implementation (OpenGL 4.6 Core, GLSL)
 - Custom-made BVH implementations using Sweep SAH split
-- (WIP) OBJ model loading and material creation
+- (WIP) glTF model loading and material creation
 - CMake build that supports Windows (MSVC, Clang for Windows) and Linux (GCC, Clang)
 
 ### Results and renders (**From earliest render to current day**):
@@ -28,7 +28,7 @@ Specular BRDF (GGX NDF with Smith geometry func.), using GGX importance sampling
 ![gltf](https://raw.githubusercontent.com/limepixl/pathtracer/main/renders/gltf_support.png)
 
 ### Third-party libraries used:
-- Tiny OBJ Loader ([GitHub](https://github.com/tinyobjloader/tinyobjloader))
+- cgltf ([GitHub](https://github.com/jkuhlmann/cgltf))
 - PCG Random Number Generation Library (Minimal C Edition) ([GitHub](https://github.com/imneme/pcg-c-basic))
 - GLAD - Multi-Language OpenGL Loader-Generator ([GitHub](https://github.com/Dav1dde/glad))
 - Simple DirectMedia Layer 2 - SDL2 ([GitHub](https://github.com/libsdl-org/SDL))
