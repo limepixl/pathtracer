@@ -10,13 +10,11 @@ struct Mesh
 
     Mat4f model_matrix;
     uint32 texture_array {};
-    uint32 texture_unit {};
 
     Mesh() = default;
 
     Mesh(Array<struct Triangle> &triangles,
          Array<struct MaterialGLSL> &materials,
          Mat4f &model_matrix,
-         uint32 texture_array,
-         uint32 texture_unit);
+         uint32 texture_array);
 };
