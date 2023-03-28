@@ -107,14 +107,16 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME} PUBLIC SDL2 SDL2main)
 
-if(CMAKE_BUILD_TYPE MATCHES Debug)
-	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different
-		$<TARGET_FILE_DIR:${PROJECT_NAME}>/thirdparty/SDL2-2.24.1/SDL2d.dll
-		$<TARGET_FILE_DIR:${PROJECT_NAME}>/SDL2d.dll)
-else()
-	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different
-		$<TARGET_FILE_DIR:${PROJECT_NAME}>/thirdparty/SDL2-2.24.1/SDL2.dll
-		$<TARGET_FILE_DIR:${PROJECT_NAME}>/SDL2.dll)
+if(WIN32)
+	if(CMAKE_BUILD_TYPE MATCHES Debug)
+		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			$<TARGET_FILE_DIR:${PROJECT_NAME}>/thirdparty/SDL2-2.24.1/SDL2d.dll
+			$<TARGET_FILE_DIR:${PROJECT_NAME}>/SDL2d.dll)
+	else()
+		add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			$<TARGET_FILE_DIR:${PROJECT_NAME}>/thirdparty/SDL2-2.24.1/SDL2.dll
+			$<TARGET_FILE_DIR:${PROJECT_NAME}>/SDL2.dll)
+	endif()
 endif()
