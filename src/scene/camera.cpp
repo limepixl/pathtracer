@@ -12,7 +12,7 @@ Camera::Camera(Vec3f orig, Vec3f fwd, Vec3f r, float speed, float sens)
 
     glCreateBuffers(1, &cam_ubo);
     glBindBuffer(GL_UNIFORM_BUFFER, cam_ubo);
-    glBindBufferBase(GL_UNIFORM_BUFFER, 0, cam_ubo);
+    glBindBufferBase(GL_UNIFORM_BUFFER, 3, cam_ubo);
     glNamedBufferStorage(cam_ubo, sizeof(CameraGLSL), nullptr, GL_DYNAMIC_STORAGE_BIT);
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }

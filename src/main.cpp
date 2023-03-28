@@ -209,8 +209,6 @@ int main(int argc, char *argv[])
 #endif
 
     glUseProgram(display.compute_shader_program);
-    int32 frame_data_location = (int32) glGetUniformLocation(display.compute_shader_program, "u_frame_data");
-    int32 textures_uniform_location = (int32) glGetUniformLocation(display.compute_shader_program, "u_textures");
 
     uint32 last_time = 0;
     uint32 last_report = 0;
@@ -262,9 +260,7 @@ int main(int argc, char *argv[])
             glUseProgram(display.compute_shader_program);
 
             glBindTextureUnit(1, display.cubemap_texture);
-
-            glBindTextureUnit(mesh.texture_unit, mesh.texture_array);
-            glUniform1i(textures_uniform_location, (GLint) mesh.texture_unit);
+            glBindTextureUnit(2, mesh.texture_array);
 
             if (frame_count == 0)
             {
@@ -272,15 +268,14 @@ int main(int argc, char *argv[])
                 glNamedBufferSubData(cam.cam_ubo, 0, sizeof(CameraGLSL), &cam_glsl);
             }
 
-            glUniform3ui(frame_data_location, pcg32_random(), frame_count++, view_mode);
+            glUniform3ui(0, pcg32_random(), frame_count++, view_mode);
 
             const uint32 num_groups_x = width / 8;
             const uint32 num_groups_y = height / 8;
             glDispatchCompute(num_groups_x, num_groups_y, 1);
             glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
-            glBindTextureUnit(mesh.texture_unit, 0);
-
+            glBindTextureUnit(2, 0);
             glBindTextureUnit(1, 0);
         }
         glPopDebugGroup();
