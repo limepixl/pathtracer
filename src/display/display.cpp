@@ -126,7 +126,7 @@ bool InitRenderBuffer(Display &window)
     };
 
     // Set up the fullscreen tris
-    glGenVertexArrays(1, &window.vao);
+    glCreateVertexArrays(1, &window.vao);
     glBindVertexArray(window.vao);
 
     GLuint vbo[2];
@@ -144,13 +144,14 @@ bool InitRenderBuffer(Display &window)
 
     // Set up the framebuffer texture
     glCreateTextures(GL_TEXTURE_2D, 1, &window.render_buffer_texture);
+    glBindTextureUnit(0, window.render_buffer_texture);
     glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTextureStorage2D(window.render_buffer_texture, 1, GL_RGBA32F, (GLsizei) window.width, (GLsizei) window.height);
     glBindImageTexture(0, window.render_buffer_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-    glBindTextureUnit(0, window.render_buffer_texture);
+    glBindTextureUnit(0, 0);
 
     window.rb_shader_program = LoadShaderFromFiles("shaders/framebuffer.vert", "shaders/framebuffer.frag");
     window.compute_shader_program = LoadShaderFromFiles("shaders/framebuffer.comp");
@@ -165,8 +166,7 @@ bool InitRenderBuffer(Display &window)
     // Set up cubemap
 
     glCreateTextures(GL_TEXTURE_2D, 1, &window.cubemap_texture);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, window.cubemap_texture);
+    glBindTextureUnit(1, window.cubemap_texture);
 
     glTextureParameteri(window.cubemap_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTextureParameteri(window.cubemap_texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -180,12 +180,12 @@ bool InitRenderBuffer(Display &window)
     data = stbi_load("res/cubemaps/solitude_interior_4k.hdr", &w, &h, &c, 3);
     if (data != nullptr)
     {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glTextureStorage2D(window.cubemap_texture, 1, GL_RGB16F, w, h);
+        glTextureSubImage2D(window.cubemap_texture, 0, 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, data);
         stbi_image_free(data);
     }
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTextureUnit(1, 0);
 
     return true;
 }

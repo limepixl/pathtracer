@@ -261,8 +261,7 @@ int main(int argc, char *argv[])
             // Compute shader data and dispatch
             glUseProgram(display.compute_shader_program);
 
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, display.cubemap_texture);
+            glBindTextureUnit(1, display.cubemap_texture);
 
             glBindTextureUnit(mesh.texture_unit, mesh.texture_array);
             glUniform1i(textures_uniform_location, (GLint) mesh.texture_unit);
@@ -280,8 +279,9 @@ int main(int argc, char *argv[])
             glDispatchCompute(num_groups_x, num_groups_y, 1);
             glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, 0);
+            glBindTextureUnit(mesh.texture_unit, 0);
+
+            glBindTextureUnit(1, 0);
         }
         glPopDebugGroup();
 
