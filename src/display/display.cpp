@@ -132,15 +132,20 @@ bool InitRenderBuffer(Display &window)
     GLuint vbo[2];
     glCreateBuffers(2, vbo);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
     glNamedBufferStorage(vbo[0], sizeof(vertices), vertices, 0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *) nullptr);
-    glEnableVertexAttribArray(0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
     glNamedBufferStorage(vbo[1], sizeof(uvs), uvs, 0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void *) nullptr);
-    glEnableVertexAttribArray(1);
+
+    glVertexArrayVertexBuffer(window.vao, 0, vbo[0], 0, 3 * sizeof(float));
+    glVertexArrayVertexBuffer(window.vao, 1, vbo[1], 0, 2 * sizeof(float));
+
+    glEnableVertexArrayAttrib(window.vao, 0);
+    glEnableVertexArrayAttrib(window.vao, 1);
+
+    glVertexArrayAttribFormat(window.vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
+    glVertexArrayAttribFormat(window.vao, 1, 2, GL_FLOAT, GL_FALSE, 0);
+
+    glVertexArrayAttribBinding(window.vao, 0, 0);
+    glVertexArrayAttribBinding(window.vao, 1, 1);
 
     // Set up the framebuffer texture
     glCreateTextures(GL_TEXTURE_2D, 1, &window.render_buffer_texture);
