@@ -215,7 +215,12 @@ int main(int argc, char *argv[])
     uint32 frame_count = 0;
     uint32 view_mode = 1;
 
-    Camera cam(Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec3f(1.0f, 0.0f, 0.0f), 0.005f, 0.05f);
+    Camera cam(
+            Vec3f(0.0f),
+            Vec3f(0.0f, 0.0f, -1.0f),
+            Vec3f(1.0f, 0.0f, 0.0f),
+            0.005f,
+            0.05f);
 
     while (display.is_open)
     {
@@ -240,6 +245,7 @@ int main(int argc, char *argv[])
                     case SDLK_3:
                         view_mode = e.key.keysym.sym - '0';
                         frame_count = 0;
+                        last_report = 0;
                         break;
                     default:
                         break;
