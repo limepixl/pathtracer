@@ -26,7 +26,7 @@ uint32 LoadShaderFromFiles(const char *compute_source_path)
     int64 file_length = 0;
     fseek(compute_file, 0, SEEK_END);
     file_length = ftell(compute_file);
-    rewind(compute_file);
+    fseek(compute_file, 0, SEEK_SET);
 
     if (file_length <= 0)
     {
@@ -43,7 +43,7 @@ uint32 LoadShaderFromFiles(const char *compute_source_path)
     glShaderSource(compute_shader, 1, &(shader_source._data), nullptr);
     glCompileShader(compute_shader);
 
-    GLint buffer_length;
+    GLint buffer_length = 0;
     glGetShaderiv(compute_shader, GL_INFO_LOG_LENGTH, &buffer_length);
     if (buffer_length > 1)
     {
@@ -53,7 +53,7 @@ uint32 LoadShaderFromFiles(const char *compute_source_path)
         printf("SHADER WARNING:\n%s\n", message);
     }
 
-    GLint compiled;
+    GLint compiled = 0;
     glGetShaderiv(compute_shader, GL_COMPILE_STATUS, &compiled);
     if (compiled != GL_TRUE)
     {
@@ -71,7 +71,7 @@ uint32 LoadShaderFromFiles(const char *compute_source_path)
     glAttachShader(program, compute_shader);
     glLinkProgram(program);
 
-    GLint is_linked;
+    GLint is_linked = 0;
     glGetProgramiv(program, GL_LINK_STATUS, &is_linked);
     if (is_linked == GL_FALSE)
     {
@@ -105,10 +105,10 @@ uint32 LoadShaderFromFiles(const char *vertex_source_path,
         exit(-1);
     }
 
-    int64 file_length;
+    int64 file_length = 0;
     fseek(vertex_file, 0, SEEK_END);
     file_length = ftell(vertex_file);
-    rewind(vertex_file);
+    fseek(vertex_file, 0, SEEK_SET);
 
     if (file_length <= 0)
     {
@@ -125,7 +125,7 @@ uint32 LoadShaderFromFiles(const char *vertex_source_path,
     glShaderSource(vertex_shader, 1, &(shader_source._data), nullptr);
     glCompileShader(vertex_shader);
 
-    GLint compiled;
+    GLint compiled = 0;
     glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &compiled);
     if (compiled != GL_TRUE)
     {
@@ -146,7 +146,7 @@ uint32 LoadShaderFromFiles(const char *vertex_source_path,
 
     fseek(fragment_file, 0, SEEK_END);
     file_length = ftell(fragment_file);
-    rewind(fragment_file);
+    fseek(fragment_file, 0, SEEK_SET);
 
     if (file_length <= 0)
     {
@@ -180,7 +180,7 @@ uint32 LoadShaderFromFiles(const char *vertex_source_path,
     glAttachShader(program, fragment_shader);
     glLinkProgram(program);
 
-    GLint is_linked;
+    GLint is_linked = 0;
     glGetProgramiv(program, GL_LINK_STATUS, &is_linked);
     if (is_linked == GL_FALSE)
     {

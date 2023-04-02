@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <cstring>
 
-#define ARRAY_STARTING_SIZE 0
+constexpr int ARRAY_STARTING_SIZE = 0;
 
 template<typename T>
 struct Array
@@ -21,9 +21,8 @@ struct Array
     }
 
     explicit Array(unsigned int count, T *data = nullptr)
+        : internal_size(count)
     {
-        internal_size = count;
-
         if (data == nullptr)
         {
             size = 0;
@@ -37,10 +36,8 @@ struct Array
     }
 
     Array()
+        : _data(nullptr), size(ARRAY_STARTING_SIZE), internal_size(ARRAY_STARTING_SIZE)
     {
-        size = ARRAY_STARTING_SIZE;
-        internal_size = ARRAY_STARTING_SIZE;
-        _data = nullptr;
         if (size > 0)
         {
             _data = new T[size];
@@ -48,10 +45,8 @@ struct Array
     }
 
     Array(const Array &other)
+        : _data(nullptr), size(other.size), internal_size(size)
     {
-        size = other.size;
-        internal_size = size;
-        _data = nullptr;
         if (size > 0)
         {
             _data = new T[size];

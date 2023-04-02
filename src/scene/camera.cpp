@@ -5,11 +5,8 @@
 #include <cmath>
 
 Camera::Camera(Vec3f orig, Vec3f fwd, Vec3f r, float speed, float sens)
-        : origin(orig), forward(fwd), right(r), fly_speed(speed), look_sens(sens)
+        : origin(orig), forward(fwd), right(r), fly_speed(speed), look_sens(sens), xpos(-90.0f), ypos(0.0f)
 {
-    xpos = -90.0f;
-    ypos = 0.0f;
-
     glCreateBuffers(1, &cam_ubo);
     glBindBuffer(GL_UNIFORM_BUFFER, cam_ubo);
     glBindBufferBase(GL_UNIFORM_BUFFER, 3, cam_ubo);

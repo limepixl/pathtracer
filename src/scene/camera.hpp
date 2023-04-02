@@ -12,7 +12,7 @@ struct Camera
     float xpos;
     float ypos;
 
-    uint32 cam_ubo;
+    uint32 cam_ubo {};
 
     Camera(Vec3f orig, Vec3f fwd, Vec3f r, float fly_speed, float look_sens);
 
@@ -23,9 +23,9 @@ struct Camera
 
 struct CameraGLSL
 {
-    Vec4f data1; // o.x, o.y, o.z, speed
-    Vec4f data2; // f.x, f.y, f.z, sens
-    Vec4f data3; // r.x, r.y, r.z, 0
+    Vec4f data1 {}; // o.x, o.y, o.z, speed
+    Vec4f data2 {}; // f.x, f.y, f.z, sens
+    Vec4f data3 {}; // r.x, r.y, r.z, 0
 
     CameraGLSL() = default;
 

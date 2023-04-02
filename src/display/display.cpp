@@ -82,7 +82,9 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
     }
 
     // Query limits
-    GLint data1, data2, data3;
+    GLint data1 = -1;
+    GLint data2 = -1;
+    GLint data3 = -1;
     glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &data1);
     glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &data2);
     glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &data3);
@@ -179,8 +181,8 @@ bool InitRenderBuffer(Display &window)
     glTextureParameteri(window.cubemap_texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTextureParameteri(window.cubemap_texture, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
-    int w, h, c;
-    uint8 *data;
+    int w = -1, h = -1, c = -1;
+    uint8 *data = nullptr;
     stbi_hdr_to_ldr_gamma(1.0);
     data = stbi_load("res/cubemaps/solitude_interior_4k.hdr", &w, &h, &c, 3);
     if (data != nullptr)
