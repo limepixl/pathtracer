@@ -32,12 +32,11 @@ Vec3f operator*(Mat4f lhs, const Vec3f &rhs)
 }
 
 Mat4f::Mat4f()
-{
-    r0 = Vec4f(1.0f, 0.0f, 0.0f, 0.0f);
-    r1 = Vec4f(0.0f, 1.0f, 0.0f, 0.0f);
-    r2 = Vec4f(0.0f, 0.0f, 1.0f, 0.0f);
-    r3 = Vec4f(0.0f, 0.0f, 0.0f, 1.0f);
-}
+    : r0(Vec4f(1.0f, 0.0f, 0.0f, 0.0f)),
+      r1(Vec4f(0.0f, 1.0f, 0.0f, 0.0f)),
+      r2(Vec4f(0.0f, 0.0f, 1.0f, 0.0f)),
+      r3(Vec4f(0.0f, 0.0f, 0.0f, 1.0f))
+{}
 
 Mat4f::Mat4f(Vec4f r0, Vec4f r1, Vec4f r2, Vec4f r3)
         : r0(r0), r1(r1), r2(r2), r3(r3) {}

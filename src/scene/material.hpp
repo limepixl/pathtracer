@@ -15,7 +15,7 @@ struct Material
     Vec3f specular;
     float n_spec;
 
-    Vec3f Le; // emmision of light
+    Vec3f Le; // emission of light
 
     // Optional
     char name[32];

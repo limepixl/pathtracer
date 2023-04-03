@@ -18,10 +18,7 @@ int main(int argc, char *argv[])
     (void) argc;
     (void) argv;
 
-    uint32 width = (uint32) WIDTH;
-    uint32 height = (uint32) HEIGHT;
-
-    Display display = CreateDisplay("Pathtracer", width, height);
+    Display display = CreateDisplay("Pathtracer", WIDTH, HEIGHT);
     InitRenderBuffer(display);
 
     Mesh mesh;
@@ -213,14 +210,12 @@ int main(int argc, char *argv[])
     uint32 last_time = 0;
     uint32 last_report = 0;
     uint32 frame_count = 0;
-    uint32 view_mode = 1;
+    ViewMode view_mode = ViewMode::MULTIPLE_IMPORTANCE_SAMPLING_BRDF_NEE;
 
-    Camera cam(
-            Vec3f(0.0f),
-            Vec3f(0.0f, 0.0f, -1.0f),
-            Vec3f(1.0f, 0.0f, 0.0f),
-            0.005f,
-            0.05f);
+    Camera cam(Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec3f(1.0f, 0.0f, 0.0f), 0.005f, 0.05f);
+
+    constexpr uint32 num_work_groups_x = WIDTH / 8;
+    constexpr uint32 num_work_groups_y = HEIGHT / 8;
 
     while (display.is_open)
     {
@@ -238,17 +233,29 @@ int main(int argc, char *argv[])
             }
             else if (e.type == SDL_KEYDOWN)
             {
+                bool switched = false;
                 switch (e.key.keysym.sym)
                 {
                     case SDLK_1:
+                        view_mode = ViewMode::BRDF_IMPORTANCE_SAMPLING;
+                        switched = true;
+                        break;
                     case SDLK_2:
+                        view_mode = ViewMode::NEXT_EVENT_ESTIMATION;
+                        switched = true;
+                        break;
                     case SDLK_3:
-                        view_mode = e.key.keysym.sym - '0';
-                        frame_count = 0;
-                        last_report = 0;
+                        view_mode = ViewMode::MULTIPLE_IMPORTANCE_SAMPLING_BRDF_NEE;
+                        switched = true;
                         break;
                     default:
                         break;
+                }
+
+                if (switched)
+                {
+                    frame_count = 0;
+                    last_report = 0;
                 }
             }
         }
@@ -274,11 +281,9 @@ int main(int argc, char *argv[])
                 glNamedBufferSubData(cam.cam_ubo, 0, sizeof(CameraGLSL), &cam_glsl);
             }
 
-            glUniform3ui(0, pcg32_random(), frame_count++, view_mode);
+            glUniform3ui(0, pcg32_random(), frame_count++, (GLuint) view_mode);
 
-            const uint32 num_groups_x = width / 8;
-            const uint32 num_groups_y = height / 8;
-            glDispatchCompute(num_groups_x, num_groups_y, 1);
+            glDispatchCompute(num_work_groups_x, num_work_groups_y, 1);
             glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
             glBindTextureUnit(2, 0);
@@ -307,15 +312,15 @@ int main(int argc, char *argv[])
             new_title += std::to_string(fps) + "fps | ";
             new_title += std::to_string(frame_count) + " total frame count | ";
 
-            if (view_mode == 1)
+            if (view_mode == ViewMode::BRDF_IMPORTANCE_SAMPLING)
             {
                 new_title += std::string("BRDF importance sampling");
             }
-            else if (view_mode == 2)
+            else if (view_mode == ViewMode::NEXT_EVENT_ESTIMATION)
             {
                 new_title += std::string("Next Event Estimation");
             }
-            else
+            else if (view_mode == ViewMode::MULTIPLE_IMPORTANCE_SAMPLING_BRDF_NEE)
             {
                 new_title += std::string("Multiple Importance Sampling (MIS): BRDF+NEE");
             }

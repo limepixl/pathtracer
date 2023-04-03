@@ -35,3 +35,10 @@ struct CameraGLSL
                float speed,
                float sens);
 };
+
+enum struct ViewMode
+{
+    BRDF_IMPORTANCE_SAMPLING = 1,
+    NEXT_EVENT_ESTIMATION,
+    MULTIPLE_IMPORTANCE_SAMPLING_BRDF_NEE
+};
