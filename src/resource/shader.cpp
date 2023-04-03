@@ -6,7 +6,15 @@
 
 #include <glad/glad.h>
 
-uint32 LoadShaderFromFiles(const char *compute_source_path)
+Shader::Shader(uint32 program_id)
+    : id(program_id), initialized(true)
+{}
+
+Shader::Shader()
+    : id(0), initialized(false)
+{}
+
+Shader LoadShaderFromFiles(const char *compute_source_path)
 {
     if (compute_source_path == nullptr)
     {
@@ -84,10 +92,10 @@ uint32 LoadShaderFromFiles(const char *compute_source_path)
 
     glDeleteShader(compute_shader);
 
-    return program;
+    return Shader(program);
 }
 
-uint32 LoadShaderFromFiles(const char *vertex_source_path,
+Shader LoadShaderFromFiles(const char *vertex_source_path,
                            const char *fragment_source_path)
 {
     if (vertex_source_path == nullptr || fragment_source_path == nullptr)
@@ -193,5 +201,5 @@ uint32 LoadShaderFromFiles(const char *vertex_source_path,
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
 
-    return program;
+    return Shader(program);
 }

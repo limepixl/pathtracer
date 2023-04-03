@@ -1,6 +1,7 @@
 #pragma once
 #include "../defines.hpp"
 #include "../core/array.hpp"
+#include "../resource/shader.hpp"
 #include <SDL_video.h>
 
 struct Display
@@ -14,15 +15,14 @@ struct Display
     // Render buffer data
     uint32 vao;
     uint32 render_buffer_texture;
-    uint32 rb_shader_program;
-    uint32 compute_shader_program;
+    Shader render_buffer_shader;
+    Shader compute_shader;
 
     uint32 cubemap_texture;
+
+    Display(const char *title, uint32 width, uint32 height);
+    bool InitRenderBuffer();
 };
-
-Display CreateDisplay(const char *title, uint32 width, uint32 height);
-
-bool InitRenderBuffer(Display &window);
 
 void CloseDisplay(Display &window);
 

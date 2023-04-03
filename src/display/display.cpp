@@ -1,5 +1,4 @@
 #include "display.hpp"
-#include "../resource/shader.hpp"
 #include <SDL.h>
 #include <cstdio>
 #include <glad/glad.h>
@@ -29,13 +28,16 @@ static void GLAPIENTRY MessageCallback(GLenum source,
     }
 }
 
-Display CreateDisplay(const char *title, uint32 width, uint32 height)
+Display::Display(const char *title,
+                 uint32 width,
+                 uint32 height)
+    : width(width),
+      height(height),
+      is_open(true),
+      vao(0),
+      render_buffer_texture(0),
+      cubemap_texture(0)
 {
-    Display result {};
-    result.width = width;
-    result.height = height;
-    result.is_open = true;
-
     if (SDL_Init(SDL_INIT_VIDEO))
     {
         printf("ERROR: Failed to initialize SDL.\n");
@@ -60,26 +62,29 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
 
     // Window creation
-    result.window_handle = SDL_CreateWindow(title,
-                                            SDL_WINDOWPOS_CENTERED,
-                                            SDL_WINDOWPOS_CENTERED,
-                                            (int32) width, (int32) height,
-                                            SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+    window_handle = SDL_CreateWindow(title,
+                                     SDL_WINDOWPOS_CENTERED,
+                                     SDL_WINDOWPOS_CENTERED,
+                                     (int32) width, (int32) height,
+                                     SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
 
-    if (result.window_handle == nullptr)
+    if (window_handle == nullptr)
     {
         printf("ERROR (WINDOW): Failed to create SDL Window!\n");
         exit(-1);
     }
 
     // Create OpenGL context and attach to window
-    result.context = SDL_GL_CreateContext(result.window_handle);
+    context = SDL_GL_CreateContext(window_handle);
 
     if (!gladLoadGLLoader(SDL_GL_GetProcAddress))
     {
         printf("ERROR (WINDOW): Failed to initialize OpenGL context\n");
         exit(-1);
     }
+
+    render_buffer_shader = LoadShaderFromFiles("shaders/framebuffer.vert", "shaders/framebuffer.frag");
+    compute_shader = LoadShaderFromFiles("shaders/framebuffer.comp");
 
     // Query limits
     GLint data1 = -1;
@@ -95,41 +100,41 @@ Display CreateDisplay(const char *title, uint32 width, uint32 height)
 
     // SDL input specifics
     SDL_SetRelativeMouseMode(SDL_TRUE);
-    SDL_SetWindowInputFocus(result.window_handle);
+    SDL_SetWindowInputFocus(window_handle);
 
     // Enable OpenGL debug callback
     glEnable(GL_DEBUG_OUTPUT);
     glDebugMessageCallback(MessageCallback, nullptr);
 
-    return result;
+    InitRenderBuffer();
 }
 
-bool InitRenderBuffer(Display &window)
+bool Display::InitRenderBuffer()
 {
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-    glViewport(0, 0, (GLsizei) window.width, (GLsizei) window.height);
+    glViewport(0, 0, (GLsizei) width, (GLsizei) height);
 
     float vertices[] = {
-            -1.0f, -1.0f, 0.0f,
-            1.0f, -1.0f, 0.0f,
-            1.0f, 1.0f, 0.0f,
-            1.0f, 1.0f, 0.0f,
-            -1.0f, 1.0f, 0.0f,
-            -1.0f, -1.0f, 0.0f
+        -1.0f, -1.0f, 0.0f,
+        1.0f, -1.0f, 0.0f,
+        1.0f, 1.0f, 0.0f,
+        1.0f, 1.0f, 0.0f,
+        -1.0f, 1.0f, 0.0f,
+        -1.0f, -1.0f, 0.0f
     };
 
     float uvs[] = {
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f,
-            0.0f, 0.0f
+        0.0f, 0.0f,
+        1.0f, 0.0f,
+        1.0f, 1.0f,
+        1.0f, 1.0f,
+        0.0f, 1.0f,
+        0.0f, 0.0f
     };
 
     // Set up the fullscreen tris
-    glCreateVertexArrays(1, &window.vao);
-    glBindVertexArray(window.vao);
+    glCreateVertexArrays(1, &vao);
+    glBindVertexArray(vao);
 
     GLuint vbo[2];
     glCreateBuffers(2, vbo);
@@ -137,49 +142,46 @@ bool InitRenderBuffer(Display &window)
     glNamedBufferStorage(vbo[0], sizeof(vertices), vertices, 0);
     glNamedBufferStorage(vbo[1], sizeof(uvs), uvs, 0);
 
-    glVertexArrayVertexBuffer(window.vao, 0, vbo[0], 0, 3 * sizeof(float));
-    glVertexArrayVertexBuffer(window.vao, 1, vbo[1], 0, 2 * sizeof(float));
+    glVertexArrayVertexBuffer(vao, 0, vbo[0], 0, 3 * sizeof(float));
+    glVertexArrayVertexBuffer(vao, 1, vbo[1], 0, 2 * sizeof(float));
 
-    glEnableVertexArrayAttrib(window.vao, 0);
-    glEnableVertexArrayAttrib(window.vao, 1);
+    glEnableVertexArrayAttrib(vao, 0);
+    glEnableVertexArrayAttrib(vao, 1);
 
-    glVertexArrayAttribFormat(window.vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
-    glVertexArrayAttribFormat(window.vao, 1, 2, GL_FLOAT, GL_FALSE, 0);
+    glVertexArrayAttribFormat(vao, 0, 3, GL_FLOAT, GL_FALSE, 0);
+    glVertexArrayAttribFormat(vao, 1, 2, GL_FLOAT, GL_FALSE, 0);
 
-    glVertexArrayAttribBinding(window.vao, 0, 0);
-    glVertexArrayAttribBinding(window.vao, 1, 1);
+    glVertexArrayAttribBinding(vao, 0, 0);
+    glVertexArrayAttribBinding(vao, 1, 1);
 
     // Set up the framebuffer texture
-    glCreateTextures(GL_TEXTURE_2D, 1, &window.render_buffer_texture);
-    glBindTextureUnit(0, window.render_buffer_texture);
-    glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(window.render_buffer_texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTextureStorage2D(window.render_buffer_texture, 1, GL_RGBA32F, (GLsizei) window.width, (GLsizei) window.height);
-    glBindImageTexture(0, window.render_buffer_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+    glCreateTextures(GL_TEXTURE_2D, 1, &render_buffer_texture);
+    glBindTextureUnit(0, render_buffer_texture);
+    glTextureParameteri(render_buffer_texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTextureParameteri(render_buffer_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTextureParameteri(render_buffer_texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(render_buffer_texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTextureStorage2D(render_buffer_texture, 1, GL_RGBA32F, (GLsizei) width, (GLsizei) height);
+    glBindImageTexture(0, render_buffer_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
     glBindTextureUnit(0, 0);
 
-    window.rb_shader_program = LoadShaderFromFiles("shaders/framebuffer.vert", "shaders/framebuffer.frag");
-    window.compute_shader_program = LoadShaderFromFiles("shaders/framebuffer.comp");
+    glUseProgram(render_buffer_shader.id);
+    glUniform1i(glGetUniformLocation(render_buffer_shader.id, "tex"), 0);
 
-    glUseProgram(window.rb_shader_program);
-    glUniform1i(glGetUniformLocation(window.rb_shader_program, "tex"), 0);
-
-    glUseProgram(window.compute_shader_program);
-    glUniform1i(glGetUniformLocation(window.compute_shader_program, "screen"), 0);
-    glUniform1i(glGetUniformLocation(window.compute_shader_program, "u_cubemap"), 1);
+    glUseProgram(compute_shader.id);
+    glUniform1i(glGetUniformLocation(compute_shader.id, "screen"), 0);
+    glUniform1i(glGetUniformLocation(compute_shader.id, "u_cubemap"), 1);
 
     // Set up cubemap
 
-    glCreateTextures(GL_TEXTURE_2D, 1, &window.cubemap_texture);
-    glBindTextureUnit(1, window.cubemap_texture);
+    glCreateTextures(GL_TEXTURE_2D, 1, &cubemap_texture);
+    glBindTextureUnit(1, cubemap_texture);
 
-    glTextureParameteri(window.cubemap_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTextureParameteri(window.cubemap_texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTextureParameteri(window.cubemap_texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(window.cubemap_texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTextureParameteri(window.cubemap_texture, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(cubemap_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTextureParameteri(cubemap_texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTextureParameteri(cubemap_texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(cubemap_texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTextureParameteri(cubemap_texture, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
     int w = -1, h = -1, c = -1;
     uint8 *data = nullptr;
@@ -187,8 +189,8 @@ bool InitRenderBuffer(Display &window)
     data = stbi_load("res/cubemaps/solitude_interior_4k.hdr", &w, &h, &c, 3);
     if (data != nullptr)
     {
-        glTextureStorage2D(window.cubemap_texture, 1, GL_RGB16F, w, h);
-        glTextureSubImage2D(window.cubemap_texture, 0, 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glTextureStorage2D(cubemap_texture, 1, GL_RGB16F, w, h);
+        glTextureSubImage2D(cubemap_texture, 0, 0, 0, w, h, GL_RGB, GL_UNSIGNED_BYTE, data);
         stbi_image_free(data);
     }
 

@@ -18,8 +18,7 @@ int main(int argc, char *argv[])
     (void) argc;
     (void) argv;
 
-    Display display = CreateDisplay("Pathtracer", WIDTH, HEIGHT);
-    InitRenderBuffer(display);
+    Display display("Pathtracer", WIDTH, HEIGHT);
 
     Mesh mesh;
 
@@ -205,7 +204,7 @@ int main(int argc, char *argv[])
         }
 #endif
 
-    glUseProgram(display.compute_shader_program);
+    glUseProgram(display.compute_shader.id);
 
     uint32 last_time = 0;
     uint32 last_report = 0;
@@ -270,7 +269,7 @@ int main(int argc, char *argv[])
         glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, "COMPUTE");
         {
             // Compute shader data and dispatch
-            glUseProgram(display.compute_shader_program);
+            glUseProgram(display.compute_shader.id);
 
             glBindTextureUnit(1, display.cubemap_texture);
             glBindTextureUnit(2, mesh.texture_array);
@@ -294,7 +293,7 @@ int main(int argc, char *argv[])
         glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 1, -1, "SCREEN QUAD");
         {
             // Full screen quad drawing
-            glUseProgram(display.rb_shader_program);
+            glUseProgram(display.render_buffer_shader.id);
             glBindTextureUnit(0, display.render_buffer_texture);
             glDrawArrays(GL_TRIANGLES, 0, 6);
 
