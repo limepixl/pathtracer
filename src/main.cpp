@@ -13,6 +13,22 @@
 
 #include "loader.h"
 
+template<class T>
+void PushDataToSSBO(Array<T> &data, Array<GLuint> &ssbo_array)
+{
+    GLuint ssbo = 0;
+    if (data.size > 0)
+    {
+        glCreateBuffers(1, &ssbo);
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, ssbo_array.size, ssbo);
+        glNamedBufferStorage(ssbo, (GLsizeiptr) (data.size * sizeof(T)), &(data[0]), 0);
+    }
+
+    ssbo_array.append(ssbo);
+}
+
 int main(int argc, char *argv[])
 {
     (void) argc;
@@ -30,7 +46,6 @@ int main(int argc, char *argv[])
     }
 
     // Apply model matrix to tris
-//	mesh.model_matrix = ScaleMat4f(Vec3f(0.05f), model_matrix);
     mesh.model_matrix = TranslationMat4f(Vec3f(0.0f, 0.0f, -3.0f), mesh.model_matrix);
 
     Array<TriangleGLSL> model_tris_ssbo(mesh.triangles.size);
@@ -60,7 +75,7 @@ int main(int argc, char *argv[])
 
 #if 0
     // Construct BVH tree and sort triangle list according to it
-    Array<BVHNode> bvh_tree(2 * model_tris.size - 1);
+    Array<BVHNode> bvh_tree(2 * model_tris_ssbo.size - 1);
 
     BVHNode root_node {};
     root_node.first_tri = 0;
@@ -84,41 +99,13 @@ int main(int argc, char *argv[])
         }
     }
 
-#if 0
     // Set up data to be passed to SSBOs
 
     Array<MaterialGLSL> materials_ssbo;
-    materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.0f), Vec3f(10000.0f), 0.0f, 0.0f, MaterialType::MATERIAL_LAMBERTIAN));
-    materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.0f, 0.0f, MaterialType::MATERIAL_SPECULAR_METAL));
-    materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.025f, 0.0f, MaterialType::MATERIAL_SPECULAR_METAL));
-    materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.075f, 0.0f, MaterialType::MATERIAL_SPECULAR_METAL));
-    materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.1f, 0.0f, MaterialType::MATERIAL_SPECULAR_METAL));
-    materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.125f, 0.0f, MaterialType::MATERIAL_SPECULAR_METAL));
-    materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.15f, 0.0f, MaterialType::MATERIAL_SPECULAR_METAL));
-    materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.175f, 0.0f, MaterialType::MATERIAL_SPECULAR_METAL));
-    materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.2f, 0.0f, MaterialType::MATERIAL_SPECULAR_METAL));
-
-    materials_ssbo.append(MaterialGLSL(Vec3f(0.95f), Vec3f(0.0f), Vec3f(0.0f), 0.0f, 0.0f, MaterialType::MATERIAL_OREN_NAYAR));
-
     Array<SphereGLSL> spheres_ssbo;
 
-    // Grid of spheres
-    spheres_ssbo.append(SphereGLSL(Vec3f(-0.99f,  0.33f, -3.0f), 0.33f, 1));
-    spheres_ssbo.append(SphereGLSL(Vec3f(-0.33f,  0.33f, -3.0f), 0.33f, 2));
-    spheres_ssbo.append(SphereGLSL(Vec3f( 0.33f,  0.33f, -3.0f), 0.33f, 3));
-    spheres_ssbo.append(SphereGLSL(Vec3f( 0.99f,  0.33f, -3.0f), 0.33f, 4));
-    spheres_ssbo.append(SphereGLSL(Vec3f(-0.99f, -0.33f, -3.0f), 0.33f, 5));
-    spheres_ssbo.append(SphereGLSL(Vec3f(-0.33f, -0.33f, -3.0f), 0.33f, 6));
-    spheres_ssbo.append(SphereGLSL(Vec3f( 0.33f, -0.33f, -3.0f), 0.33f, 7));
-    spheres_ssbo.append(SphereGLSL(Vec3f( 0.99f, -0.33f, -3.0f), 0.33f, 8));
-
-    // Point light and sphere next to it
-    spheres_ssbo.append(SphereGLSL(Vec3f(0.0f, 1.0f, -3.0f), 0.3f, 9));
-//	spheres_ssbo.append(SphereGLSL(Vec3f(0.0f, 0.0f, 1.0f), 0.03f, 0));
-#endif
-
+    Array<BVHNodeGLSL> bvh_ssbo;
 #if 0
-    Array<BVHNodeGLSL> bvh_ssbo(bvh_tree.size);
     for(uint32 i = 0; i < bvh_tree.size; i++)
     {
         const BVHNode &current_node = bvh_tree[i];
@@ -133,7 +120,6 @@ int main(int argc, char *argv[])
     }
 #endif
 
-#if 0
     Array<uint32> emissive_spheres_ssbo;
     for (uint32 i = 0; i < spheres_ssbo.size; i++)
     {
@@ -143,66 +129,14 @@ int main(int argc, char *argv[])
             emissive_spheres_ssbo.append(i);
         }
     }
-#endif
 
-    // Set up SSBOs
-    GLuint ssbo[6];
-    glCreateBuffers(6, ssbo);
-
-#if 0
-    // Sphere SSBO
-    if(spheres_ssbo.size > 0)
-    {
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[0]);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo[0]);
-        glNamedBufferStorage(ssbo[0], (GLsizeiptr)(spheres_ssbo.size * sizeof(SphereGLSL)), &(spheres_ssbo._data[0]), 0);
-    }
-#endif
-
-    if (model_tris_ssbo.size > 0)
-    {
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[1]);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo[1]);
-        glNamedBufferStorage(ssbo[1],
-                             (GLsizeiptr) (model_tris_ssbo.size * sizeof(TriangleGLSL)),
-                             &(model_tris_ssbo[0]),
-                             0);
-    }
-
-    if (emissive_tris.size > 0)
-    {
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[2]);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo[2]);
-        glNamedBufferStorage(ssbo[2], (GLsizeiptr) (emissive_tris.size * sizeof(uint32)), &(emissive_tris[0]), 0);
-    }
-
-    if (mesh.materials.size > 0)
-    {
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[3]);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo[3]);
-        glNamedBufferStorage(ssbo[3],
-                             (GLsizeiptr) (mesh.materials.size * sizeof(MaterialGLSL)),
-                             &(mesh.materials[0]),
-                             0);
-    }
-
-#if 0
-        if(bvh_ssbo.size > 0)
-        {
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[4]);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo[4]);
-            glNamedBufferStorage(ssbo[4], (GLsizeiptr)(bvh_ssbo.size * sizeof(BVHNodeGLSL)), &(bvh_ssbo[0]), 0);
-        }
-#endif
-
-#if 0
-        if (emissive_spheres_ssbo.size > 0)
-        {
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo[5]);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ssbo[5]);
-            glNamedBufferStorage(ssbo[5], (GLsizeiptr)(emissive_spheres_ssbo.size * sizeof(uint32)), &(emissive_spheres_ssbo[0]), 0);
-        }
-#endif
+    Array<GLuint> ssbo_array;
+    PushDataToSSBO(spheres_ssbo, ssbo_array);
+    PushDataToSSBO(model_tris_ssbo, ssbo_array);
+    PushDataToSSBO(emissive_tris, ssbo_array);
+    PushDataToSSBO(mesh.materials, ssbo_array);
+    PushDataToSSBO(bvh_ssbo, ssbo_array);
+    PushDataToSSBO(emissive_spheres_ssbo, ssbo_array);
 
     glUseProgram(display.compute_shader.id);
 
