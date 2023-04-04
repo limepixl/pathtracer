@@ -2,6 +2,7 @@
 #include "../math/mat4.hpp"
 #include "../core/array.hpp"
 #include "../defines.hpp"
+#include "triangle.hpp"
 
 struct Mesh
 {
@@ -17,4 +18,7 @@ struct Mesh
          Array<struct MaterialGLSL> &materials,
          Mat4f &model_matrix,
          uint32 texture_array);
+
+    Array<TriangleGLSL> ConvertToSSBOFormat();
 };
+
