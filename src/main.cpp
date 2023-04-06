@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 
     Mesh mesh;
 
-    bool isLoaded = LoadGLTF("res/models/Cube.glb", mesh);
+    bool isLoaded = LoadGLTF("res/models/Avocado.glb", mesh);
     if (!isLoaded)
     {
         printf("Failed to load model!\n");
@@ -52,7 +52,6 @@ int main(int argc, char *argv[])
 
     Array<TriangleGLSL> model_tris_ssbo = mesh.ConvertToSSBOFormat();
 
-#if 0
     // Construct BVH tree and sort triangle list according to it
     Array<BVHNode> bvh_tree(2 * model_tris_ssbo.size - 1);
 
@@ -60,12 +59,11 @@ int main(int argc, char *argv[])
     root_node.first_tri = 0;
     bvh_tree.append(root_node);
 
-    if (!ConstructBVHObjectMedian(model_tris._data, model_tris.size, bvh_tree, 0))
+    if (!ConstructBVHObjectMedian(mesh.triangles._data, mesh.triangles.size, bvh_tree, 0))
     {
         printf("Error in BVH construction!\n");
         return -1;
     }
-#endif
 
     // Find all emissive triangles in scene
     Array<uint32> emissive_tris(mesh.triangles.size);
@@ -84,7 +82,6 @@ int main(int argc, char *argv[])
     Array<SphereGLSL> spheres_ssbo;
 
     Array<BVHNodeGLSL> bvh_ssbo;
-#if 0
     for(uint32 i = 0; i < bvh_tree.size; i++)
     {
         const BVHNode &current_node = bvh_tree[i];
@@ -97,7 +94,6 @@ int main(int argc, char *argv[])
 
         bvh_ssbo.append(tmp);
     }
-#endif
 
     Array<uint32> emissive_spheres_ssbo;
     for (uint32 i = 0; i < spheres_ssbo.size; i++)

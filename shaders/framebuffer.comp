@@ -383,18 +383,18 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 	bool hit_anything = false;
 	float tmax = TMAX;
 
-	uint num_tris = triangles.length();
-	for (uint i = 0; i < num_tris; i++)
-	{
-		if (intersect_triangle(ro, rd, i, result, tmax))
-		{
-			// Found closer hit, store it.
-			hit_anything = true;
-			tmax = result.t;
-		}
-	}
+//	uint num_tris = triangles.length();
+//	for (uint i = 0; i < num_tris; i++)
+//	{
+//		if (intersect_triangle(ro, rd, i, result, tmax))
+//		{
+//			// Found closer hit, store it.
+//			hit_anything = true;
+//			tmax = result.t;
+//		}
+//	}
 
-//	hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
+	hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
 
 //	for(uint i = 0; i < spheres.length(); i++)
 //	{
