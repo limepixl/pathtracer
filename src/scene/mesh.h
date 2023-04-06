@@ -20,5 +20,7 @@ struct Mesh
          uint32 texture_array);
 
     Array<TriangleGLSL> ConvertToSSBOFormat();
+
+    void ApplyModelTransform();
 };
 

@@ -46,7 +46,9 @@ int main(int argc, char *argv[])
     }
 
     // Apply model matrix to tris
-    mesh.model_matrix = TranslationMat4f(Vec3f(0.0f, 0.0f, -3.0f), mesh.model_matrix);
+    mesh.model_matrix = TranslationMat4f(Vec3f(0.0f, 0.0f, -2.0f), mesh.model_matrix);
+    mesh.model_matrix = ScaleMat4f(Vec3f(5.0f, 5.0f, 5.0f), mesh.model_matrix);
+    mesh.ApplyModelTransform();
 
     Array<TriangleGLSL> model_tris_ssbo = mesh.ConvertToSSBOFormat();
 

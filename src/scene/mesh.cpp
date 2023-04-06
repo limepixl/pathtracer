@@ -18,17 +18,14 @@ Array<TriangleGLSL> Mesh::ConvertToSSBOFormat()
     Array<TriangleGLSL> mesh_tris_ssbo(triangles.size);
     for (uint32 i = 0; i < triangles.size; i++)
     {
-        Triangle &current_tri = triangles[i];
-        current_tri.v0 = model_matrix * current_tri.v0;
-        current_tri.v1 = model_matrix * current_tri.v1;
-        current_tri.v2 = model_matrix * current_tri.v2;
+        const Triangle &current_tri = triangles[i];
 
-        Vec3f &v0 = current_tri.v0;
-        Vec3f &v1 = current_tri.v1;
-        Vec3f &v2 = current_tri.v2;
-        Vec2f &uv0 = current_tri.uv0;
-        Vec2f &uv1 = current_tri.uv1;
-        Vec2f &uv2 = current_tri.uv2;
+        const Vec3f &v0 = current_tri.v0;
+        const Vec3f &v1 = current_tri.v1;
+        const Vec3f &v2 = current_tri.v2;
+        const Vec2f &uv0 = current_tri.uv0;
+        const Vec2f &uv1 = current_tri.uv1;
+        const Vec2f &uv2 = current_tri.uv2;
 
         TriangleGLSL tmp {};
         tmp.data1 = Vec4f(v0.x, v0.y, v0.z, (float) current_tri.mat_index);
@@ -41,4 +38,15 @@ Array<TriangleGLSL> Mesh::ConvertToSSBOFormat()
     }
 
     return mesh_tris_ssbo;
+}
+
+void Mesh::ApplyModelTransform()
+{
+    for(uint32 i = 0; i < triangles.size; i++)
+    {
+        Triangle &current_tri = triangles[i];
+        current_tri.v0 = model_matrix * current_tri.v0;
+        current_tri.v1 = model_matrix * current_tri.v1;
+        current_tri.v2 = model_matrix * current_tri.v2;
+    }
 }
