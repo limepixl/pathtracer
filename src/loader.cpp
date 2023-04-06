@@ -9,6 +9,7 @@
 #include "scene/triangle.hpp"
 
 #include <stb_image.h>
+#include <stb_image_resize.h>
 #include <glad/glad.h>
 
 bool LoadGLTF(const char *path, Mesh &out_mesh)
@@ -47,12 +48,20 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
         Array<Vec2f> tex_coords;
         Array<uint16> indices;
 
+        constexpr uint64 texture_layer_width = 512;
+        constexpr uint64 texture_layer_height = 512;
+
         int32 num_loaded_textures = 0;
         if (num_textures > 0)
         {
             glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &out_mesh.texture_array);
             glBindTextureUnit(2, out_mesh.texture_array);
-            glTextureStorage3D(out_mesh.texture_array, 1, GL_RGB32F, 512, 512, (GLsizei) num_textures);
+            glTextureStorage3D(out_mesh.texture_array,
+                               1,
+                               GL_RGB32F,
+                               texture_layer_width,
+                               texture_layer_height,
+                               (GLsizei) num_textures);
         }
 
         for (cgltf_size mesh_index = 0; mesh_index < num_meshes; mesh_index++)
@@ -153,14 +162,21 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
                     }
                 }
 
-                // Load material that primitve uses
+                // Load material that primitive uses
                 {
                     cgltf_material *material = primitive->material;
-                    (void) material;
 
                     MaterialGLSL result_mat;
 
-                    if (material->has_pbr_metallic_roughness)
+                    if (material == nullptr)
+                    {
+                        result_mat.data1 = Vec4f(1.0f,
+                                                 0.0f,
+                                                 1.0f,
+                                                 0.0f);
+                    }
+
+                    else if (material->has_pbr_metallic_roughness)
                     {
                         cgltf_pbr_metallic_roughness &mat_properties = material->pbr_metallic_roughness;
 
@@ -197,6 +213,21 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
                                 return false;
                             }
 
+                            if ((w != texture_layer_width || h != texture_layer_height) && channels != -1)
+                            {
+                                stbi_uc *resized_image_data = new stbi_uc[texture_layer_width *
+                                                                          texture_layer_height *
+                                                                          (uint64) channels];
+                                stbir_resize_uint8(image_data, w, h, 0,
+                                                   resized_image_data, 512, 512, 0, channels);
+
+                                if (resized_image_data != nullptr)
+                                {
+                                    stbi_image_free(image_data);
+                                    image_data = resized_image_data;
+                                }
+                            }
+
                             // TODO: Abstract away texture loading and keep track how
                             // many textures the program has actually loaded, globally
                             // NOTE: Now the textures that the Display creation creates
@@ -205,18 +236,23 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
                             result_mat.data4.x = (float) texture_index;
 
                             cgltf_sampler *sampler = mat_properties.base_color_texture.texture->sampler;
-                            glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_MIN_FILTER, sampler->min_filter);
-                            glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_MAG_FILTER, sampler->mag_filter);
-                            glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_WRAP_S, sampler->wrap_s);
-                            glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_WRAP_T, sampler->wrap_t);
+                            cgltf_int min_filter_mode = (sampler != nullptr) ? sampler->min_filter : GL_LINEAR;
+                            cgltf_int mag_filter_mode = (sampler != nullptr) ? sampler->mag_filter : GL_LINEAR;
+                            cgltf_int wrap_mode_s = (sampler != nullptr) ? sampler->wrap_s : GL_REPEAT;
+                            cgltf_int wrap_mode_t = (sampler != nullptr) ? sampler->wrap_t : GL_REPEAT;
+
+                            glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_MIN_FILTER, min_filter_mode);
+                            glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_MAG_FILTER, mag_filter_mode);
+                            glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_WRAP_S, wrap_mode_s);
+                            glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_WRAP_T, wrap_mode_t);
 
                             glTextureSubImage3D(out_mesh.texture_array,
                                                 0,
                                                 0,
                                                 0,
                                                 texture_index,
-                                                w,
-                                                h,
+                                                texture_layer_width,
+                                                texture_layer_height,
                                                 1,
                                                 GL_RGB,
                                                 GL_UNSIGNED_BYTE,
