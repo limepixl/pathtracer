@@ -352,6 +352,9 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
                                               Vec4f(m[2], m[6], m[10], m[14]),
                                               Vec4f(m[3], m[7], m[11], m[15]));
 
+                out_mesh.ApplyModelTransform();
+                out_mesh.model_matrix = Mat4f();
+
                 break;
             }
         }
