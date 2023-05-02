@@ -31,7 +31,7 @@ AABB ConstructAABBFromTris(Triangle *tris, uint32 num_tris)
 
     // Extend borders of AABB in order to get around
     // situations where the node is flat like a plane
-    Vec3f offset_vec(0.05f);
+    Vec3f offset_vec(0.0001f);
     aabb.bmin = aabb.bmin - offset_vec;
     aabb.bmax = aabb.bmax + offset_vec;
     return aabb;
@@ -39,7 +39,7 @@ AABB ConstructAABBFromTris(Triangle *tris, uint32 num_tris)
 
 static void ExpandAABBWithTri(AABB &aabb, Triangle &tri)
 {
-    Vec3f offset_vec(0.01f);
+    Vec3f offset_vec(0.0001f);
 
     Vec3f v0 = tri.v0 - offset_vec;
     Vec3f v1 = tri.v1 - offset_vec;
