@@ -61,7 +61,6 @@ struct BVHNode
 {
 	vec4 data1; // bmin.x, bmin.y, bmin.z, left/first_tri
 	vec4 data2; // bmax.x, bmax.y, bmax.z, num_tris
-	vec4 data3; // axis, 0, 0, 0
 };
 
 // SSBOs
@@ -341,16 +340,6 @@ bool intersect_bvh_stack(in vec3 ro, in vec3 rd, inout HitData data, inout float
 				// First check closer child and then farther child
 				int offset1 = int(rd.x > 0.0);
 				int offset2 = int(rd.x < 0.0);
-				if(int(node.data3.x) == 1)
-				{
-					offset1 = int(rd.y > 0.0);
-					offset2 = int(rd.y < 0.0);
-				}
-				else if(int(node.data3.x) == 2)
-				{
-					offset1 = int(rd.z > 0.0);
-					offset2 = int(rd.z < 0.0);
-				}
 				
 				stack_top++;
 				stack[stack_top] = node_left + offset1;
@@ -360,17 +349,15 @@ bool intersect_bvh_stack(in vec3 ro, in vec3 rd, inout HitData data, inout float
 			else
 			{
 				// If leaf node, test against triangles of node
-				HitData current_data;
 				for (uint i = 0; i < num_node_tris; i++)
 				{
-					if (intersect_triangle(ro, rd, node_left + i, current_data, tmax))
+					if (intersect_triangle(ro, rd, node_left + i, data, tmax))
 					{
 						// Found closer hit, store it.
 						hit_anything = true;
-						tmax = current_data.t;
+						tmax = data.t;
 					}
 				}
-				data = current_data;
 			}
 		}
 	}
@@ -383,23 +370,22 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 	bool hit_anything = false;
 	float tmax = TMAX;
 
-//	uint num_tris = triangles.length();
-//	for (uint i = 0; i < num_tris; i++)
-//	{
-//		if (intersect_triangle(ro, rd, i, result, tmax))
-//		{
-//			 Found closer hit, store it.
-//			hit_anything = true;
-//			tmax = result.t;
-//		}
-//	}
-
-	HitData tri_data;
-	hit_anything = intersect_bvh_stack(ro, rd, tri_data, tmax);
-	if(hit_anything)
+	uint num_tris = triangles.length();
+	for (uint i = 0; i < num_tris; i++)
 	{
-		result = tri_data;
+		if (intersect_triangle(ro, rd, i, result, tmax))
+		{
+			hit_anything = true;
+			tmax = result.t;
+		}
 	}
+//
+//	HitData tri_data;
+//	hit_anything = intersect_bvh_stack(ro, rd, tri_data, tmax);
+//	if(hit_anything)
+//	{
+//		result = tri_data;
+//	}
 
 //	hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
 

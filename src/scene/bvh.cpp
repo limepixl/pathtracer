@@ -1,4 +1,5 @@
 #include "bvh.h"
+#include "../math/math.hpp"
 
 #include <vector>
 
@@ -38,8 +39,9 @@ Array<BVHNodeGLSL> CalculateBVH(Array<TriangleGLSL> &triangles)
 	for(uint32 i = 0; i < bvh.node_count; i++)
 	{
 		auto node = bvh.nodes[i];
-		Vec3f bmin(node.bounds[0], node.bounds[2], node.bounds[4]);
-		Vec3f bmax(node.bounds[1], node.bounds[3], node.bounds[5]);
+		auto bbox = node.bounding_box_proxy().to_bounding_box();
+		Vec3f bmin(bbox.min[0], bbox.min[1], bbox.min[2]);
+		Vec3f bmax(bbox.max[0], bbox.max[1], bbox.max[2]);
 
 		BVHNodeGLSL result_node{};
 		result_node.data1 = Vec4f(bmin.x, bmin.y, bmin.z, (float) node.first_child_or_primitive);
