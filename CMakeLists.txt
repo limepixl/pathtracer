@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.25.2)
 
 project(pathtracer)
 
@@ -40,7 +40,7 @@ set(HEADER_FILES
     src/loader.h
     src/defines.hpp
 
-    src/scene/bvh.hpp
+	src/scene/bvh.h
     src/scene/material.hpp
     src/scene/ray.hpp
     src/scene/sphere.hpp
@@ -58,7 +58,7 @@ set(HEADER_FILES
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 
 # C++ standard version
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 
 # Link-time optimization (LTO)
@@ -99,7 +99,10 @@ set(SDL_SHARED ON)
 set(SDL_STATIC OFF)
 add_subdirectory(thirdparty/SDL2-2.24.1/)
 
+add_subdirectory(thirdparty/bvh SYSTEM)
+
 target_include_directories(${PROJECT_NAME} PUBLIC SYSTEM
+    thirdparty/bvh/include
     thirdparty/SDL2-2.24.1/include
     thirdparty/glad/include
     thirdparty/stb

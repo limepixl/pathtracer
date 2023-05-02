@@ -1,8 +1,10 @@
-#include "scene/bvh.hpp"
+#include "scene/bvh.h"
+#include "math/math.hpp"
 #include "scene/material.hpp"
 #include "scene/sphere.hpp"
 #include "scene/camera.hpp"
 #include "scene/triangle.hpp"
+#include "loader.h"
 
 #include <SDL_events.h>
 #include <string>
@@ -10,8 +12,6 @@
 #include "display/display.hpp"
 #include <glad/glad.h>
 #include <SDL.h>
-
-#include "loader.h"
 
 template<class T>
 void PushDataToSSBO(Array<T> &data, Array<GLuint> &ssbo_array)
@@ -47,23 +47,12 @@ int main(int argc, char *argv[])
 
     // Apply model matrix to tris
     mesh.model_matrix = TranslationMat4f(Vec3f(0.0f, 0.0f, -2.0f), mesh.model_matrix);
-    mesh.model_matrix = ScaleMat4f(Vec3f(5.0f, 5.0f, 5.0f), mesh.model_matrix);
+    mesh.model_matrix = ScaleMat4f(Vec3f(10.0f), mesh.model_matrix);
     mesh.ApplyModelTransform();
 
     Array<TriangleGLSL> model_tris_ssbo = mesh.ConvertToSSBOFormat();
 
-    // Construct BVH tree and sort triangle list according to it
-    Array<BVHNode> bvh_tree(2 * model_tris_ssbo.size - 1);
-
-    BVHNode root_node {};
-    root_node.first_tri = 0;
-    bvh_tree.append(root_node);
-
-    if (!ConstructBVHObjectMedian(mesh.triangles._data, mesh.triangles.size, bvh_tree, 0))
-    {
-        printf("Error in BVH construction!\n");
-        return -1;
-    }
+    Array<BVHNodeGLSL> bvh_ssbo = CalculateBVH(model_tris_ssbo);
 
     // Find all emissive triangles in scene
     Array<uint32> emissive_tris(mesh.triangles.size);
@@ -80,20 +69,6 @@ int main(int argc, char *argv[])
 
     Array<MaterialGLSL> materials_ssbo;
     Array<SphereGLSL> spheres_ssbo;
-
-    Array<BVHNodeGLSL> bvh_ssbo;
-    for(uint32 i = 0; i < bvh_tree.size; i++)
-    {
-        const BVHNode &current_node = bvh_tree[i];
-        const AABB &current_aabb = current_node.node_AABB;
-
-        BVHNodeGLSL tmp;
-        tmp.data1 = Vec4f(current_aabb.bmin.x, current_aabb.bmin.y, current_aabb.bmin.z, (float)current_node.first_tri);
-        tmp.data2 = Vec4f(current_aabb.bmax.x, current_aabb.bmax.y, current_aabb.bmax.z, (float)current_node.num_tris);
-        tmp.data3 = Vec4f((float)current_node.axis, 0.0f, 0.0f, 0.0);
-
-        bvh_ssbo.append(tmp);
-    }
 
     Array<uint32> emissive_spheres_ssbo;
     for (uint32 i = 0; i < spheres_ssbo.size; i++)
