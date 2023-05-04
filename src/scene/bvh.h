@@ -13,4 +13,4 @@ struct BVHNodeGLSL
 	BVHNodeGLSL(const Vec3f &bmin, const Vec3f &bmax, float first_child_or_tri, float num_tris);
 };
 
-Array<BVHNodeGLSL> CalculateBVH(Array<TriangleGLSL> &glsl_tris);
+Array<BVHNodeGLSL> CalculateBVH(Array<TriangleGLSL> &glsl_tris, Array<TriangleGLSL> &sorted_glsl_tris);

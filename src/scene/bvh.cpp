@@ -8,7 +8,7 @@
 #include <bvh/triangle.hpp>
 #include <bvh/vector.hpp>
 
-Array<BVHNodeGLSL> CalculateBVH(Array<TriangleGLSL> &glsl_tris)
+Array<BVHNodeGLSL> CalculateBVH(Array<TriangleGLSL> &glsl_tris, Array<TriangleGLSL> &sorted_glsl_tris)
 {
 	bvh::Bvh<float> bvh;
 
@@ -35,7 +35,6 @@ Array<BVHNodeGLSL> CalculateBVH(Array<TriangleGLSL> &glsl_tris)
 	bvh::SweepSahBuilder<bvh::Bvh<float>> builder(bvh);
 	builder.build(global_bbox, bboxes.get(), centers.get(), primitives.size());
 
-	Array<TriangleGLSL> sorted_glsl_tris;
 	Array<BVHNodeGLSL> bvh_nodes;
 	for (uint32 i = 0; i < bvh.node_count; i++)
 	{
@@ -49,15 +48,15 @@ Array<BVHNodeGLSL> CalculateBVH(Array<TriangleGLSL> &glsl_tris)
 
 		if (node.is_leaf())
 		{
-			uint32 tri_index = node.first_child_or_primitive;
 			for (uint32 j = 0; j < node.primitive_count; j++)
 			{
-				auto prev_tri = glsl_tris[(uint32)bvh.primitive_indices[tri_index + j]];
+				uint32 index_into_sorted_primitives = node.first_child_or_primitive + j;
+				uint32 index_into_unsorted_primitives = (uint32) bvh.primitive_indices[index_into_sorted_primitives];
+				TriangleGLSL prev_tri = glsl_tris[index_into_unsorted_primitives];
 				sorted_glsl_tris.append(prev_tri);
 			}
 		}
 	}
-	glsl_tris = sorted_glsl_tris;
 
 	printf("Calculated BVH for scene, using %u nodes.\n", bvh_nodes.size);
 	return bvh_nodes;
