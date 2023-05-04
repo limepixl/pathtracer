@@ -357,6 +357,8 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 
                 break;
             }
+			// TODO: implement separate translation, scale and rotation values.
+			// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#transformations
         }
 
         printf("--> Num loaded vertices: %u\n", positions.size);
