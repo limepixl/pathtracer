@@ -88,3 +88,11 @@ Vec3f TriangleGLSL::v2() const
 {
 	return {data3.x, data3.y, data3.z};
 }
+
+TriangleGLSL::TriangleGLSL(const Vec3f &v0, const Vec3f &v1, const Vec3f &v2, uint32 mat_index, const Vec2f &uv0, const Vec2f &uv1, const Vec2f &uv2)
+	: data1(v0.x, v0.y, v0.z, (float)mat_index),
+	  data2(v1.x, v1.y, v1.z, 0.0f),
+	  data3(v2.x, v2.y, v2.z, 0.0f),
+	  data4(uv0.x, uv0.y, uv1.x, uv1.y),
+	  data5(uv2.x, uv2.y, 0.0f, 0.0f)
+{}

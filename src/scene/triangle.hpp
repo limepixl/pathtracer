@@ -37,6 +37,9 @@ struct TriangleGLSL
     Vec4f data4; // uv0.x, uv0.y, uv1.x, uv1.y
     Vec4f data5; // uv2.x, uv2.y, 0, 0
 
+	TriangleGLSL() = default;
+	TriangleGLSL(const Vec3f &v0, const Vec3f &v1, const Vec3f &v2, uint32 mat_index, const Vec2f &uv0, const Vec2f &uv1, const Vec2f &uv2);
+
 	[[nodiscard]] Vec3f v0() const;
 	[[nodiscard]] Vec3f v1() const;
 	[[nodiscard]] Vec3f v2() const;
