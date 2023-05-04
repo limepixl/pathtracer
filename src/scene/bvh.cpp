@@ -35,6 +35,7 @@ Array<BVHNodeGLSL> CalculateBVH(Array<TriangleGLSL> &glsl_tris)
 	bvh::SweepSahBuilder<bvh::Bvh<float>> builder(bvh);
 	builder.build(global_bbox, bboxes.get(), centers.get(), primitives.size());
 
+	Array<TriangleGLSL> sorted_glsl_tris;
 	Array<BVHNodeGLSL> bvh_nodes;
 	for (uint32 i = 0; i < bvh.node_count; i++)
 	{
@@ -45,8 +46,20 @@ Array<BVHNodeGLSL> CalculateBVH(Array<TriangleGLSL> &glsl_tris)
 
 		BVHNodeGLSL result_node(bmin, bmax, (float)node.first_child_or_primitive, (float)node.primitive_count);
 		bvh_nodes.append(result_node);
-	}
 
+		if (node.is_leaf())
+		{
+			uint32 tri_index = node.first_child_or_primitive;
+			for (uint32 j = 0; j < node.primitive_count; j++)
+			{
+				auto prev_tri = glsl_tris[(uint32)bvh.primitive_indices[tri_index + j]];
+				sorted_glsl_tris.append(prev_tri);
+			}
+		}
+	}
+	glsl_tris = sorted_glsl_tris;
+
+	printf("Calculated BVH for scene, using %u nodes.\n", bvh_nodes.size);
 	return bvh_nodes;
 }
 
