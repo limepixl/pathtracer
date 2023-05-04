@@ -8,6 +8,9 @@ struct BVHNodeGLSL
 {
     Vec4f data1; // bmin.x, bmin.y, bmin.z, left/first_tri
     Vec4f data2; // bmax.x, bmax.y, bmax.z, num_tris
+
+	BVHNodeGLSL() = default;
+	BVHNodeGLSL(const Vec3f &bmin, const Vec3f &bmax, float first_child_or_tri, float num_tris);
 };
 
 Array<BVHNodeGLSL> CalculateBVH(Array<TriangleGLSL> &triangles);
