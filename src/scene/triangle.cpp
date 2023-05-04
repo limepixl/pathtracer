@@ -73,3 +73,18 @@ void ApplyTranslationToTriangle(Triangle *tri, Vec3f translation_vec)
     tri->edge1 = tri->v1 - tri->v0;
     tri->edge2 = tri->v2 - tri->v0;
 }
+
+Vec3f TriangleGLSL::v0() const
+{
+	return {data1.x, data1.y, data1.z};
+}
+
+Vec3f TriangleGLSL::v1() const
+{
+	return {data2.x, data2.y, data2.z};
+}
+
+Vec3f TriangleGLSL::v2() const
+{
+	return {data3.x, data3.y, data3.z};
+}
