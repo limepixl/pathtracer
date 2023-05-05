@@ -47,6 +47,9 @@ Array<BVHNodeGLSL> CalculateBVH(Array<TriangleGLSL> &glsl_tris, Array<TriangleGL
 	bvh::SweepSahBuilder<bvh::Bvh<float>> builder(bvh);
 	builder.build(global_bbox, bboxes.get(), centers.get(), primitives.size());
 
+	sorted_glsl_tris = Array<TriangleGLSL>(glsl_tris.size);
+	sorted_glsl_tris.size = glsl_tris.size;
+
 	Array<BVHNodeGLSL> bvh_nodes;
 	for (uint32 i = 0; i < bvh.node_count; i++)
 	{
@@ -65,7 +68,7 @@ Array<BVHNodeGLSL> CalculateBVH(Array<TriangleGLSL> &glsl_tris, Array<TriangleGL
 				uint32 index_into_sorted_primitives = node.first_child_or_primitive + j;
 				uint32 index_into_unsorted_primitives = (uint32) bvh.primitive_indices[index_into_sorted_primitives];
 				TriangleGLSL prev_tri = glsl_tris[index_into_unsorted_primitives];
-				sorted_glsl_tris.append(prev_tri);
+				sorted_glsl_tris[index_into_sorted_primitives] = prev_tri;
 			}
 		}
 	}
