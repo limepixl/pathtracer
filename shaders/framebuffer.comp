@@ -290,7 +290,7 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 
 // Slab method
 // https://tavianator.com/2011/ray_box.html
-bool intersect_aabb(in vec3 ro, in vec3 rd, in vec3 bmin, in vec3 bmax, in float t)
+vec2 intersect_aabb(in vec3 ro, in vec3 rd, in vec3 bmin, in vec3 bmax, in float t)
 {
 	vec3 inv_dir = 1.0 / rd;
 	float tx1 = bmin.x * inv_dir.x - ro.x * inv_dir.x;
@@ -310,84 +310,135 @@ bool intersect_aabb(in vec3 ro, in vec3 rd, in vec3 bmin, in vec3 bmax, in float
 	tmin = max(tmin, min(tz1, tz2));
 	tmax = min(tmax, max(tz1, tz2));
 
-	return tmax >= max(0.0, tmin) && tmin < t;
+	return vec2(tmin, tmax);
 }
 
-bool intersect_bvh_stack(in vec3 ro, in vec3 rd, inout HitData data, inout float tmax)
+//vec2 intersect_aabb(in vec3 ro, in vec3 rd, in vec3 bmin, in vec3 bmax, in float t)
+//{
+//    vec3 inv_rd = vec3(1.0) / rd;
+//    vec3 tmp_min = (bmax - ro) * inv_rd;
+//    vec3 tmp_max = (bmin - ro) * inv_rd;
+//    vec3 tmin = min(tmp_min, tmp_max);
+//    vec3 tmax = max(tmp_min, tmp_max);
+//    float t0 = max(tmin.x, max(tmin.y, max(tmin.z, TMIN)));
+//    float t1 = min(tmax.x, min(tmax.y, min(tmax.z, TMAX)));
+//
+//    return vec2(t0, t1);
+//}
+
+vec3 get_bmax(in BVHNode node)
+{
+    return node.data2.xyz;
+}
+
+vec3 get_bmin(in BVHNode node)
+{
+    return node.data1.xyz;
+}
+
+bool intersect_bvh_stack(in vec3 ro, in vec3 rd, out HitData data, inout float tmax)
 {
 	bool hit_anything = false;
 
-	int stack_top = 0;
-	int stack[16];
-	stack[0] = 0;
+    int stack_top = 0;
+    uint stack[32];
+    stack[0] = 0;
 
-	while (stack_top + 1 > 0)
-	{
-		uint current_index = stack[stack_top];
-		stack_top--;
+    while (stack_top > -1)
+    {
+        uint current_index = stack[stack_top];
+        stack_top--;
 
-		BVHNode node = bvh_nodes[current_index];
+        BVHNode node = bvh_nodes[current_index];
+        vec3 bmin = get_bmin(node);
+        vec3 bmax = get_bmax(node);
+        uint first_child_or_tri = uint(node.data1.w);
+        uint num_node_tris = uint(node.data2.w);
 
-		// Check if ray intersects root node
-		bool hit_aabb = intersect_aabb(ro, rd, node.data1.xyz, node.data2.xyz, tmax);
-		if(hit_aabb)
-		{
-			int node_left = int(node.data1.w);
-			int num_node_tris = int(node.data2.w);
+        // Check if ray intersects root node
+        vec2 intersection = intersect_aabb(ro, rd, bmin, bmax, tmax);
+        bool hit_aabb = intersection.x <= intersection.y;
+        if (hit_aabb)
+        {
+            if (num_node_tris == 0)
+            {
+                BVHNode node_left = bvh_nodes[first_child_or_tri];
+                BVHNode node_right = bvh_nodes[first_child_or_tri + 1];
 
-			if(num_node_tris == 0)
-			{
-				// First check closer child and then farther child
-				int offset1 = int(rd.x > 0.0);
-				int offset2 = int(rd.x < 0.0);
-				
-				stack_top++;
-				stack[stack_top] = node_left + offset1;
-				stack_top++;
-				stack[stack_top] = node_left + offset2;
-			}
-			else
-			{
-				// If leaf node, test against triangles of node
-				for (uint i = 0; i < num_node_tris; i++)
-				{
-					if (intersect_triangle(ro, rd, node_left + i, data, tmax))
-					{
-						// Found closer hit, store it.
-						hit_anything = true;
-						tmax = data.t;
-					}
-				}
-			}
-		}
-	}
+                vec2 left_int = intersect_aabb(ro, rd, get_bmin(node_left), get_bmax(node_left), tmax);
+                bool hit_left = left_int.x <= left_int.y;
+                vec2 right_int = intersect_aabb(ro, rd, get_bmin(node_right), get_bmax(node_right), tmax);
+                bool hit_right = right_int.x <= right_int.y;
 
-	return hit_anything;
+                if(hit_left)
+                {
+                    if(hit_right)
+                    {
+                        if(left_int.x < right_int.x)
+                        {
+                            stack_top++;
+                            stack[stack_top] = first_child_or_tri + 1;
+                            stack_top++;
+                            stack[stack_top] = first_child_or_tri;
+                        }
+                        else
+                        {
+                            stack_top++;
+                            stack[stack_top] = first_child_or_tri;
+                            stack_top++;
+                            stack[stack_top] = first_child_or_tri + 1;
+                        }
+                    }
+                    else
+                    {
+                        stack_top++;
+                        stack[stack_top] = first_child_or_tri;
+                    }
+                }
+                else
+                {
+                    if(hit_right)
+                    {
+                        stack_top++;
+                        stack[stack_top] = first_child_or_tri + 1;
+                    }
+                }
+            }
+
+            // If leaf node, test against triangles of node
+            for (int i = 0; i < num_node_tris; i++)
+            {
+                HitData local_data;
+                bool hit_tri = intersect_triangle(ro, rd, first_child_or_tri + i, local_data, tmax);
+                if (hit_tri)
+                {
+                    hit_anything = true;
+                    tmax = local_data.t;
+                    data = local_data;
+                }
+            }
+        }
+    }
+
+    return hit_anything;
 }
 
 bool intersect(vec3 ro, vec3 rd, out HitData result)
 {
-	bool hit_anything = false;
-	float tmax = TMAX;
+    bool hit_anything = false;
+    float tmax = TMAX;
 
-	uint num_tris = triangles.length();
-	for (uint i = 0; i < num_tris; i++)
-	{
-		if (intersect_triangle(ro, rd, i, result, tmax))
-		{
-			hit_anything = true;
-			tmax = result.t;
-		}
-	}
-//
-//	HitData tri_data;
-//	hit_anything = intersect_bvh_stack(ro, rd, tri_data, tmax);
-//	if(hit_anything)
-//	{
-//		result = tri_data;
-//	}
+    //    	uint num_tris = triangles.length();
+    //	for (uint i = 0; i < num_tris; i++)
+    //	{
+    //		if (intersect_triangle(ro, rd, i, result, tmax))
+    //		{
+    //			hit_anything = true;
+    //			tmax = result.t;
+    //		}
+    //	}
 
-//	hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
+	hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
 
 //	for(uint i = 0; i < spheres.length(); i++)
 //	{
