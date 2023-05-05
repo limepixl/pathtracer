@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 
     Mesh mesh;
 
-    bool isLoaded = LoadGLTF("res/models/Avocado.glb", mesh);
+    bool isLoaded = LoadGLTF("res/models/Duck.glb", mesh);
     if (!isLoaded)
     {
         printf("Failed to load model!\n");
@@ -47,12 +47,13 @@ int main(int argc, char *argv[])
 
     // Apply model matrix to tris
     mesh.model_matrix = TranslationMat4f(Vec3f(0.0f, 0.0f, -2.0f), mesh.model_matrix);
-    mesh.model_matrix = ScaleMat4f(Vec3f(10.0f), mesh.model_matrix);
+    mesh.model_matrix = ScaleMat4f(Vec3f(2.0f), mesh.model_matrix);
     mesh.ApplyModelTransform();
 
-    Array<TriangleGLSL> model_tris_ssbo = mesh.ConvertToSSBOFormat();
+    Array<TriangleGLSL> unsorted_model_tris = mesh.ConvertToSSBOFormat();
 
-    Array<BVHNodeGLSL> bvh_ssbo = CalculateBVH(model_tris_ssbo);
+    Array<TriangleGLSL> model_tris_ssbo;
+    Array<BVHNodeGLSL> bvh_ssbo = CalculateBVH(unsorted_model_tris, model_tris_ssbo);
 
     // Find all emissive triangles in scene
     Array<uint32> emissive_tris(mesh.triangles.size);
