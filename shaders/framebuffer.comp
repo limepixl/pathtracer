@@ -313,19 +313,6 @@ vec2 intersect_aabb(in vec3 ro, in vec3 rd, in vec3 bmin, in vec3 bmax, in float
 	return vec2(tmin, tmax);
 }
 
-//vec2 intersect_aabb(in vec3 ro, in vec3 rd, in vec3 bmin, in vec3 bmax, in float t)
-//{
-//    vec3 inv_rd = vec3(1.0) / rd;
-//    vec3 tmp_min = (bmax - ro) * inv_rd;
-//    vec3 tmp_max = (bmin - ro) * inv_rd;
-//    vec3 tmin = min(tmp_min, tmp_max);
-//    vec3 tmax = max(tmp_min, tmp_max);
-//    float t0 = max(tmin.x, max(tmin.y, max(tmin.z, TMIN)));
-//    float t1 = min(tmax.x, min(tmax.y, min(tmax.z, TMAX)));
-//
-//    return vec2(t0, t1);
-//}
-
 vec3 get_bmax(in BVHNode node)
 {
     return node.data2.xyz;
@@ -341,7 +328,7 @@ bool intersect_bvh_stack(in vec3 ro, in vec3 rd, out HitData data, inout float t
 	bool hit_anything = false;
 
     int stack_top = 0;
-    uint stack[32];
+    uint stack[16];
     stack[0] = 0;
 
     while (stack_top > -1)
