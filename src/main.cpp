@@ -52,14 +52,14 @@ int main(int argc, char *argv[])
 
     Array<TriangleGLSL> unsorted_model_tris = mesh.ConvertToSSBOFormat();
 
-    Array<TriangleGLSL> model_tris_ssbo;
-    Array<BVHNodeGLSL> bvh_ssbo = CalculateBVH(unsorted_model_tris, model_tris_ssbo);
+    Array<TriangleGLSL> model_glsl_tris;
+    Array<BVHNodeGLSL> bvh_ssbo = CalculateBVH(unsorted_model_tris, model_glsl_tris);
 
     // Find all emissive triangles in scene
-    Array<uint32> emissive_tris(mesh.triangles.size);
-    for (uint32 i = 0; i < mesh.triangles.size; i++)
+    Array<uint32> emissive_tris(model_glsl_tris.size);
+    for (uint32 i = 0; i < model_glsl_tris.size; i++)
     {
-        MaterialGLSL current_mat = mesh.materials[mesh.triangles[i].mat_index];
+        MaterialGLSL current_mat = mesh.materials[(uint32) model_glsl_tris[i].data1.w];
         if (current_mat.data3.x >= EPSILON || current_mat.data3.y >= EPSILON || current_mat.data3.z >= EPSILON)
         {
             emissive_tris.append(i);
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
     for (uint32 i = 0; i < spheres_ssbo.size; i++)
     {
         MaterialGLSL &mat = materials_ssbo[spheres_ssbo[i].mat_index[0]];
-        if (mat.data3.x > EPSILON || mat.data3.y > EPSILON || mat.data3.z > EPSILON)
+        if (mat.emitted_radiance() > Vec3f(EPSILON))
         {
             emissive_spheres_ssbo.append(i);
         }
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 
     Array<GLuint> ssbo_array;
     PushDataToSSBO(spheres_ssbo, ssbo_array);
-    PushDataToSSBO(model_tris_ssbo, ssbo_array);
+    PushDataToSSBO(model_glsl_tris, ssbo_array);
     PushDataToSSBO(emissive_tris, ssbo_array);
     PushDataToSSBO(mesh.materials, ssbo_array);
     PushDataToSSBO(bvh_ssbo, ssbo_array);
