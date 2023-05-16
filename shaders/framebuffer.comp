@@ -281,7 +281,12 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 		data.object_type = 0;
 
 		float w = 1.0 - u - v;
-		data.uvs = w * tri.data4.xy + u * tri.data4.zw + v * tri.data5.xy;
+		data.uvs = w * vec2(tri.data2.w, tri.data3.w) + u * tri.data4.xy + v * tri.data4.zw;
+
+//		vec3 n0 = tri.data5.xyz;
+//		vec3 n1 = vec3(tri.data5.w, tri.data6.xy);
+//		vec3 n2 = vec3(tri.data6.zw, tri.data7.x);
+		data.normal = normalize(w * tri.data5.xyz + u * vec3(tri.data5.w, tri.data6.xy) + v * vec3(tri.data6.zw, tri.data7.x));
 
 		return true;
 	}
