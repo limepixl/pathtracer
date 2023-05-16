@@ -44,4 +44,8 @@ struct MaterialGLSL
                  float specular_exponent,
                  int diffuse_tex_index,
                  MaterialType type);
+
+	[[nodiscard]] Vec3f diffuse() const;
+	[[nodiscard]] Vec3f specular() const;
+	[[nodiscard]] Vec3f emitted_radiance() const;
 };

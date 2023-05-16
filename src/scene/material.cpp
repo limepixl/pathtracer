@@ -48,4 +48,17 @@ MaterialGLSL::MaterialGLSL(const Vec3f &diffuse,
     }
 }
 
+Vec3f MaterialGLSL::diffuse() const
+{
+	return {data1.x, data1.y, data1.z};
+}
 
+Vec3f MaterialGLSL::specular() const
+{
+	return {data2.x, data2.y, data2.z};
+}
+
+Vec3f MaterialGLSL::emitted_radiance() const
+{
+	return {data3.x, data3.y, data3.z};
+}
