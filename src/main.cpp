@@ -94,7 +94,6 @@ int main(int argc, char *argv[])
     uint32 last_time = 0;
     uint32 last_report = 0;
     uint32 frame_count = 0;
-    ViewMode view_mode = ViewMode::MULTIPLE_IMPORTANCE_SAMPLING_BRDF_NEE;
 
     Camera cam(Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec3f(1.0f, 0.0f, 0.0f), 0.005f, 0.05f);
 
@@ -115,6 +114,8 @@ int main(int argc, char *argv[])
                 cam.mouse_look((float) e.motion.xrel, (float) e.motion.yrel);
                 frame_count = 0;
             }
+			// TODO: add separate compute shaders for separate modes
+			/*
             else if (e.type == SDL_KEYDOWN)
             {
                 bool switched = false;
@@ -142,6 +143,7 @@ int main(int argc, char *argv[])
                     last_report = 0;
                 }
             }
+            */
         }
 
         uint32 current_time = SDL_GetTicks();
@@ -165,7 +167,7 @@ int main(int argc, char *argv[])
                 glNamedBufferSubData(cam.cam_ubo, 0, sizeof(CameraGLSL), &cam_glsl);
             }
 
-            glUniform3ui(0, pcg32_random(), frame_count++, (GLuint) view_mode);
+            glUniform2ui(0, pcg32_random(), frame_count++);
 
             glDispatchCompute(num_work_groups_x, num_work_groups_y, 1);
             glMemoryBarrier(GL_ALL_BARRIER_BITS);
@@ -196,6 +198,7 @@ int main(int argc, char *argv[])
             new_title += std::to_string(fps) + "fps | ";
             new_title += std::to_string(frame_count) + " total frame count | ";
 
+			/*
             if (view_mode == ViewMode::BRDF_IMPORTANCE_SAMPLING)
             {
                 new_title += std::string("BRDF importance sampling");
@@ -208,6 +211,7 @@ int main(int argc, char *argv[])
             {
                 new_title += std::string("Multiple Importance Sampling (MIS): BRDF+NEE");
             }
+            */
 
             UpdateDisplayTitle(display, new_title.c_str());
             last_report = current_time;
