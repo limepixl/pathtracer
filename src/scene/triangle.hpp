@@ -16,18 +16,10 @@ struct Triangle
 
     Triangle();
 
-    Triangle(Vec3f v0, Vec3f v1, Vec3f v2, uint32 mat_index);
-
     Triangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f n0, Vec3f n1, Vec3f n2, uint32 mat_index);
 
     Triangle(Array<Vec3f> &vertices, Array<Vec3f> &normals, Array<Vec2f> &tex_coords, uint32 mat_index);
 };
-
-float Area(Triangle *tri);
-
-void ApplyScaleToTriangle(Triangle *tri, Vec3f scale_vec);
-
-void ApplyTranslationToTriangle(Triangle *tri, Vec3f translation_vec);
 
 struct TriangleGLSL
 {
@@ -40,7 +32,7 @@ struct TriangleGLSL
 	Vec4f data7; // n2.z, 0, 0, 0
 
 	TriangleGLSL() = default;
-	TriangleGLSL(const Triangle &triangle);
+	explicit TriangleGLSL(const Triangle &triangle);
 	TriangleGLSL(const Vec3f &v0, const Vec3f &v1, const Vec3f &v2,
 				 const Vec2f &uv0, const Vec2f &uv1, const Vec2f &uv2,
 				 const Vec3f &n0, const Vec3f &n1, const Vec3f &n2,
