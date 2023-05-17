@@ -27,7 +27,7 @@ layout (std140, binding = 3) uniform Camera
 #define NUM_SHADOW_RAYS 1
 
 // Misc
-#define ENVIRONMENT_MAP_LE 				1.0
+#define ENVIRONMENT_MAP_LE 				0.05
 #define IMPORTANCE_SAMPLE_GGX 			1
 #define NEE_SPECULAR_ROUGHNESS_CUTOFF 	0.0
 #define NORMAL_OFFSET					0.01
@@ -422,7 +422,7 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
     bool hit_anything = false;
     float tmax = TMAX;
 
-    //    	uint num_tris = triangles.length();
+    //  uint num_tris = triangles.length();
     //	for (uint i = 0; i < num_tris; i++)
     //	{
     //		if (intersect_triangle(ro, rd, i, result, tmax))
@@ -434,21 +434,21 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 
 	hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
 
-//	for(uint i = 0; i < spheres.length(); i++)
-//	{
-//		Sphere current_sphere = spheres[i];
-//		float current_t = intersect_sphere(ro, rd, current_sphere);
-//		if(current_t >= TMIN && current_t <= tmax)
-//		{
-//			tmax = current_t;
-//			hit_anything = true;
-//			result.t = current_t;
-//			result.normal = (ro + rd * current_t - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
-//			result.mat_object_indices.x = current_sphere.mat_index.x;
-//			result.mat_object_indices.y = i;
-//			result.object_type = 1;
-//		}
-//	}
+	for(uint i = 0; i < spheres.length(); i++)
+	{
+		Sphere current_sphere = spheres[i];
+		float current_t = intersect_sphere(ro, rd, current_sphere);
+		if(current_t >= TMIN && current_t <= tmax)
+		{
+			tmax = current_t;
+			hit_anything = true;
+			result.t = current_t;
+			result.normal = (ro + rd * current_t - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
+			result.mat_object_indices.x = current_sphere.mat_index.x;
+			result.mat_object_indices.y = i;
+			result.object_type = 1;
+		}
+	}
 
 	return hit_anything;
 }
@@ -1084,6 +1084,8 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
 	// TODO: separate into different shaders
+//	return estimator_path_tracing_BRDF(cam_origin.xyz, ray_direction, rng_state);
+//	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
 	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 
