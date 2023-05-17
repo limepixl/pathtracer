@@ -30,6 +30,7 @@ layout (std140, binding = 3) uniform Camera
 #define ENVIRONMENT_MAP_LE 				1.0
 #define IMPORTANCE_SAMPLE_GGX 			1
 #define NEE_SPECULAR_ROUGHNESS_CUTOFF 	0.0
+#define NORMAL_OFFSET					0.01
 
 // SSBO helper structs
 
@@ -649,7 +650,7 @@ vec3 estimator_path_tracing_BRDF(in vec3 ro, in vec3 rd, in uint rng_state)
 		color += throughput_term * mat.data3.xyz;
 
 		// Intersection point and new ray
-		ro = ro + (rd * data.t) + (EPSILON * data.normal);
+		ro = ro + (rd * data.t) + (NORMAL_OFFSET * data.normal);
 
 		// These get set by pick_wi
 		float pdf, cos_theta; vec3 wm;
@@ -784,7 +785,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 				float pdf_light_area = pdf_pick_light * pdf_pick_point_on_light;
 
 				// Send out a shadow ray in direction x->y
-				vec3 shadow_ro = ro + rd * data.t + EPSILON * data.normal;
+				vec3 shadow_ro = ro + rd * data.t + NORMAL_OFFSET * data.normal;
 				vec3 dist_vec = y - shadow_ro;
 				vec3 shadow_rd = normalize(dist_vec);
 
@@ -823,7 +824,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		}
 
 		vec3 old_rd = rd;
-		ro += rd * data.t + EPSILON * data.normal;
+		ro += rd * data.t + NORMAL_OFFSET * data.normal;
 
 		vec3 wm; float cos_theta_x, pdf;
 		vec3 wi = pick_wi(wo, mat, data, true, wm, cos_theta_x, pdf, rng_state);
@@ -860,7 +861,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		return sky_color(rd) * ENVIRONMENT_MAP_LE;
 	}
 
-	vec3 y = ro + rd * data.t + EPSILON * data.normal;
+	vec3 y = ro + rd * data.t + NORMAL_OFFSET * data.normal;
 	vec3 normal_y = data.normal;
 	Material mat_y = materials[data.mat_object_indices.x];
 
@@ -983,7 +984,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 			color += throughput_term * direct_illumination;
 		}
 
-		ro = x + EPSILON * normal_x;
+		ro = x + NORMAL_OFFSET * normal_x;
 
 		// Pick a new direction
 		vec3 old_rd = rd;
@@ -1009,7 +1010,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		float cos_theta_y = dot(data.normal, -rd);
 		normal_y = data.normal;
 
-		y = ro + rd * data.t + EPSILON * normal_y;
+		y = ro + rd * data.t + NORMAL_OFFSET * normal_y;
 		mat_y = materials[data.mat_object_indices.x];
 
 		// If we can use NEE on the hit surface
