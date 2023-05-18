@@ -163,10 +163,12 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
                 }
 
                 // Load material that primitive uses
+				uint32 mat_index = out_mesh.materials.size;
                 {
                     cgltf_material *material = primitive->material;
 
                     MaterialGLSL result_mat;
+					result_mat.data4.w = -1.0f;
 
                     if (material == nullptr)
                     {
@@ -334,7 +336,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 						tri_tex_coords.append(uv2);
 					}
 
-					Triangle tri(tri_positions, tri_normals, tri_tex_coords, 0);
+					Triangle tri(tri_positions, tri_normals, tri_tex_coords, mat_index);
 					out_mesh.triangles.append(tri);
 				}
             }
