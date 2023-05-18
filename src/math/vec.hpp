@@ -12,6 +12,8 @@ struct Vec4f
     Vec4f(float x, float y, float z, float w);
 };
 
+Vec4f operator/(const Vec4f &lhs, float rhs);
+
 struct Vec3f
 {
     float x, y, z;

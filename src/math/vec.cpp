@@ -1,5 +1,10 @@
 #include "vec.hpp"
 
+Vec4f operator/(const Vec4f &lhs, float rhs)
+{
+	return {lhs.x / rhs, lhs.y / rhs, lhs.z / rhs, lhs.w / rhs};
+}
+
 Vec3f operator+(const Vec3f &lhs, const Vec3f &rhs)
 {
     return {lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z};

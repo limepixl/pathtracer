@@ -29,6 +29,8 @@ namespace pixl
 
     float dot(Vec3f vec1, Vec3f vec2);
 
+	float dot(Vec4f vec1, Vec4f vec2);
+
     Vec3f cross(const Vec3f &a, const Vec3f &b);
 
     float max(float a, float b);
@@ -63,6 +65,8 @@ namespace pixl
 
     Vec3f normalize(Vec3f vec);
 
+	Vec4f normalize(Vec4f vec);
+
     float random_number_normalized_PCG(pcg32_random_t *rngptr);
 
     Vec2f random_Vec2f_PCG(pcg32_random_t *rngptr);
@@ -80,7 +84,7 @@ namespace pixl
     void orthonormal_basis(Vec3f &n, Vec3f &t, Vec3f &bt);
 
     Mat3f construct_TNB_matrix(Vec3f &n);
-}
+	}
 
 /*
 	Operators that use the utility functions above

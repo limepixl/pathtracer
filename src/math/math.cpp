@@ -61,6 +61,11 @@ float pixl::dot(Vec3f vec1, Vec3f vec2)
     return (vec1.x * vec2.x) + (vec1.y * vec2.y) + (vec1.z * vec2.z);
 }
 
+float pixl::dot(Vec4f vec1, Vec4f vec2)
+{
+	return (vec1.x * vec2.x) + (vec1.y * vec2.y) + (vec1.z * vec2.z) + (vec1.w * vec2.w);
+}
+
 Vec3f pixl::cross(const Vec3f &a, const Vec3f &b)
 {
     float x = a.y * b.z - a.z * b.y;
@@ -154,6 +159,11 @@ void pixl::swap(float *v1, float *v2)
 Vec3f pixl::normalize(Vec3f vec)
 {
     return vec / sqrtf(pixl::dot(vec, vec));
+}
+
+Vec4f pixl::normalize(Vec4f vec)
+{
+	return vec / sqrtf(pixl::dot(vec, vec));
 }
 
 // PCG variants of the above functions
