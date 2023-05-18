@@ -362,22 +362,22 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 			if(node->has_rotation)
 			{
 				cgltf_float *rotation = node->rotation;
-				float q0 = rotation[3];
-				float q1 = rotation[0];
-				float q2 = rotation[1];
-				float q3 = rotation[2];
+				float s = rotation[3];
+				float x = rotation[0];
+				float y = rotation[1];
+				float z = rotation[2];
 
-				float r00 = 2.0f * (q0*q0 + q1*q1) - 1.0f;
-				float r01 = 2.0f * (q1*q2 - q0*q3);
-				float r02 = 2.0f * (q1*q3 + q0*q2);
+				float r00 = 1.0f - 2.0f * (y*y + z*z);
+				float r01 = 2.0f * (x * y - s * z);
+				float r02 = 2.0f * (x * z + s * y);
 
-				float r10 = 2.0f * (q1*q2 + q0*q3);
-				float r11 = 2.0f * (q0*q0 + q2*q2) - 1.0f;
-				float r12 = 2.0f * (q2*q3 - q0*q1);
+				float r10 = 2.0f * (x * y + s * z);
+				float r11 = 1.0f - 2.0f * (x*x + z*z);
+				float r12 = 2.0f * (y * z - s * x);
 
-				float r20 = 2.0f * (q1*q3 - q0*q2);
-				float r21 = 2.0f * (q2*q3 + q0*q1);
-				float r22 = 2.0f * (q0*q0 + q3*q3) - 1.0f;
+				float r20 = 2.0f * (x * z - s * y);
+				float r21 = 2.0f * (y * z + s * x);
+				float r22 = 1.0f - 2.0f * (x*x + y*y);
 
 				out_mesh.model_matrix = Mat4f(
 					Vec4f(r00,  r01,  r02,  0.0f),
