@@ -43,11 +43,6 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
         printf("--> Number of buffer views: %zu\n", num_buffer_views);
         printf("--> Number of textures: %zu\n", num_textures);
 
-        Array<Vec3f> positions;
-        Array<Vec3f> normals;
-        Array<Vec2f> tex_coords;
-        Array<uint16> indices;
-
         constexpr uint64 texture_layer_width = 512;
         constexpr uint64 texture_layer_height = 512;
 
@@ -66,6 +61,11 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 
         for (cgltf_size mesh_index = 0; mesh_index < num_meshes; mesh_index++)
         {
+			Array<Vec3f> positions;
+			Array<Vec3f> normals;
+			Array<Vec2f> tex_coords;
+			Array<uint16> indices;
+
             cgltf_mesh *mesh = &data->meshes[mesh_index];
             cgltf_size num_mesh_primitives = mesh->primitives_count;
 
@@ -155,7 +155,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
                     cgltf_buffer_view *view = indices_accessor->buffer_view;
                     cgltf_size stride = view->stride != 0 ? view->stride : indices_accessor->stride;
 
-                    for (uint32 i = 0; i < indices_accessor->count; i++)
+                    for (cgltf_size i = 0; i < indices_accessor->count; i++)
                     {
                         uint16 val = *(uint16 *) ((uint8 *) view->buffer->data + view->offset + stride * i);
                         indices.append(val);
@@ -293,51 +293,51 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 
                     out_mesh.materials.append(result_mat);
                 }
+
+				// We need to duplicate the triangle data as the engine doesn't support indices
+				for (uint32 i = 0; i <= indices.size - 3; i += 3)
+				{
+					Array<Vec3f> tri_positions;
+					Array<Vec3f> tri_normals;
+					Array<Vec2f> tri_tex_coords;
+
+					uint16 i0 = indices[i];
+					uint16 i1 = indices[i + 1];
+					uint16 i2 = indices[i + 2];
+
+					Vec3f v0 = positions[i0];
+					Vec3f v1 = positions[i1];
+					Vec3f v2 = positions[i2];
+					tri_positions.append(v0);
+					tri_positions.append(v1);
+					tri_positions.append(v2);
+
+					Vec3f n0, n1, n2;
+					if (normals.size > 0)
+					{
+						n0 = normals[i0];
+						n1 = normals[i1];
+						n2 = normals[i2];
+						tri_normals.append(n0);
+						tri_normals.append(n1);
+						tri_normals.append(n2);
+					}
+
+					Vec2f uv0, uv1, uv2;
+					if (tex_coords.size > 0)
+					{
+						uv0 = tex_coords[i0];
+						uv1 = tex_coords[i1];
+						uv2 = tex_coords[i2];
+						tri_tex_coords.append(uv0);
+						tri_tex_coords.append(uv1);
+						tri_tex_coords.append(uv2);
+					}
+
+					Triangle tri(tri_positions, tri_normals, tri_tex_coords, 0);
+					out_mesh.triangles.append(tri);
+				}
             }
-        }
-
-        // We need to duplicate the triangle data as the engine doesn't support indices
-        for (uint32 i = 0; i <= indices.size - 3; i += 3)
-        {
-            Array<Vec3f> tri_positions;
-            Array<Vec3f> tri_normals;
-            Array<Vec2f> tri_tex_coords;
-
-            uint16 i0 = indices[i];
-            uint16 i1 = indices[i + 1];
-            uint16 i2 = indices[i + 2];
-
-            Vec3f v0 = positions[i0];
-            Vec3f v1 = positions[i1];
-            Vec3f v2 = positions[i2];
-            tri_positions.append(v0);
-            tri_positions.append(v1);
-            tri_positions.append(v2);
-
-            Vec3f n0, n1, n2;
-            if (normals.size > 0)
-            {
-                n0 = normals[i0];
-                n1 = normals[i1];
-                n2 = normals[i2];
-                tri_normals.append(n0);
-                tri_normals.append(n1);
-                tri_normals.append(n2);
-            }
-
-            Vec2f uv0, uv1, uv2;
-            if (tex_coords.size > 0)
-            {
-                uv0 = tex_coords[i0];
-                uv1 = tex_coords[i1];
-                uv2 = tex_coords[i2];
-                tri_tex_coords.append(uv0);
-                tri_tex_coords.append(uv1);
-                tri_tex_coords.append(uv2);
-            }
-
-            Triangle tri(tri_positions, tri_normals, tri_tex_coords, 0);
-            out_mesh.triangles.append(tri);
         }
 
         // Find model matrix if any
@@ -361,10 +361,6 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 			// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#transformations
         }
 
-        printf("--> Num loaded vertices: %u\n", positions.size);
-        printf("--> Num loaded normals: %u\n", normals.size);
-        printf("--> Num loaded UVs: %u\n", tex_coords.size);
-        printf("--> Num loaded indices: %u\n", indices.size);
         printf("--> Num loaded tris: %u\n", out_mesh.triangles.size);
 
         cgltf_free(data);
