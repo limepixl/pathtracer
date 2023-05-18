@@ -357,8 +357,41 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 
                 break;
             }
-			// TODO: implement separate translation, scale and rotation values.
-			// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#transformations
+			else
+			{
+				// TODO: implement separate translation, scale and rotation values.
+				// https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#transformations
+
+				if(node->has_rotation)
+				{
+					cgltf_float *rotation = node->rotation;
+					float q0 = rotation[3];
+					float q1 = rotation[0];
+					float q2 = rotation[1];
+					float q3 = rotation[2];
+
+					float r00 = 2.0f * (q0*q0 + q1*q1) - 1.0f;
+					float r01 = 2.0f * (q1*q2 - q0*q3);
+					float r02 = 2.0f * (q1*q3 + q0*q2);
+
+					float r10 = 2.0f * (q1*q2 + q0*q3);
+					float r11 = 2.0f * (q0*q0 + q2*q2) - 1.0f;
+					float r12 = 2.0f * (q2*q3 - q0*q1);
+
+					float r20 = 2.0f * (q1*q3 - q0*q2);
+					float r21 = 2.0f * (q2*q3 + q0*q1);
+					float r22 = 2.0f * (q0*q0 + q3*q3) - 1.0f;
+
+					out_mesh.model_matrix = Mat4f(
+						Vec4f(r00,  r01,  r02,  0.0f),
+						Vec4f(r10,  r11,  r12,  0.0f),
+						Vec4f(r20,  r21,  r22,  0.0f),
+						Vec4f(0.0f, 0.0f, 0.0f, 1.0f)
+						);
+					out_mesh.ApplyModelTransform();
+					out_mesh.model_matrix = Mat4f();
+				}
+			}
         }
 
         printf("--> Num loaded tris: %u\n", out_mesh.triangles.size);
