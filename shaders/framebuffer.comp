@@ -287,7 +287,10 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 //		vec3 n1 = vec3(tri.data5.w, tri.data6.xy);
 //		vec3 n2 = vec3(tri.data6.zw, tri.data7.x);
 		data.normal = normalize(w * tri.data5.xyz + u * vec3(tri.data5.w, tri.data6.xy) + v * vec3(tri.data6.zw, tri.data7.x));
-		data.normal *= -sign(dot(data.normal, rd));
+		if(dot(data.normal, rd) > 0.0)
+		{
+			data.normal = -data.normal;
+		}
 
 		return true;
 	}
