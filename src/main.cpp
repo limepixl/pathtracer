@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 
     Mesh mesh;
 
-    bool isLoaded = LoadGLTF("res/models/Duck.glb", mesh);
+    bool isLoaded = LoadGLTF("res/models/CornellBox.glb", mesh);
     if (!isLoaded)
     {
         printf("Failed to load model!\n");
@@ -69,10 +69,10 @@ int main(int argc, char *argv[])
     // Set up data to be passed to SSBOs
 
     Array<MaterialGLSL> materials_ssbo = mesh.materials;
-	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.0f), Vec3f(50.0f), 0.0f, 0.0f, 0, MaterialType::MATERIAL_LAMBERTIAN));
+	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.0f), Vec3f(100.0f), 0.0f, 0.0f, 0, MaterialType::MATERIAL_LAMBERTIAN));
 
     Array<SphereGLSL> spheres_ssbo;
-	spheres_ssbo.append(SphereGLSL(Vec3f(4.0f, 2.0f, -2.0f), 0.5f, materials_ssbo.size - 1));
+	spheres_ssbo.append(SphereGLSL(Vec3f(4.0f, 2.0f, -2.0f), 0.25f, materials_ssbo.size - 1));
 
     Array<uint32> emissive_spheres_ssbo;
     for (uint32 i = 0; i < spheres_ssbo.size; i++)
