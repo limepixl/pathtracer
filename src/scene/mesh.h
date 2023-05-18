@@ -21,6 +21,6 @@ struct Mesh
 
     Array<TriangleGLSL> ConvertToSSBOFormat();
 
-    void ApplyModelTransform();
+    void ApplyModelTransform(bool rotation = false);
 };
 

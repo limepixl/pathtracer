@@ -1,4 +1,5 @@
 #include "mesh.h"
+#include "../math/math.hpp"
 #include "material.hpp"
 
 Mesh::Mesh(Array<struct Triangle> &triangles,
@@ -25,7 +26,7 @@ Array<TriangleGLSL> Mesh::ConvertToSSBOFormat()
     return mesh_tris_ssbo;
 }
 
-void Mesh::ApplyModelTransform()
+void Mesh::ApplyModelTransform(bool rotation)
 {
     for(uint32 i = 0; i < triangles.size; i++)
     {
@@ -33,6 +34,12 @@ void Mesh::ApplyModelTransform()
         current_tri.v0 = model_matrix * current_tri.v0;
         current_tri.v1 = model_matrix * current_tri.v1;
         current_tri.v2 = model_matrix * current_tri.v2;
+		if(rotation)
+		{
+			current_tri.n0 = pixl::normalize(model_matrix * current_tri.n0);
+			current_tri.n1 = pixl::normalize(model_matrix * current_tri.n1);
+			current_tri.n2 = pixl::normalize(model_matrix * current_tri.n2);
+		}
     }
 	model_matrix = Mat4f();
 }

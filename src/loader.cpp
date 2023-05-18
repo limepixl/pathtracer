@@ -385,7 +385,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 					Vec4f(r20,  r21,  r22,  0.0f),
 					Vec4f(0.0f, 0.0f, 0.0f, 1.0f)
 					);
-				out_mesh.ApplyModelTransform();
+				out_mesh.ApplyModelTransform(true);
 			}
         }
 
