@@ -15,9 +15,15 @@ Triangle::Triangle(Vec3f v0, Vec3f v1, Vec3f v2, Vec3f n0, Vec3f n1, Vec3f n2, u
 Triangle::Triangle(Array<Vec3f> &vertices, Array<Vec3f> &normals, Array<Vec2f> &tex_coords, uint32 mat_index)
         : v0(vertices[0]), v1(vertices[1]), v2(vertices[2]),
 	      n0(normals[0]), n1(normals[1]), n2(normals[2]),
-          uv0(tex_coords[0]), uv1(tex_coords[1]), uv2(tex_coords[2]),
           mat_index(mat_index)
-{}
+{
+	if(tex_coords.size == 3)
+	{
+		uv0 = tex_coords[0];
+		uv1 = tex_coords[1];
+		uv2 = tex_coords[2];
+	}
+}
 
 Vec3f TriangleGLSL::v0() const
 {
