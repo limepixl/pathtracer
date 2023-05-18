@@ -34,4 +34,5 @@ void Mesh::ApplyModelTransform()
         current_tri.v1 = model_matrix * current_tri.v1;
         current_tri.v2 = model_matrix * current_tri.v2;
     }
+	model_matrix = Mat4f();
 }
