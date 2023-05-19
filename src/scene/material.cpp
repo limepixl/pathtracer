@@ -2,7 +2,7 @@
 #include "../math/math.hpp"
 
 MaterialGLSL::MaterialGLSL()
-        : data1(0.0f), data2(0.0f), data3(0.0f), data4(-1.0f) {}
+        : data1(0.0f), data2(0.0f), data3(0.0f, 0.0f, 0.0f, -1.0f) {}
 
 MaterialGLSL::MaterialGLSL(const Vec3f &diffuse,
                            const Vec3f &specular,
@@ -12,9 +12,8 @@ MaterialGLSL::MaterialGLSL(const Vec3f &diffuse,
                            MaterialType type)
 {
     data1 = Vec4f(diffuse.x, diffuse.y, diffuse.z, roughness);
-    data2 = Vec4f(specular.x, specular.y, specular.z, 0.0f);
-    data3 = Vec4f(Le.x, Le.y, Le.z, (float) type);
-    data4 = Vec4f((float) diffuse_tex_index, 0.0f, 0.0f, 0.0f);
+    data2 = Vec4f(specular.x, specular.y, specular.z, (float) type);
+    data3 = Vec4f(Le.x, Le.y, Le.z, (float) diffuse_tex_index);
 
     if (type == MaterialType::MATERIAL_SPECULAR_METAL)
     {

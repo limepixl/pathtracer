@@ -168,7 +168,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
                     cgltf_material *material = primitive->material;
 
                     MaterialGLSL result_mat;
-					result_mat.data4.w = -1.0f;
+					result_mat.data3.w = -1.0f;
 
                     if (material == nullptr)
                     {
@@ -235,7 +235,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
                             // NOTE: Now the textures that the Display creation creates
                             // are just the framebuffer and the skybox textures.
                             int32 texture_index = num_loaded_textures++;
-                            result_mat.data4.x = (float) texture_index;
+                            result_mat.data3.w = (float) texture_index;
 
                             cgltf_sampler *sampler = mat_properties.base_color_texture.texture->sampler;
                             cgltf_int min_filter_mode = (sampler != nullptr) ? sampler->min_filter : GL_LINEAR;
@@ -273,7 +273,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 
                             if (mat_properties.roughness_factor > EPSILON)
                             {
-                                result_mat.data3.w = (float) MaterialType::MATERIAL_OREN_NAYAR;
+                                result_mat.data2.w = (float) MaterialType::MATERIAL_OREN_NAYAR;
                                 // NOTE: this maps [0,1] to [0, 0.35] which is only based on hearsay and not any maths
                                 // as I could not find a specific resource that outlines the max realistic roughness for O-N
                                 // TODO: Implement other better purely diffuse material
@@ -281,15 +281,14 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
                             }
                             else
                             {
-                                result_mat.data3.w = (float) MaterialType::MATERIAL_LAMBERTIAN;
+                                result_mat.data2.w = (float) MaterialType::MATERIAL_LAMBERTIAN;
                             }
                         }
                         else
                         {
                             // Material is assumed to be metallic
                             result_mat.data1.w = mat_properties.roughness_factor;
-                            result_mat.data2 = Vec4f(base_color_arr[0], base_color_arr[1], base_color_arr[2], 0.0f);
-                            result_mat.data3.w = (float) MaterialType::MATERIAL_SPECULAR_METAL;
+                            result_mat.data2 = Vec4f(base_color_arr[0], base_color_arr[1], base_color_arr[2], (float) MaterialType::MATERIAL_SPECULAR_METAL);
                         }
                     }
 
