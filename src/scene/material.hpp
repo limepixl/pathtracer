@@ -8,26 +8,6 @@ enum MaterialType
     MATERIAL_SPECULAR_METAL
 };
 
-struct Material
-{
-    MaterialType type;
-    Vec3f diffuse;
-    Vec3f specular;
-    float n_spec;
-
-    Vec3f Le; // emission of light
-
-    // Optional
-    char name[32];
-};
-
-Material CreateMaterial(MaterialType type,
-                        Vec3f diffuse,
-                        Vec3f specular,
-                        float n_spec = 0.0f,
-                        Vec3f Le = Vec3f(0.0f),
-                        const char *name = "");
-
 struct MaterialGLSL
 {
     Vec4f data1 {}; // diff.x, diff.y, diff.z, roughness
