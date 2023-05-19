@@ -36,7 +36,6 @@ Specular BRDF (GGX NDF with Smith geometry func.), using GGX importance sampling
 
 ### To-Do List:
 - Multiscattering approximation for Oren-Nayar BRDF
-- Smooth normals
 - Separate different estimators (BRDF-only, NEE-only, MIS) into different compute shaders
 - Implement more variance reduction techniques (stratified sampling, BRDF sampling, low discrepancy sequences).
 - Russian Roulette
