@@ -1,18 +1,15 @@
 #include "bvh.h"
 #include "../math/math.hpp"
 
-#include <vector>
-
 #include <bvh/bvh.hpp>
 #include <bvh/sweep_sah_builder.hpp>
 #include <bvh/triangle.hpp>
 #include <bvh/vector.hpp>
 
 BVHNodeGLSL::BVHNodeGLSL(const glm::vec3 &bmin, const glm::vec3 &bmax, uint32 first_child_or_tri, uint32 num_tris)
-{
-	data1 = glm::vec4(bmin.x, bmin.y, bmin.z, (float) first_child_or_tri);
-	data2 = glm::vec4(bmax.x, bmax.y, bmax.z, (float) num_tris);
-}
+	: data1(bmin.x, bmin.y, bmin.z, (float) first_child_or_tri),
+	  data2(bmax.x, bmax.y, bmax.z, (float) num_tris)
+{}
 
 inline std::vector<bvh::Triangle<float>> ConvertToLibFormat(Array<TriangleGLSL> &tris)
 {

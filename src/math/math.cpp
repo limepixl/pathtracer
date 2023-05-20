@@ -1,7 +1,5 @@
 #include "math.hpp"
 #include "../scene/triangle.hpp"
-#include "glm/detail/type_mat3x3.hpp"
-#include <cmath>
 
 /*
 	Functions

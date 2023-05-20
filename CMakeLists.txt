@@ -39,7 +39,6 @@ set(HEADER_FILES
 
 	src/scene/bvh.h
     src/scene/material.hpp
-    src/scene/ray.hpp
     src/scene/sphere.hpp
     src/scene/triangle.hpp
     src/scene/mesh.h

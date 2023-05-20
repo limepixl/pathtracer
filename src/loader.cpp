@@ -1,16 +1,13 @@
-#include "defines.hpp"
 #include "loader.h"
-#include <cgltf.h>
-#include <cstdio>
-
 #include "math/math.hpp"
 #include "scene/material.hpp"
-#include "scene/triangle.hpp"
 
+#include <cgltf.h>
+#include <glad/glad.h>
 #include <stb_image.h>
 #include <stb_image_resize.h>
-#include <glad/glad.h>
 
+#include <glm/fwd.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 bool LoadGLTF(const char *path, Mesh &out_mesh)
@@ -356,7 +353,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 												  glm::vec4(m[8], m[9], m[10], m[11]),
 												  glm::vec4(m[12], m[13], m[14], m[15]));
 
-                out_mesh.ApplyModelTransform();
+				out_mesh.ApplyModelMatrixToTris();
 
 				continue;
             }
@@ -380,7 +377,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 				out_mesh.model_matrix = glm::translate(out_mesh.model_matrix, translation_vec);
 			}
 
-			out_mesh.ApplyModelTransform();
+			out_mesh.ApplyModelMatrixToTris();
         }
 
         printf("--> Num loaded tris: %u\n", out_mesh.triangles.size);

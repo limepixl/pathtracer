@@ -9,8 +9,8 @@ struct Mesh
     Array<struct Triangle> triangles;
     Array<struct MaterialGLSL> materials;
 
-	glm::mat4 model_matrix {};
-    uint32 texture_array {};
+	glm::mat4 model_matrix;
+    uint32 texture_array;
 
     Mesh();
 
@@ -25,6 +25,6 @@ struct Mesh
 	void Rotate(const glm::vec3 &rotation);
 	void Scale(const glm::vec3 &scale);
 	void Scale(float scale);
-    void ApplyModelTransform();
+    void ApplyModelMatrixToTris();
 };
 

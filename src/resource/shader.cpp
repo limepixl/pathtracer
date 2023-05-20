@@ -31,9 +31,8 @@ Shader LoadShaderFromFiles(const char *compute_source_path)
         exit(-1);
     }
 
-    int64 file_length = 0;
     fseek(compute_file, 0, SEEK_END);
-    file_length = ftell(compute_file);
+	int64 file_length = ftell(compute_file);
     fseek(compute_file, 0, SEEK_SET);
 
     if (file_length <= 0)
@@ -113,9 +112,8 @@ Shader LoadShaderFromFiles(const char *vertex_source_path,
         exit(-1);
     }
 
-    int64 file_length = 0;
     fseek(vertex_file, 0, SEEK_END);
-    file_length = ftell(vertex_file);
+	int64 file_length = ftell(vertex_file);
     fseek(vertex_file, 0, SEEK_SET);
 
     if (file_length <= 0)

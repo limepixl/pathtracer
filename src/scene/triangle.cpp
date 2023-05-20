@@ -10,11 +10,14 @@ Triangle::Triangle(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, glm::vec3 n0, glm::
         : v0(v0), v1(v1), v2(v2),
 	      n0(n0), n1(n1), n2(n2),
           uv0(0.0f), uv1(0.0f), uv2(0.0f),
+		  edge1(v1 - v0), edge2(v2 - v0),
           mat_index(mat_index) {}
 
 Triangle::Triangle(Array<glm::vec3> &vertices, Array<glm::vec3> &normals, Array<glm::vec2> &tex_coords, uint32 mat_index)
         : v0(vertices[0]), v1(vertices[1]), v2(vertices[2]),
 	      n0(normals[0]), n1(normals[1]), n2(normals[2]),
+	      uv0(0.0f), uv1(0.0f), uv2(0.0f),
+	      edge1(v1 - v0), edge2(v2 - v0),
           mat_index(mat_index)
 {
 	if(tex_coords.size == 3)

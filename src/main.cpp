@@ -1,17 +1,15 @@
-#include "scene/bvh.h"
-#include "math/math.hpp"
-#include "scene/material.hpp"
-#include "scene/sphere.hpp"
-#include "scene/camera.hpp"
-#include "scene/triangle.hpp"
-#include "loader.h"
-
-#include <SDL_events.h>
-#include <string>
-
-#include "display/display.hpp"
 #include <glad/glad.h>
 #include <SDL.h>
+
+#include "display/display.hpp"
+#include "scene/material.hpp"
+#include "scene/camera.hpp"
+#include "scene/sphere.hpp"
+#include "math/math.hpp"
+#include "scene/bvh.h"
+#include "loader.h"
+
+#include <string>
 
 template<class T>
 void PushDataToSSBO(Array<T> &data, Array<GLuint> &ssbo_array)
@@ -48,7 +46,7 @@ int main(int argc, char *argv[])
     // Apply model matrix to tris
 	mesh.Translate(glm::vec3(0.0f, 0.0f, -2.0f));
 	mesh.Scale(2.0f);
-    mesh.ApplyModelTransform();
+	mesh.ApplyModelMatrixToTris();
 
     Array<TriangleGLSL> unsorted_model_tris = mesh.ConvertToSSBOFormat();
 

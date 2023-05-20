@@ -25,7 +25,7 @@ Array<TriangleGLSL> Mesh::ConvertToSSBOFormat()
     return mesh_tris_ssbo;
 }
 
-void Mesh::ApplyModelTransform()
+void Mesh::ApplyModelMatrixToTris()
 {
 	glm::mat3 normal_matrix = glm::mat3(glm::transpose(glm::inverse(model_matrix)));
     for(uint32 i = 0; i < triangles.size; i++)
@@ -43,7 +43,7 @@ void Mesh::ApplyModelTransform()
 }
 
 Mesh::Mesh()
-	: model_matrix(1.0f)
+	: model_matrix(1.0f), texture_array(0.0f)
 {}
 
 void Mesh::Translate(const glm::vec3 &translation)

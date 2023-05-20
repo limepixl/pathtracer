@@ -184,9 +184,8 @@ bool Display::InitRenderBuffer()
     glTextureParameteri(cubemap_texture, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 
     int w = -1, h = -1, c = -1;
-    uint8 *data = nullptr;
     stbi_hdr_to_ldr_gamma(1.0);
-    data = stbi_load("res/cubemaps/solitude_interior_4k.hdr", &w, &h, &c, 3);
+	uint8 *data = stbi_load("res/cubemaps/solitude_interior_4k.hdr", &w, &h, &c, 3);
     if (data != nullptr)
     {
         glTextureStorage2D(cubemap_texture, 1, GL_RGB16F, w, h);

@@ -1,10 +1,9 @@
 #pragma once
 #include "../defines.hpp"
-#include "glad/glad.h"
 
 struct Shader
 {
-    GLuint id;
+    uint32 id;
     bool initialized = false;
 
     Shader();

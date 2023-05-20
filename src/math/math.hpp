@@ -1,9 +1,9 @@
 #pragma once
 #include "../../thirdparty/pcg-c-basic-0.9/pcg_basic.h"
 #include "../defines.hpp"
-#include <glm/fwd.hpp>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
+#include <glm/mat3x3.hpp>
 
 struct Triangle;
 
