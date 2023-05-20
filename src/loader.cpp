@@ -356,6 +356,12 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 				continue;
             }
 
+			if(node->has_scale)
+			{
+				glm::vec3 scale_vec(node->scale[0], node->scale[1], node->scale[2]);
+				out_mesh.model_matrix = glm::scale(out_mesh.model_matrix, scale_vec);
+			}
+
 			if(node->has_rotation)
 			{
 				cgltf_float *rotation = node->rotation;
@@ -363,22 +369,13 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 				out_mesh.model_matrix *= glm::mat4_cast(quaternion);
 			}
 
-				float r10 = 2.0f * (x * y + s * z);
-				float r11 = 1.0f - 2.0f * (x*x + z*z);
-				float r12 = 2.0f * (y * z - s * x);
-
-				float r20 = 2.0f * (x * z - s * y);
-				float r21 = 2.0f * (y * z + s * x);
-				float r22 = 1.0f - 2.0f * (x*x + y*y);
-
-				out_mesh.model_matrix = Mat4f(
-					Vec4f(r00,  r01,  r02,  0.0f),
-					Vec4f(r10,  r11,  r12,  0.0f),
-					Vec4f(r20,  r21,  r22,  0.0f),
-					Vec4f(0.0f, 0.0f, 0.0f, 1.0f)
-					);
-				out_mesh.ApplyModelTransform(true);
+			if(node->has_translation)
+			{
+				glm::vec3 translation_vec(node->translation[0], node->translation[1], node->translation[2]);
+				out_mesh.model_matrix = glm::translate(out_mesh.model_matrix, translation_vec);
 			}
+
+			out_mesh.ApplyModelTransform();
         }
 
         printf("--> Num loaded tris: %u\n", out_mesh.triangles.size);
