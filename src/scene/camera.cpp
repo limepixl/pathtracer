@@ -1,8 +1,8 @@
 #include "camera.hpp"
-#include "../math/math.hpp"
-#include <SDL.h>
 #include <glad/glad.h>
-#include <cmath>
+#include <SDL.h>
+#include <glm/geometric.hpp>
+#include <glm/trigonometric.hpp>
 
 Camera::Camera(glm::vec3 orig, glm::vec3 fwd, glm::vec3 r, float speed, float sens)
         : origin(orig), forward(fwd), right(r), fly_speed(speed), look_sens(sens), xpos(-90.0f), ypos(0.0f)
@@ -28,12 +28,12 @@ void Camera::mouse_look(float xrel, float yrel)
         ypos = -89.5f;
     }
 
-    forward.x = cosf(pixl::radians(xpos)) * cosf(pixl::radians(ypos));
-    forward.y = sinf(pixl::radians(ypos));
-    forward.z = sinf(pixl::radians(xpos)) * cosf(pixl::radians(ypos));
-    forward = pixl::normalize(forward);
+    forward.x = cosf(glm::radians(xpos)) * cosf(glm::radians(ypos));
+    forward.y = sinf(glm::radians(ypos));
+    forward.z = sinf(glm::radians(xpos)) * cosf(glm::radians(ypos));
+    forward = glm::normalize(forward);
 
-    right = pixl::normalize(pixl::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
+    right = glm::normalize(glm::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
 }
 
 void Camera::move(const uint8 *keyboard_state, uint32 delta_time, uint32 &frame_count)
