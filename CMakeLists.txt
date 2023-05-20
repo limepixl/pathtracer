@@ -101,6 +101,8 @@ add_subdirectory(thirdparty/SDL2-2.24.1/)
 
 add_subdirectory(thirdparty/bvh SYSTEM)
 
+add_subdirectory(thirdparty/glm)
+
 target_include_directories(${PROJECT_NAME} PUBLIC SYSTEM
     thirdparty/bvh/include
     thirdparty/SDL2-2.24.1/include
@@ -108,7 +110,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC SYSTEM
     thirdparty/stb
     thirdparty/cgltf-1.13)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC SDL2 SDL2main)
+target_link_libraries(${PROJECT_NAME} PUBLIC SDL2 SDL2main glm::glm)
 
 if (WIN32)
     if (CMAKE_BUILD_TYPE MATCHES Debug)
