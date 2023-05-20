@@ -1,10 +1,10 @@
 #pragma once
 #include "../defines.hpp"
-#include "../math/vec.hpp"
+#include <glm/vec3.hpp>
 
 struct Ray
 {
-    Vec3f origin;
-    Vec3f direction;
-    Vec3f inv_dir;
+	glm::vec3 origin;
+	glm::vec3 direction;
+	glm::vec3 inv_dir;
 };

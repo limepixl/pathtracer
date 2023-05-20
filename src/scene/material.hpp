@@ -1,5 +1,6 @@
 #pragma once
-#include "../math/vec.hpp"
+#include <glm/vec4.hpp>
+#include <glm/vec3.hpp>
 
 enum MaterialType
 {
@@ -10,20 +11,20 @@ enum MaterialType
 
 struct MaterialGLSL
 {
-    Vec4f data1 {}; // diff.x, diff.y, diff.z, roughness
-    Vec4f data2 {}; // spec.x, spec.y, spec.z, mat_type
-    Vec4f data3 {}; // Le.x, Le.y, Le.z, diffuse_tex_index
+    glm::vec4 data1 {}; // diff.x, diff.y, diff.z, roughness
+	glm::vec4 data2 {}; // spec.x, spec.y, spec.z, mat_type
+	glm::vec4 data3 {}; // Le.x, Le.y, Le.z, diffuse_tex_index
 
     MaterialGLSL();
 
-    MaterialGLSL(const Vec3f &diffuse,
-                 const Vec3f &specular,
-                 const Vec3f &Le,
+    MaterialGLSL(const glm::vec3 &diffuse,
+                 const glm::vec3 &specular,
+                 const glm::vec3 &Le,
                  float roughness,
                  int diffuse_tex_index,
                  MaterialType type);
 
-	[[nodiscard]] Vec3f diffuse() const;
-	[[nodiscard]] Vec3f specular() const;
-	[[nodiscard]] Vec3f emitted_radiance() const;
+	[[nodiscard]] glm::vec3 diffuse() const;
+	[[nodiscard]] glm::vec3 specular() const;
+	[[nodiscard]] glm::vec3 emitted_radiance() const;
 };

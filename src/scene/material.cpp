@@ -4,16 +4,16 @@
 MaterialGLSL::MaterialGLSL()
         : data1(0.0f), data2(0.0f), data3(0.0f, 0.0f, 0.0f, -1.0f) {}
 
-MaterialGLSL::MaterialGLSL(const Vec3f &diffuse,
-                           const Vec3f &specular,
-                           const Vec3f &Le,
+MaterialGLSL::MaterialGLSL(const glm::vec3 &diffuse,
+                           const glm::vec3 &specular,
+                           const glm::vec3 &Le,
                            float roughness,
                            int diffuse_tex_index,
                            MaterialType type)
 {
-    data1 = Vec4f(diffuse.x, diffuse.y, diffuse.z, roughness);
-    data2 = Vec4f(specular.x, specular.y, specular.z, (float) type);
-    data3 = Vec4f(Le.x, Le.y, Le.z, (float) diffuse_tex_index);
+    data1 = glm::vec4(diffuse.x, diffuse.y, diffuse.z, roughness);
+    data2 = glm::vec4(specular.x, specular.y, specular.z, (float) type);
+    data3 = glm::vec4(Le.x, Le.y, Le.z, (float) diffuse_tex_index);
 
     if (type == MaterialType::MATERIAL_SPECULAR_METAL)
     {
@@ -21,17 +21,17 @@ MaterialGLSL::MaterialGLSL(const Vec3f &diffuse,
     }
 }
 
-Vec3f MaterialGLSL::diffuse() const
+glm::vec3 MaterialGLSL::diffuse() const
 {
 	return {data1.x, data1.y, data1.z};
 }
 
-Vec3f MaterialGLSL::specular() const
+glm::vec3 MaterialGLSL::specular() const
 {
 	return {data2.x, data2.y, data2.z};
 }
 
-Vec3f MaterialGLSL::emitted_radiance() const
+glm::vec3 MaterialGLSL::emitted_radiance() const
 {
 	return {data3.x, data3.y, data3.z};
 }

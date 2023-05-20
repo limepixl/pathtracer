@@ -8,10 +8,10 @@
 #include <bvh/triangle.hpp>
 #include <bvh/vector.hpp>
 
-BVHNodeGLSL::BVHNodeGLSL(const Vec3f &bmin, const Vec3f &bmax, uint32 first_child_or_tri, uint32 num_tris)
+BVHNodeGLSL::BVHNodeGLSL(const glm::vec3 &bmin, const glm::vec3 &bmax, uint32 first_child_or_tri, uint32 num_tris)
 {
-	data1 = Vec4f(bmin.x, bmin.y, bmin.z, (float) first_child_or_tri);
-	data2 = Vec4f(bmax.x, bmax.y, bmax.z, (float) num_tris);
+	data1 = glm::vec4(bmin.x, bmin.y, bmin.z, (float) first_child_or_tri);
+	data2 = glm::vec4(bmax.x, bmax.y, bmax.z, (float) num_tris);
 }
 
 inline std::vector<bvh::Triangle<float>> ConvertToLibFormat(Array<TriangleGLSL> &tris)
@@ -55,8 +55,8 @@ Array<BVHNodeGLSL> CalculateBVH(Array<TriangleGLSL> &glsl_tris, Array<TriangleGL
 	{
 		bvh::Bvh<float>::Node node = bvh.nodes[i];
 		bvh::BoundingBox<float> bbox = node.bounding_box_proxy().to_bounding_box();
-		Vec3f bmin(bbox.min[0], bbox.min[1], bbox.min[2]);
-		Vec3f bmax(bbox.max[0], bbox.max[1], bbox.max[2]);
+		glm::vec3 bmin(bbox.min[0], bbox.min[1], bbox.min[2]);
+		glm::vec3 bmax(bbox.max[0], bbox.max[1], bbox.max[2]);
 
 		BVHNodeGLSL result_node(bmin, bmax, node.first_child_or_primitive, node.primitive_count);
 		bvh_nodes.append(result_node);

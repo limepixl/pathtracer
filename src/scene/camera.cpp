@@ -4,7 +4,7 @@
 #include <glad/glad.h>
 #include <cmath>
 
-Camera::Camera(Vec3f orig, Vec3f fwd, Vec3f r, float speed, float sens)
+Camera::Camera(glm::vec3 orig, glm::vec3 fwd, glm::vec3 r, float speed, float sens)
         : origin(orig), forward(fwd), right(r), fly_speed(speed), look_sens(sens), xpos(-90.0f), ypos(0.0f)
 {
     glCreateBuffers(1, &cam_ubo);
@@ -33,7 +33,7 @@ void Camera::mouse_look(float xrel, float yrel)
     forward.z = sinf(pixl::radians(xpos)) * cosf(pixl::radians(ypos));
     forward = pixl::normalize(forward);
 
-    right = pixl::normalize(pixl::cross(forward, Vec3f(0.0f, 1.0f, 0.0f)));
+    right = pixl::normalize(pixl::cross(forward, glm::vec3(0.0f, 1.0f, 0.0f)));
 }
 
 void Camera::move(const uint8 *keyboard_state, uint32 delta_time, uint32 &frame_count)
@@ -60,21 +60,21 @@ void Camera::move(const uint8 *keyboard_state, uint32 delta_time, uint32 &frame_
     }
     if (keyboard_state[SDL_SCANCODE_SPACE])
     {
-        Vec3f cam_up(0.0f, 1.0f, 0.0f);
+		glm::vec3 cam_up(0.0f, 1.0f, 0.0f);
         origin += cam_up * fly_speed * (float) delta_time;
         frame_count = 0;
     }
     if (keyboard_state[SDL_SCANCODE_LSHIFT])
     {
-        Vec3f cam_up(0.0f, 1.0f, 0.0f);
+		glm::vec3 cam_up(0.0f, 1.0f, 0.0f);
         origin += -cam_up * fly_speed * (float) delta_time;
         frame_count = 0;
     }
 }
 
-CameraGLSL::CameraGLSL(const Vec3f &origin, const Vec3f &forward, const Vec3f &right, float speed, float sens)
+CameraGLSL::CameraGLSL(const glm::vec3 &origin, const glm::vec3 &forward, const glm::vec3 &right, float speed, float sens)
 {
-    data1 = Vec4f(origin.x, origin.y, origin.z, speed);
-    data2 = Vec4f(forward.x, forward.y, forward.z, sens);
-    data3 = Vec4f(right.x, right.y, right.z, 0.0f);
+    data1 = glm::vec4(origin.x, origin.y, origin.z, speed);
+    data2 = glm::vec4(forward.x, forward.y, forward.z, sens);
+    data3 = glm::vec4(right.x, right.y, right.z, 0.0f);
 }

@@ -4,13 +4,14 @@
 #include <cstdio>
 
 #include "math/math.hpp"
-#include "math/vec.hpp"
 #include "scene/material.hpp"
 #include "scene/triangle.hpp"
 
 #include <stb_image.h>
 #include <stb_image_resize.h>
 #include <glad/glad.h>
+
+#include <glm/gtc/quaternion.hpp>
 
 bool LoadGLTF(const char *path, Mesh &out_mesh)
 {
@@ -61,9 +62,9 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 
         for (cgltf_size mesh_index = 0; mesh_index < num_meshes; mesh_index++)
         {
-			Array<Vec3f> positions;
-			Array<Vec3f> normals;
-			Array<Vec2f> tex_coords;
+			Array<glm::vec3> positions;
+			Array<glm::vec3> normals;
+			Array<glm::vec2> tex_coords;
 			Array<uint16> indices;
 
             cgltf_mesh *mesh = &data->meshes[mesh_index];
@@ -100,7 +101,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 
                             if (accessor->type == cgltf_type_vec3)
                             {
-                                Vec3f vec3;
+                                glm::vec3 vec3;
                                 vec3.x = *((float *) start);
                                 vec3.y = *((float *) start + 1);
                                 vec3.z = *((float *) start + 2);
@@ -122,7 +123,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
                             }
                             else if (accessor->type == cgltf_type_vec2)
                             {
-                                Vec2f vec2;
+                                glm::vec2 vec2;
                                 vec2.x = *((float *) start);
                                 vec2.y = *((float *) start + 1);
 
@@ -172,10 +173,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 
                     if (material == nullptr)
                     {
-                        result_mat.data1 = Vec4f(1.0f,
-                                                 0.0f,
-                                                 1.0f,
-                                                 0.0f);
+                        result_mat.data1 = glm::vec4(1.0f, 0.0f, 1.0f, 0.0f);
                     }
 
                     else if (material->has_pbr_metallic_roughness)
@@ -266,10 +264,10 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
                         if (mat_properties.metallic_factor < EPSILON)
                         {
                             // Material is assumed to be perfectly diffuse
-                            result_mat.data1 = Vec4f(base_color_arr[0],
-                                                     base_color_arr[1],
-                                                     base_color_arr[2],
-                                                     mat_properties.roughness_factor);
+                            result_mat.data1 = glm::vec4(base_color_arr[0],
+                                                     	 base_color_arr[1],
+                                                     	 base_color_arr[2],
+                                                     	 mat_properties.roughness_factor);
 
                             if (mat_properties.roughness_factor > EPSILON)
                             {
@@ -288,7 +286,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
                         {
                             // Material is assumed to be metallic
                             result_mat.data1.w = mat_properties.roughness_factor;
-                            result_mat.data2 = Vec4f(base_color_arr[0], base_color_arr[1], base_color_arr[2], (float) MaterialType::MATERIAL_SPECULAR_METAL);
+                            result_mat.data2 = glm::vec4(base_color_arr[0], base_color_arr[1], base_color_arr[2], (float) MaterialType::MATERIAL_SPECULAR_METAL);
                         }
                     }
 
@@ -298,22 +296,22 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 				// We need to duplicate the triangle data as the engine doesn't support indices
 				for (uint32 i = 0; i <= indices.size - 3; i += 3)
 				{
-					Array<Vec3f> tri_positions;
-					Array<Vec3f> tri_normals;
-					Array<Vec2f> tri_tex_coords;
+					Array<glm::vec3> tri_positions;
+					Array<glm::vec3> tri_normals;
+					Array<glm::vec2> tri_tex_coords;
 
 					uint16 i0 = indices[i];
 					uint16 i1 = indices[i + 1];
 					uint16 i2 = indices[i + 2];
 
-					Vec3f v0 = positions[i0];
-					Vec3f v1 = positions[i1];
-					Vec3f v2 = positions[i2];
+					glm::vec3 v0 = positions[i0];
+					glm::vec3 v1 = positions[i1];
+					glm::vec3 v2 = positions[i2];
 					tri_positions.append(v0);
 					tri_positions.append(v1);
 					tri_positions.append(v2);
 
-					Vec3f n0, n1, n2;
+					glm::vec3 n0, n1, n2;
 					if (normals.size > 0)
 					{
 						n0 = normals[i0];
@@ -324,7 +322,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 						tri_normals.append(n2);
 					}
 
-					Vec2f uv0, uv1, uv2;
+					glm::vec2 uv0, uv1, uv2;
 					if (tex_coords.size > 0)
 					{
 						uv0 = tex_coords[i0];
@@ -348,27 +346,22 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
             if (node->has_matrix)
             {
                 cgltf_float *m = node->matrix;
-                out_mesh.model_matrix = Mat4f(Vec4f(m[0], m[4], m[8], m[12]),
-                                              Vec4f(m[1], m[5], m[9], m[13]),
-                                              Vec4f(m[2], m[6], m[10], m[14]),
-                                              Vec4f(m[3], m[7], m[11], m[15]));
+                out_mesh.model_matrix = glm::mat4(glm::vec4(m[0], m[4], m[8], m[12]),
+												  glm::vec4(m[1], m[5], m[9], m[13]),
+												  glm::vec4(m[2], m[6], m[10], m[14]),
+												  glm::vec4(m[3], m[7], m[11], m[15]));
 
                 out_mesh.ApplyModelTransform();
 
-                break;
+				continue;
             }
 
 			if(node->has_rotation)
 			{
 				cgltf_float *rotation = node->rotation;
-				float s = rotation[3];
-				float x = rotation[0];
-				float y = rotation[1];
-				float z = rotation[2];
-
-				float r00 = 1.0f - 2.0f * (y*y + z*z);
-				float r01 = 2.0f * (x * y - s * z);
-				float r02 = 2.0f * (x * z + s * y);
+				glm::fquat quaternion(rotation[3], rotation[0], rotation[1], rotation[2]);
+				out_mesh.model_matrix *= glm::mat4_cast(quaternion);
+			}
 
 				float r10 = 2.0f * (x * y + s * z);
 				float r11 = 1.0f - 2.0f * (x*x + z*z);

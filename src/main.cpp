@@ -69,25 +69,25 @@ int main(int argc, char *argv[])
     // Set up data to be passed to SSBOs
 
     Array<MaterialGLSL> materials_ssbo = mesh.materials;
-	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.0f), Vec3f(100.0f), 0.0f, 0, MaterialType::MATERIAL_LAMBERTIAN));
+	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(100.0f), 0.0f, 0, MaterialType::MATERIAL_LAMBERTIAN));
 
     Array<SphereGLSL> spheres_ssbo;
-	spheres_ssbo.append(SphereGLSL(Vec3f(4.0f, 2.0f, -2.0f), 0.25f, materials_ssbo.size - 1));
+	spheres_ssbo.append(SphereGLSL(glm::vec3(4.0f, 2.0f, -2.0f), 0.25f, materials_ssbo.size - 1));
 
-	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.0f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
-	spheres_ssbo.append(SphereGLSL(Vec3f(5.0f, 0.0f, -3.0f), 0.5f, materials_ssbo.size - 1));
-	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.1f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
-	spheres_ssbo.append(SphereGLSL(Vec3f(6.0f, 0.0f, -3.0f), 0.5f, materials_ssbo.size - 1));
-	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.15f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
-	spheres_ssbo.append(SphereGLSL(Vec3f(7.0f, 0.0f, -3.0f), 0.5f, materials_ssbo.size - 1));
-	materials_ssbo.append(MaterialGLSL(Vec3f(0.0f), Vec3f(0.944f, 0.776f, 0.373f), Vec3f(0.0f), 0.2f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
-	spheres_ssbo.append(SphereGLSL(Vec3f(8.0f, 0.0f, -3.0f), 0.5f, materials_ssbo.size - 1));
+	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.944f, 0.776f, 0.373f), glm::vec3(0.0f), 0.0f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
+	spheres_ssbo.append(SphereGLSL(glm::vec3(5.0f, 0.0f, -3.0f), 0.5f, materials_ssbo.size - 1));
+	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.944f, 0.776f, 0.373f), glm::vec3(0.0f), 0.1f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
+	spheres_ssbo.append(SphereGLSL(glm::vec3(6.0f, 0.0f, -3.0f), 0.5f, materials_ssbo.size - 1));
+	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.944f, 0.776f, 0.373f), glm::vec3(0.0f), 0.15f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
+	spheres_ssbo.append(SphereGLSL(glm::vec3(7.0f, 0.0f, -3.0f), 0.5f, materials_ssbo.size - 1));
+	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.944f, 0.776f, 0.373f), glm::vec3(0.0f), 0.2f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
+	spheres_ssbo.append(SphereGLSL(glm::vec3(8.0f, 0.0f, -3.0f), 0.5f, materials_ssbo.size - 1));
 
     Array<uint32> emissive_spheres_ssbo;
     for (uint32 i = 0; i < spheres_ssbo.size; i++)
     {
         MaterialGLSL &mat = materials_ssbo[spheres_ssbo[i].mat_index[0]];
-        if (mat.emitted_radiance() > Vec3f(EPSILON))
+        if (glm::all(glm::greaterThan(mat.emitted_radiance(), glm::vec3(EPSILON))))
         {
             emissive_spheres_ssbo.append(i);
         }
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
     uint32 last_report = 0;
     uint32 frame_count = 0;
 
-    Camera cam(Vec3f(0.0f), Vec3f(0.0f, 0.0f, -1.0f), Vec3f(1.0f, 0.0f, 0.0f), 0.005f, 0.05f);
+    Camera cam(glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.005f, 0.05f);
 
     constexpr uint32 num_work_groups_x = WIDTH / 8;
     constexpr uint32 num_work_groups_y = HEIGHT / 8;

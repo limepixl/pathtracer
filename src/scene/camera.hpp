@@ -1,11 +1,13 @@
 #pragma once
-#include "../math/vec.hpp"
+#include "../defines.hpp"
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 struct Camera
 {
-    Vec3f origin;
-    Vec3f forward;
-    Vec3f right;
+	glm::vec3 origin;
+	glm::vec3 forward;
+	glm::vec3 right;
     float fly_speed;
     float look_sens;
 
@@ -14,7 +16,7 @@ struct Camera
 
     uint32 cam_ubo {};
 
-    Camera(Vec3f orig, Vec3f fwd, Vec3f r, float fly_speed, float look_sens);
+    Camera(glm::vec3 orig, glm::vec3 fwd, glm::vec3 r, float speed, float sens);
 
     void mouse_look(float xrel, float yrel);
 
@@ -23,15 +25,15 @@ struct Camera
 
 struct CameraGLSL
 {
-    Vec4f data1 {}; // o.x, o.y, o.z, speed
-    Vec4f data2 {}; // f.x, f.y, f.z, sens
-    Vec4f data3 {}; // r.x, r.y, r.z, 0
+	glm::vec4 data1 {}; // o.x, o.y, o.z, speed
+	glm::vec4 data2 {}; // f.x, f.y, f.z, sens
+	glm::vec4 data3 {}; // r.x, r.y, r.z, 0
 
     CameraGLSL() = default;
 
-    CameraGLSL(const Vec3f &origin,
-               const Vec3f &forward,
-               const Vec3f &right,
+    CameraGLSL(const glm::vec3 &origin,
+			   const glm::vec3 &forward,
+			   const glm::vec3 &right,
                float speed,
                float sens);
 };

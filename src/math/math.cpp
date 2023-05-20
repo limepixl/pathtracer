@@ -1,5 +1,6 @@
 #include "math.hpp"
 #include "../scene/triangle.hpp"
+#include "glm/detail/type_mat3x3.hpp"
 #include <cmath>
 
 /*
@@ -21,7 +22,7 @@ float pixl::sign(float value)
     return value;
 }
 
-Vec3f pixl::sign(Vec3f value)
+glm::vec3 pixl::sign(glm::vec3 value)
 {
     return {pixl::sign(value.x), pixl::sign(value.y), pixl::sign(value.z)};
 }
@@ -36,7 +37,7 @@ float pixl::abs(float value)
     return value;
 }
 
-Vec3f pixl::abs(Vec3f value)
+glm::vec3 pixl::abs(glm::vec3 value)
 {
     return {abs(value.x), abs(value.y), abs(value.z)};
 }
@@ -56,17 +57,17 @@ int16 pixl::clamp(int16 value, int16 max)
     return value;
 }
 
-float pixl::dot(Vec3f vec1, Vec3f vec2)
+float pixl::dot(glm::vec3 vec1, glm::vec3 vec2)
 {
     return (vec1.x * vec2.x) + (vec1.y * vec2.y) + (vec1.z * vec2.z);
 }
 
-float pixl::dot(Vec4f vec1, Vec4f vec2)
+float pixl::dot(glm::vec4 vec1, glm::vec4 vec2)
 {
 	return (vec1.x * vec2.x) + (vec1.y * vec2.y) + (vec1.z * vec2.z) + (vec1.w * vec2.w);
 }
 
-Vec3f pixl::cross(const Vec3f &a, const Vec3f &b)
+glm::vec3 pixl::cross(const glm::vec3 &a, const glm::vec3 &b)
 {
     float x = a.y * b.z - a.z * b.y;
     float y = a.z * b.x - a.x * b.z;
@@ -99,7 +100,7 @@ uint32 pixl::max(uint32 a, uint32 b)
     return a > b ? a : b;
 }
 
-Vec3f pixl::max_component_wise(Vec3f &a, Vec3f &b)
+glm::vec3 pixl::max_component_wise(glm::vec3 &a, glm::vec3 &b)
 {
     return {pixl::max(a.x, b.x), pixl::max(a.y, b.y), pixl::max(a.z, b.z)};
 }
@@ -124,7 +125,7 @@ uint16 pixl::min(uint16 a, uint16 b)
     return a < b ? a : b;
 }
 
-Vec3f pixl::min_component_wise(Vec3f &a, Vec3f &b)
+glm::vec3 pixl::min_component_wise(glm::vec3 &a, glm::vec3 &b)
 {
     return {pixl::min(a.x, b.x), pixl::min(a.y, b.y), pixl::min(a.z, b.z)};
 }
@@ -134,7 +135,7 @@ float pixl::step(float edge, float x)
     return x < edge ? 0.0f : 1.0f;
 }
 
-Vec3f pixl::step(Vec3f edge, Vec3f x)
+glm::vec3 pixl::step(glm::vec3 edge, glm::vec3 x)
 {
     return {pixl::step(edge.x, x.x), pixl::step(edge.y, x.y), pixl::step(edge.z, x.z)};
 }
@@ -156,12 +157,12 @@ void pixl::swap(float *v1, float *v2)
     *v2 = tmp;
 }
 
-Vec3f pixl::normalize(Vec3f vec)
+glm::vec3 pixl::normalize(glm::vec3 vec)
 {
     return vec / sqrtf(pixl::dot(vec, vec));
 }
 
-Vec4f pixl::normalize(Vec4f vec)
+glm::vec4 pixl::normalize(glm::vec4 vec)
 {
 	return vec / sqrtf(pixl::dot(vec, vec));
 }
@@ -173,7 +174,7 @@ float pixl::random_number_normalized_PCG(pcg32_random_t *rngptr)
     return (float) d;
 }
 
-Vec2f pixl::random_Vec2f_PCG(pcg32_random_t *rngptr)
+glm::vec2 pixl::random_vec2_PCG(pcg32_random_t *rngptr)
 {
     float r1 = random_number_normalized_PCG(rngptr);
     while (r1 < 0.0001f || r1 > 0.9999f)
@@ -190,7 +191,7 @@ Vec2f pixl::random_Vec2f_PCG(pcg32_random_t *rngptr)
     return {r1, r2};
 }
 
-Vec3f pixl::random_Vec3f_PCG(pcg32_random_t *rngptr)
+glm::vec3 pixl::random_vec3_PCG(pcg32_random_t *rngptr)
 {
     float r1 = random_number_normalized_PCG(rngptr);
     while (r1 < 0.0001f || r1 > 0.9999f)
@@ -213,7 +214,7 @@ Vec3f pixl::random_Vec3f_PCG(pcg32_random_t *rngptr)
     return {r1, r2, r3};
 }
 
-Vec3f pixl::map_to_unit_sphere(Vec2f vec2)
+glm::vec3 pixl::map_to_unit_sphere(glm::vec2 vec2)
 {
     // First we map [0,1] to [0,2] and subtract one to map
     // that to [-1, 1], which is the range of cosine.
@@ -234,13 +235,13 @@ Vec3f pixl::map_to_unit_sphere(Vec2f vec2)
     return {sinTheta * cosPhi, cosTheta, sinTheta * sinPhi};
 }
 
-Vec3f pixl::map_to_unit_hemisphere_cosine_weighted_criver(Vec2f uv, Vec3f normal)
+glm::vec3 pixl::map_to_unit_hemisphere_cosine_weighted_criver(glm::vec2 uv, glm::vec3 normal)
 {
-    Vec3f p = map_to_unit_sphere(uv);
+    glm::vec3 p = map_to_unit_sphere(uv);
     return normalize(p + normal);
 }
 
-Vec3f pixl::map_to_triangle(Vec2f vec2, Triangle tri)
+glm::vec3 pixl::map_to_triangle(glm::vec2 vec2, Triangle tri)
 {
     float u = vec2.x;
     float v = vec2.y;
@@ -254,46 +255,46 @@ Vec3f pixl::map_to_triangle(Vec2f vec2, Triangle tri)
         v = 1.0f - v;
     }
 
-    Vec3f p = u * tri.edge1 + v * tri.edge2;
+    glm::vec3 p = u * tri.edge1 + v * tri.edge2;
     return p + tri.v0;
 }
 
-Vec3f pixl::reflect(Vec3f dir, Vec3f normal)
+glm::vec3 pixl::reflect(glm::vec3 dir, glm::vec3 normal)
 {
     return 2.0f * dot(normal, dir) * normal - dir;
 }
 
 // https://jcgt.org/published/0006/01/01/
-void pixl::orthonormal_basis(Vec3f &n, Vec3f &t, Vec3f &bt)
+void pixl::orthonormal_basis(glm::vec3 &n, glm::vec3 &t, glm::vec3 &bt)
 {
     float sign = copysignf(1.0f, n.z);
     float a = -1.0f / (sign + n.z);
     float b = n.x * n.y * a;
 
-    t = Vec3f(1.0f + sign * n.x * n.x * a, sign * b, -sign * n.x);
-    bt = Vec3f(b, sign + n.y * n.y * a, -n.y);
+    t = glm::vec3(1.0f + sign * n.x * n.x * a, sign * b, -sign * n.x);
+    bt = glm::vec3(b, sign + n.y * n.y * a, -n.y);
 }
 
-Mat3f pixl::construct_TNB_matrix(Vec3f &n)
+glm::mat3 pixl::construct_TNB_matrix(glm::vec3 &n)
 {
-    Vec3f t {}, bt {};
+    glm::vec3 t {}, bt {};
     orthonormal_basis(n, t, bt);
-    Mat3f res(t, n, bt);
-    return TransposeMat3f(res);
+    glm::mat3 res(t, n, bt);
+    return glm::transpose(res);
 }
 
 /*
 	Operators that use the utility functions above
 */
 
-bool operator==(const Vec3f &lhs, const Vec3f &rhs)
+bool operator==(const glm::vec3 &lhs, const glm::vec3 &rhs)
 {
-    Vec3f grace_interval(EPSILON);
-    Vec3f absdiff = pixl::abs(lhs - rhs);
-    return absdiff <= grace_interval;
+    glm::vec3 grace_interval(EPSILON);
+    glm::vec3 absdiff = pixl::abs(lhs - rhs);
+    return glm::all(glm::lessThanEqual(absdiff, grace_interval));
 }
 
-bool operator!=(const Vec3f &lhs, const Vec3f &rhs)
+bool operator!=(const glm::vec3 &lhs, const glm::vec3 &rhs)
 {
     return !(lhs == rhs);
 }

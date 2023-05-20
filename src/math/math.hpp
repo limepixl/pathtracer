@@ -1,8 +1,10 @@
 #pragma once
 #include "../../thirdparty/pcg-c-basic-0.9/pcg_basic.h"
 #include "../defines.hpp"
-#include "mat3.hpp"
-#include "mat4.hpp"
+#include <glm/fwd.hpp>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 struct Triangle;
 
@@ -17,21 +19,21 @@ namespace pixl
 {
     float sign(float value);
 
-    Vec3f sign(Vec3f value);
+    glm::vec3 sign(glm::vec3 value);
 
     float abs(float value);
 
-    Vec3f abs(Vec3f value);
+    glm::vec3 abs(glm::vec3 value);
 
     float radians(float degrees);
 
     int16 clamp(int16 value, int16 max);
 
-    float dot(Vec3f vec1, Vec3f vec2);
+    float dot(glm::vec3 vec1, glm::vec3 vec2);
 
-	float dot(Vec4f vec1, Vec4f vec2);
+	float dot(glm::vec4 vec1, glm::vec4 vec2);
 
-    Vec3f cross(const Vec3f &a, const Vec3f &b);
+    glm::vec3 cross(const glm::vec3 &a, const glm::vec3 &b);
 
     float max(float a, float b);
 
@@ -43,7 +45,7 @@ namespace pixl
 
     uint32 max(uint32 a, uint32 b);
 
-    Vec3f max_component_wise(Vec3f &a, Vec3f &b);
+    glm::vec3 max_component_wise(glm::vec3 &a, glm::vec3 &b);
 
     float min(float a, float b);
 
@@ -53,43 +55,43 @@ namespace pixl
 
     uint16 min(uint16 a, uint16 b);
 
-    Vec3f min_component_wise(Vec3f &a, Vec3f &b);
+    glm::vec3 min_component_wise(glm::vec3 &a, glm::vec3 &b);
 
     float step(float edge, float x);
 
-    Vec3f step(Vec3f edge, Vec3f x);
+    glm::vec3 step(glm::vec3 edge, glm::vec3 x);
 
     float ceil(float num);
 
     void swap(float *v1, float *v2);
 
-    Vec3f normalize(Vec3f vec);
+    glm::vec3 normalize(glm::vec3 vec);
 
-	Vec4f normalize(Vec4f vec);
+	glm::vec4 normalize(glm::vec4 vec);
 
     float random_number_normalized_PCG(pcg32_random_t *rngptr);
 
-    Vec2f random_Vec2f_PCG(pcg32_random_t *rngptr);
+    glm::vec2 random_vec2_PCG(pcg32_random_t *rngptr);
 
-    Vec3f random_Vec3f_PCG(pcg32_random_t *rngptr);
+    glm::vec3 random_vec3_PCG(pcg32_random_t *rngptr);
 
-    Vec3f map_to_unit_sphere(Vec2f vec2);
+    glm::vec3 map_to_unit_sphere(glm::vec2 vec2);
 
-    Vec3f map_to_unit_hemisphere_cosine_weighted_criver(Vec2f uv, Vec3f normal);
+    glm::vec3 map_to_unit_hemisphere_cosine_weighted_criver(glm::vec2 uv, glm::vec3 normal);
 
-    Vec3f map_to_triangle(Vec2f vec2, Triangle tri);
+	glm::vec3 map_to_triangle(glm::vec2 vec2, Triangle tri);
 
-    Vec3f reflect(Vec3f dir, Vec3f normal);
+    glm::vec3 reflect(glm::vec3 dir, glm::vec3 normal);
 
-    void orthonormal_basis(Vec3f &n, Vec3f &t, Vec3f &bt);
+    void orthonormal_basis(glm::vec3 &n, glm::vec3 &t, glm::vec3 &bt);
 
-    Mat3f construct_TNB_matrix(Vec3f &n);
+	glm::mat3 construct_TNB_matrix(glm::vec3 &n);
 	}
 
 /*
 	Operators that use the utility functions above
 */
 
-bool operator==(const Vec3f &lhs, const Vec3f &rhs);
+bool operator==(const glm::vec3 &lhs, const glm::vec3 &rhs);
 
-bool operator!=(const Vec3f &lhs, const Vec3f &rhs);
+bool operator!=(const glm::vec3 &lhs, const glm::vec3 &rhs);
