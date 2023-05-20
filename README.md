@@ -33,6 +33,7 @@ Specular BRDF (GGX NDF with Smith geometry func.), using GGX importance sampling
 - GLAD - Multi-Language OpenGL Loader-Generator ([GitHub](https://github.com/Dav1dde/glad))
 - Simple DirectMedia Layer 2 - SDL2 ([GitHub](https://github.com/libsdl-org/SDL))
 - stb libraries ([GitHub](https://github.com/nothings/stb))
+- glm ([GitHub](https://github.com/g-truc/glm))
 
 ### To-Do List:
 - Shader includes (Preprocess shaders and copy/paste included shaders)
