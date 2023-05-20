@@ -343,13 +343,18 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
         for (cgltf_size node_index = 0; node_index < data->nodes_count; node_index++)
         {
             cgltf_node *node = &data->nodes[node_index];
+			if (node->camera != nullptr)
+			{
+				continue;
+			}
+
             if (node->has_matrix)
             {
                 cgltf_float *m = node->matrix;
-                out_mesh.model_matrix = glm::mat4(glm::vec4(m[0], m[4], m[8], m[12]),
-												  glm::vec4(m[1], m[5], m[9], m[13]),
-												  glm::vec4(m[2], m[6], m[10], m[14]),
-												  glm::vec4(m[3], m[7], m[11], m[15]));
+                out_mesh.model_matrix = glm::mat4(glm::vec4(m[0], m[1], m[2], m[3]),
+												  glm::vec4(m[4], m[5], m[6], m[7]),
+												  glm::vec4(m[8], m[9], m[10], m[11]),
+												  glm::vec4(m[12], m[13], m[14], m[15]));
 
                 out_mesh.ApplyModelTransform();
 
