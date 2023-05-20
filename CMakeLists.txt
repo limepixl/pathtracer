@@ -25,10 +25,7 @@ set(SOURCE_FILES
     src/resource/shader.cpp
     src/scene/camera.cpp
 
-    src/math/mat3.cpp
-    src/math/mat4.cpp
     src/math/math.cpp
-    src/math/vec.cpp
 
     thirdparty/stb/stb_image.c
     thirdparty/pcg-c-basic-0.9/pcg_basic.c
@@ -50,10 +47,8 @@ set(HEADER_FILES
     src/resource/shader.hpp
     src/core/array.hpp
 
-    src/math/mat3.hpp
-    src/math/mat4.hpp
     src/math/math.hpp
-    src/math/vec.hpp)
+    )
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 
