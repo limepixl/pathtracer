@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
     // Set up data to be passed to SSBOs
 
     Array<MaterialGLSL> materials_ssbo = mesh.materials;
-	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(100.0f), 0.0f, 0, MaterialType::MATERIAL_LAMBERTIAN));
+	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(100.0f), 0.0f, 0, MaterialType::MATERIAL_LIGHT));
 
     Array<SphereGLSL> spheres_ssbo;
 	spheres_ssbo.append(SphereGLSL(glm::vec3(4.0f, 2.0f, -2.0f), 0.25f, materials_ssbo.size - 1));

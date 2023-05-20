@@ -560,7 +560,7 @@ vec3 GGX_Smith_BRDF(vec3 wo, vec3 wm, vec3 wi, vec3 F0, float alpha_ggx, inout u
 vec3 pick_wi(in vec3 wo, in Material mat, in HitData data, in bool using_NEE, out vec3 wm, out float cos_theta, out float pdf, inout uint rng_state)
 {
 	bool is_ggx = bool(IMPORTANCE_SAMPLE_GGX) && !using_NEE;
-	if(mat.data2.w == 1.0 || mat.data2.w == 0.0 || (mat.data2.w == 2.0 && !is_ggx))
+	if(mat.data2.w == -1.0 || mat.data2.w == 0.0 || mat.data2.w == 1.0 || (mat.data2.w == 2.0 && !is_ggx))
 	{
 		wm = vec3(0.0, 1.0, 0.0);
 		vec3 wi = map_to_unit_hemisphere_cosine_weighted_criver(rand_vec2(rng_state), wm);
@@ -590,6 +590,12 @@ vec3 calc_BRDF(in vec3 wo, in vec3 wm, in vec3 wi, in Material mat, in vec2 uvs,
 	vec3 albedo = mat.data1.xyz;
 	if(mat.data3.w > -1)
 		albedo = albedo * texture(u_textures, vec3(uvs, mat.data3.w)).xyz;
+
+	// Light source
+	if(mat.data2.w == -1.0)
+	{
+		return vec3(0.0);
+	}
 
 	// Oren-Nayar diffuse BRDF
 	if(mat.data2.w == 1.0)
@@ -728,10 +734,9 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 		uint num_light_sources = light_tri_indices.length() + light_sphere_indices.length();
 		bool can_use_NEE = num_light_sources > 0;
 		can_use_NEE = can_use_NEE && (mat.data2.w == 0.0 || mat.data2.w == 1.0 || (mat.data2.w == 2.0 && mat.data1.w * mat.data1.w > NEE_SPECULAR_ROUGHNESS_CUTOFF));
-		can_use_NEE = can_use_NEE && all(lessThan(mat.data3.xyz, vec3(EPSILON)));
 
 		// add light that is emitted from surface (but stop right afterwards)
-		if (any(greaterThanEqual(mat.data3.xyz, vec3(EPSILON))))
+		if (mat.data2.w == -1.0)
 		{
 			if(bounce == 0 || (bounce > 0 && prev_bounce_specular))
 				color += throughput_term * mat.data3.xyz;
@@ -892,7 +897,6 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		// surface is diffuse, we can calculate the direct light contribution (NEE)
 		bool can_use_NEE = num_light_sources > 0;
 		can_use_NEE = can_use_NEE && (mat_x.data2.w == 0.0 || mat_x.data2.w == 1.0 || (mat_x.data2.w == 2.0 && alpha_squared > NEE_SPECULAR_ROUGHNESS_CUTOFF));
-		can_use_NEE = can_use_NEE && all(lessThan(mat_x.data3.xyz, vec3(EPSILON)));
 
 		if (can_use_NEE)
 		{
@@ -1020,7 +1024,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		if (can_use_NEE && cos_theta_y > 0.0)
 		{
 			// If the hit surface is a light source, we need to calculate the pdf for NEE
-			if (any(greaterThan(mat_y.data3.xyz, vec3(EPSILON))))
+			if (mat_y.data2.w == -1.0)
 			{
 				float pdf_NEE_area = 0.0;
 
