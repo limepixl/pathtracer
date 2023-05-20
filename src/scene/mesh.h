@@ -12,7 +12,7 @@ struct Mesh
 	glm::mat4 model_matrix {};
     uint32 texture_array {};
 
-    Mesh() = default;
+    Mesh();
 
     Mesh(Array<struct Triangle> &triangles,
          Array<struct MaterialGLSL> &materials,
@@ -21,6 +21,10 @@ struct Mesh
 
     Array<TriangleGLSL> ConvertToSSBOFormat();
 
-    void ApplyModelTransform(bool rotation = false);
+	void Translate(const glm::vec3 &translation);
+	void Rotate(const glm::vec3 &rotation);
+	void Scale(const glm::vec3 &scale);
+	void Scale(float scale);
+    void ApplyModelTransform();
 };
 

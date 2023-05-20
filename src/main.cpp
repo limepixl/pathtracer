@@ -46,8 +46,8 @@ int main(int argc, char *argv[])
     }
 
     // Apply model matrix to tris
-    mesh.model_matrix = TranslationMat4f(Vec3f(0.0f, 0.0f, -2.0f), mesh.model_matrix);
-    mesh.model_matrix = ScaleMat4f(Vec3f(2.0f), mesh.model_matrix);
+	mesh.Translate(glm::vec3(0.0f, 0.0f, -2.0f));
+	mesh.Scale(2.0f);
     mesh.ApplyModelTransform();
 
     Array<TriangleGLSL> unsorted_model_tris = mesh.ConvertToSSBOFormat();
