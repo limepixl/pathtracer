@@ -35,9 +35,9 @@ void Mesh::ApplyModelTransform()
         current_tri.v1 = model_matrix * glm::vec4(current_tri.v1, 1.0f);
         current_tri.v2 = model_matrix * glm::vec4(current_tri.v2, 1.0f);
 
-		current_tri.n0 = normal_matrix * current_tri.n0;
-		current_tri.n1 = normal_matrix * current_tri.n1;
-		current_tri.n2 = normal_matrix * current_tri.n2;
+		current_tri.n0 = glm::normalize(normal_matrix * current_tri.n0);
+		current_tri.n1 = glm::normalize(normal_matrix * current_tri.n1);
+		current_tri.n2 = glm::normalize(normal_matrix * current_tri.n2);
     }
 	model_matrix = glm::mat4(1.0f);
 }
