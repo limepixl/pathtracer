@@ -124,36 +124,6 @@ int main(int argc, char *argv[])
                 cam.mouse_look((float) e.motion.xrel, (float) e.motion.yrel);
                 frame_count = 0;
             }
-			// TODO: add separate compute shaders for separate modes
-			/*
-            else if (e.type == SDL_KEYDOWN)
-            {
-                bool switched = false;
-                switch (e.key.keysym.sym)
-                {
-                    case SDLK_1:
-                        view_mode = ViewMode::BRDF_IMPORTANCE_SAMPLING;
-                        switched = true;
-                        break;
-                    case SDLK_2:
-                        view_mode = ViewMode::NEXT_EVENT_ESTIMATION;
-                        switched = true;
-                        break;
-                    case SDLK_3:
-                        view_mode = ViewMode::MULTIPLE_IMPORTANCE_SAMPLING_BRDF_NEE;
-                        switched = true;
-                        break;
-                    default:
-                        break;
-                }
-
-                if (switched)
-                {
-                    frame_count = 0;
-                    last_report = 0;
-                }
-            }
-            */
         }
 
         uint32 current_time = SDL_GetTicks();
@@ -211,21 +181,6 @@ int main(int argc, char *argv[])
             new_title += std::to_string(delta_time) + "ms | ";
             new_title += std::to_string(fps) + "fps | ";
             new_title += std::to_string(frame_count) + " total frame count | ";
-
-			/*
-            if (view_mode == ViewMode::BRDF_IMPORTANCE_SAMPLING)
-            {
-                new_title += std::string("BRDF importance sampling");
-            }
-            else if (view_mode == ViewMode::NEXT_EVENT_ESTIMATION)
-            {
-                new_title += std::string("Next Event Estimation");
-            }
-            else if (view_mode == ViewMode::MULTIPLE_IMPORTANCE_SAMPLING_BRDF_NEE)
-            {
-                new_title += std::string("Multiple Importance Sampling (MIS): BRDF+NEE");
-            }
-            */
 
             UpdateDisplayTitle(display, new_title.c_str());
             last_report = current_time;
