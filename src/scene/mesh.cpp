@@ -1,5 +1,4 @@
 #include "mesh.h"
-#include "../math/math.hpp"
 #include "material.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -43,7 +42,7 @@ void Mesh::ApplyModelMatrixToTris()
 }
 
 Mesh::Mesh()
-	: model_matrix(1.0f), texture_array(0.0f)
+	: model_matrix(1.0f), texture_array((uint32) -1)
 {}
 
 void Mesh::Translate(const glm::vec3 &translation)

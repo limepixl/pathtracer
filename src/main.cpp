@@ -169,7 +169,11 @@ int main(int argc, char *argv[])
             glUseProgram(display.compute_shader.id);
 
             glBindTextureUnit(1, display.cubemap_texture);
-            glBindTextureUnit(2, mesh.texture_array);
+
+			if(mesh.texture_array != (uint32) -1)
+			{
+            	glBindTextureUnit(2, mesh.texture_array);
+			}
 
             if (frame_count == 0)
             {
