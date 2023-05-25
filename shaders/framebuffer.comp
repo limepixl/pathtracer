@@ -588,43 +588,56 @@ vec3 pick_wi(in vec3 wo, in Material mat, in HitData data, in bool using_NEE, ou
 
 vec3 calc_BRDF(in vec3 wo, in vec3 wm, in vec3 wi, in Material mat, in vec2 uvs, in bool using_NEE, inout uint rng_state)
 {
+	vec3 brdf = vec3(1.0, 1.0, 0.0);
+
+	int mat_type = int(mat.data2.w);
 	vec3 albedo = mat.data1.xyz;
-	if(mat.data3.w > -1)
-		albedo = albedo * texture(u_textures, vec3(uvs, mat.data3.w)).xyz;
+	vec3 F0 = mat.data2.xyz;
+
+	vec3 diffuse_texture = texture(u_textures, vec3(uvs, mat.data3.w)).xyz;
+	if(mat.data3.w > -1.0)
+	{
+		albedo *= diffuse_texture;
+	}
 
 	// Light source
-	if(mat.data2.w == -1.0)
+	if(mat_type == -1)
 	{
-		return vec3(0.0);
+		brdf = vec3(0.0);
 	}
 
 	// Oren-Nayar diffuse BRDF
-	if(mat.data2.w == 1.0)
+	if(mat_type == 1)
 	{
-		return oren_nayar_brdf(albedo, mat.data1.w, wi, wo);
+		brdf = oren_nayar_brdf(albedo, mat.data1.w, wi, wo);
 	}
+
 	// Lambertian diffuse BRDF
-	if (mat.data2.w == 0.0)
+	if (mat_type == 0)
 	{
-		return albedo / PI;
+		brdf = albedo / PI;
 	}
+
 	// Specular BRDF
-	if (mat.data2.w == 2.0)
+	if (mat_type == 2)
 	{
-		vec3 specular_factor = mat.data2.xyz;
-		vec3 F0 = specular_factor;
 		// TODO: use separate specular texture index
 		if(mat.data3.w > -1)
-			F0 = F0 * texture(u_textures, vec3(uvs, mat.data3.w)).xyz;
+		{
+			F0 *= diffuse_texture;
+		}
 
 		if(bool(IMPORTANCE_SAMPLE_GGX) && !using_NEE)
-			return GGX_Smith_BRDF(wo, wm, wi, F0, mat.data1.w, rng_state);
+		{
+			brdf = GGX_Smith_BRDF(wo, wm, wi, F0, mat.data1.w, rng_state);
+		}
 		else
-			return GGX_Smith_BRDF_non_IS(wo, wi, F0, mat.data1.w);
+		{
+			brdf = GGX_Smith_BRDF_non_IS(wo, wi, F0, mat.data1.w);
+		}
 	}
 
-	// ERROR: material not handled!
-	return vec3(1.0 / 0.0);
+	return brdf;
 }
 
 // Estimators
