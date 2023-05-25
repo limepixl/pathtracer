@@ -14,5 +14,4 @@ typedef long int64;
 
 constexpr uint32 WIDTH = 1280;
 constexpr uint32 HEIGHT = 720;
-
-constexpr uint8 BVH_NUM_LEAF_TRIS = 8;
+constexpr uint32 BOUNCE_COUNT = 5;

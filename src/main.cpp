@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
                 glNamedBufferSubData(cam.cam_ubo, 0, sizeof(CameraGLSL), &cam_glsl);
             }
 
-            glUniform2ui(0, pcg32_random(), frame_count++);
+            glUniform3ui(0, pcg32_random(), frame_count++, BOUNCE_COUNT);
 
             glDispatchCompute(num_work_groups_x, num_work_groups_y, 1);
             glMemoryBarrier(GL_ALL_BARRIER_BITS);

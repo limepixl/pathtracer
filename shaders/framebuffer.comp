@@ -5,7 +5,7 @@ layout(rgba32f, binding = 0) restrict uniform image2D screen;
 // Uniform variables
 layout(binding = 1) uniform sampler2D u_cubemap;
 layout(binding = 2) uniform sampler2DArray u_textures;
-layout(location = 0) uniform uvec2 u_frame_data; // seed, frame#
+layout(location = 0) uniform uvec3 u_frame_data; // seed, frame#, num_bounces
 
 layout (std140, binding = 3) uniform Camera
 {
@@ -23,7 +23,6 @@ layout (std140, binding = 3) uniform Camera
 // Ray constants
 #define TMIN            0.00001
 #define TMAX            10000.0
-#define BOUNCE_COUNT    5
 #define NUM_SHADOW_RAYS 1
 
 // Misc
@@ -639,7 +638,7 @@ vec3 estimator_path_tracing_BRDF(in vec3 ro, in vec3 rd, in uint rng_state)
 	// float theta = acos(-rd.z);
 	// throughput_term = throughput_term * pow(cos(theta), 3);
 
-	for (uint b = 0; b < BOUNCE_COUNT; b++)
+	for (uint b = 0; b < u_frame_data.z; b++)
 	{
 		HitData data;
 		if(!intersect(ro, rd, data)) // ray goes off into infinity
@@ -713,7 +712,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 
 	bool prev_bounce_specular = false;
 
-	for (uint bounce = 0; bounce < BOUNCE_COUNT; bounce++)
+	for (uint bounce = 0; bounce < u_frame_data.z; bounce++)
 	{
 		HitData data;
 		if (!intersect(ro, rd, data))
@@ -879,7 +878,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 
 	uint num_light_sources = light_tri_indices.length() + light_sphere_indices.length();
 
-	uint num_bounces = BOUNCE_COUNT + 1;
+	uint num_bounces = u_frame_data.z + 1;
 	for (uint b = 1; b < num_bounces; b++)
 	{
 		vec3 x = y;
