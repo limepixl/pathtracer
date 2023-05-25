@@ -161,8 +161,8 @@ bool Display::InitRenderBuffer()
     glTextureParameteri(render_buffer_texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTextureParameteri(render_buffer_texture, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTextureParameteri(render_buffer_texture, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTextureStorage2D(render_buffer_texture, 1, GL_RGBA32F, (GLsizei) width, (GLsizei) height);
-    glBindImageTexture(0, render_buffer_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+    glTextureStorage2D(render_buffer_texture, 1, GL_RGBA16F, (GLsizei) width, (GLsizei) height);
+    glBindImageTexture(0, render_buffer_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
     glBindTextureUnit(0, 0);
 
     glUseProgram(render_buffer_shader.id);
