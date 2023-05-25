@@ -200,7 +200,8 @@ struct HitData
 {
 	float t;
 	vec3 normal;
-	uvec2 mat_object_indices;
+	uint mat_index;
+	uint object_index;
 	uint object_type; // 0 tri, 1 sphere
 	vec2 uvs;
 };
@@ -276,8 +277,8 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 	if ((v >= 0.0) && (u + v <= 1.0) && t > TMIN && t < tmax)
 	{
 		data.t = t;
-		data.mat_object_indices.x = uint(tri.data1.w);
-		data.mat_object_indices.y = tri_index;
+		data.mat_index = uint(tri.data1.w);
+		data.object_index = tri_index;
 		data.object_type = 0;
 
 		float w = 1.0 - u - v;
@@ -443,8 +444,8 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 			hit_anything = true;
 			result.t = current_t;
 			result.normal = (ro + rd * current_t - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
-			result.mat_object_indices.x = current_sphere.mat_index.x;
-			result.mat_object_indices.y = i;
+			result.mat_index = current_sphere.mat_index.x;
+			result.object_index = i;
 			result.object_type = 1;
 		}
 	}
@@ -648,7 +649,7 @@ vec3 estimator_path_tracing_BRDF(in vec3 ro, in vec3 rd, in uint rng_state)
 			return color;
 		}
 
-		Material mat = materials[data.mat_object_indices.x];
+		Material mat = materials[data.mat_index];
 
 		// Generate TNB matrix to map directions in terms of the normal vector
 		mat3 tnb = transpose(construct_tnb(data.normal));
@@ -729,7 +730,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 
 		vec3 wo = normalize(tnb * -rd);
 
-		Material mat = materials[data.mat_object_indices.x];
+		Material mat = materials[data.mat_index];
 
 		uint num_light_sources = light_tri_indices.length() + light_sphere_indices.length();
 		bool can_use_NEE = num_light_sources > 0;
@@ -870,7 +871,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 
 	vec3 y = ro + rd * data.t + NORMAL_OFFSET * data.normal;
 	vec3 normal_y = data.normal;
-	Material mat_y = materials[data.mat_object_indices.x];
+	Material mat_y = materials[data.mat_index];
 
 	bool prev_bounce_specular = false;
 
@@ -1017,7 +1018,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 		normal_y = data.normal;
 
 		y = ro + rd * data.t + NORMAL_OFFSET * normal_y;
-		mat_y = materials[data.mat_object_indices.x];
+		mat_y = materials[data.mat_index];
 
 		// If we can use NEE on the hit surface
 		float wBSDF = 1.0;
@@ -1031,13 +1032,13 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 				// Triangle light source
 				if (data.object_type == 0)
 				{
-					Triangle tri_NEE = triangles[data.mat_object_indices.y];
+					Triangle tri_NEE = triangles[data.object_index];
 					pdf_NEE_area = 1.0 / area_triangle(tri_NEE.data1.xyz, tri_NEE.data2.xyz, tri_NEE.data3.xyz);
 				}
 				// Sphere light source
 				else if (data.object_type == 1)
 				{
-					Sphere sphere_NEE = spheres[data.mat_object_indices.y];
+					Sphere sphere_NEE = spheres[data.object_index];
 					pdf_NEE_area = 1.0 / area_sphere(sphere_NEE.sphere_data.w);
 				}
 
