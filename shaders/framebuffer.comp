@@ -53,9 +53,9 @@ struct Sphere
 
 struct Material
 {
-	vec4 data1; // diff.x, diff.y, diff.z, rougness
+	vec4 data1; // diff.x, diff.y, diff.z, roughness
 	vec4 data2; // spec.x, spec.y, spec.z, mat_type
-	vec4 data3; // Le.x, Le.y, Le.z, diffuse_tex_indx
+	vec4 data3; // Le.x, Le.y, Le.z, diffuse_tex_index
 };
 
 struct BVHNode
@@ -240,7 +240,8 @@ float intersect_sphere(vec3 ro, vec3 rd, Sphere sphere)
 			{
 				return t1;
 			}
-			else if (t2 >= TMIN && t2 <= TMAX)
+
+			if (t2 >= TMIN && t2 <= TMAX)
 			{
 				return t2;
 			}
@@ -334,7 +335,7 @@ bool intersect_bvh_stack(in vec3 ro, in vec3 rd, out HitData data, inout float t
 	bool hit_anything = false;
 
     int stack_top = 0;
-    uint stack[16];
+    uint stack[14];
     stack[0] = 0;
 
     while (stack_top > -1)
@@ -421,17 +422,16 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
     bool hit_anything = false;
     float tmax = TMAX;
 
-    //  uint num_tris = triangles.length();
-    //	for (uint i = 0; i < num_tris; i++)
-    //	{
-    //		if (intersect_triangle(ro, rd, i, result, tmax))
-    //		{
-    //			hit_anything = true;
-    //			tmax = result.t;
-    //		}
-    //	}
+	for (uint i = 0; i < triangles.length(); i++)
+	{
+		if (intersect_triangle(ro, rd, i, result, tmax))
+		{
+			hit_anything = true;
+			tmax = result.t;
+		}
+	}
 
-	hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
+//	hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
 
 	for(uint i = 0; i < spheres.length(); i++)
 	{
