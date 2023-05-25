@@ -30,7 +30,7 @@ layout (std140, binding = 3) uniform Camera
 #define ENVIRONMENT_MAP_LE 				0.05
 #define IMPORTANCE_SAMPLE_GGX 			1
 #define NEE_SPECULAR_ROUGHNESS_CUTOFF 	0.0
-#define NORMAL_OFFSET					0.01
+#define NORMAL_OFFSET					0.005
 
 // SSBO helper structs
 
