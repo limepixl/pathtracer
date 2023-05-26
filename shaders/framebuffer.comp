@@ -340,17 +340,18 @@ f16vec3 get_bmin(in BVHNode node)
     return f16vec3(node.data1.xyz);
 }
 
+shared uint16_t stack[gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z][14];
+
 bool intersect_bvh_stack(in f16vec3 ro, in f16vec3 rd, out HitData data, inout float tmax)
 {
 	bool hit_anything = false;
 
     int stack_top = 0;
-    uint16_t stack[14];
-    stack[0] = uint16_t(0);
+    stack[gl_LocalInvocationIndex][0] = uint16_t(0);
 
     while (stack_top > -1)
     {
-		uint16_t current_index = stack[stack_top];
+		uint16_t current_index = stack[gl_LocalInvocationIndex][stack_top];
         stack_top--;
 
         BVHNode node = bvh_nodes[current_index];
@@ -381,22 +382,22 @@ bool intersect_bvh_stack(in f16vec3 ro, in f16vec3 rd, out HitData data, inout f
                         if(left_int.x < right_int.x)
                         {
                             stack_top++;
-                            stack[stack_top] = first_child_or_tri + uint16_t(1);
+							stack[gl_LocalInvocationIndex][stack_top] = first_child_or_tri + uint16_t(1);
                             stack_top++;
-                            stack[stack_top] = first_child_or_tri;
+							stack[gl_LocalInvocationIndex][stack_top] = first_child_or_tri;
                         }
                         else
                         {
                             stack_top++;
-                            stack[stack_top] = first_child_or_tri;
+							stack[gl_LocalInvocationIndex][stack_top] = first_child_or_tri;
                             stack_top++;
-                            stack[stack_top] = first_child_or_tri + uint16_t(1);
+							stack[gl_LocalInvocationIndex][stack_top] = first_child_or_tri + uint16_t(1);
                         }
                     }
                     else
                     {
                         stack_top++;
-                        stack[stack_top] = first_child_or_tri;
+						stack[gl_LocalInvocationIndex][stack_top] = first_child_or_tri;
                     }
                 }
                 else
@@ -404,7 +405,7 @@ bool intersect_bvh_stack(in f16vec3 ro, in f16vec3 rd, out HitData data, inout f
                     if(hit_right)
                     {
                         stack_top++;
-                        stack[stack_top] = first_child_or_tri + uint16_t(1);
+						stack[gl_LocalInvocationIndex][stack_top] = first_child_or_tri + uint16_t(1);
                     }
                 }
             }
@@ -432,16 +433,16 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
     bool hit_anything = false;
     float tmax = TMAX;
 
-	for (uint i = 0; i < triangles.length(); i++)
-	{
-		if (intersect_triangle(ro, rd, i, result, tmax))
-		{
-			hit_anything = true;
-			tmax = result.t;
-		}
-	}
+//	for (uint i = 0; i < triangles.length(); i++)
+//	{
+//		if (intersect_triangle(ro, rd, i, result, tmax))
+//		{
+//			hit_anything = true;
+//			tmax = result.t;
+//		}
+//	}
 
-//	hit_anything = intersect_bvh_stack(f16vec3(ro), f16vec3(rd), result, tmax);
+	hit_anything = intersect_bvh_stack(f16vec3(ro), f16vec3(rd), result, tmax);
 
 	for(uint16_t i = uint16_t(0); i < uint16_t(spheres.length()); i++)
 	{
