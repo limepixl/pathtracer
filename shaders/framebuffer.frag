@@ -3,7 +3,7 @@
 in vec2 frag_uvs;
 out vec4 color;
 
-uniform sampler2D tex;
+layout(binding = 0) uniform sampler2D tex;
 
 void main() 
 { 

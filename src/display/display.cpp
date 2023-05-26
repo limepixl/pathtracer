@@ -165,13 +165,6 @@ bool Display::InitRenderBuffer()
     glBindImageTexture(0, render_buffer_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA16F);
     glBindTextureUnit(0, 0);
 
-    glUseProgram(render_buffer_shader.id);
-    glUniform1i(glGetUniformLocation(render_buffer_shader.id, "tex"), 0);
-
-    glUseProgram(compute_shader.id);
-    glUniform1i(glGetUniformLocation(compute_shader.id, "screen"), 0);
-    glUniform1i(glGetUniformLocation(compute_shader.id, "u_cubemap"), 1);
-
     // Set up cubemap
 
     glCreateTextures(GL_TEXTURE_2D, 1, &cubemap_texture);
