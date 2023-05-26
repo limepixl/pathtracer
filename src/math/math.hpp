@@ -57,4 +57,8 @@ glm::vec3 map_to_triangle(glm::vec2 vec2, Triangle tri);
 void orthonormal_basis(glm::vec3 &n, glm::vec3 &t, glm::vec3 &bt);
 
 glm::mat3 construct_TNB_matrix(glm::vec3 &n);
+
+glm::vec2 octahedral_wrap(const glm::vec2 &v);
+
+glm::vec2 octahedral_normal_encoding(glm::vec3 n);
 }
