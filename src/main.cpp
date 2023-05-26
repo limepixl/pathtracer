@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     Array<uint32> emissive_tris(model_glsl_tris.size);
     for (uint32 i = 0; i < model_glsl_tris.size; i++)
     {
-        MaterialGLSL current_mat = mesh.materials[(uint32) model_glsl_tris[i].data1.w];
+        MaterialGLSL current_mat = mesh.materials[(uint32) model_glsl_tris[i].data4.w];
         if (current_mat.data3.x >= EPSILON || current_mat.data3.y >= EPSILON || current_mat.data3.z >= EPSILON)
         {
             emissive_tris.append(i);
