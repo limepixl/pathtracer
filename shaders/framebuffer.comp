@@ -307,122 +307,100 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 
 // Slab method
 // https://tavianator.com/2011/ray_box.html
-f16vec2 intersect_aabb(in f16vec3 ro, in f16vec3 rd, in f16vec3 bmin, in f16vec3 bmax, in float16_t t)
+vec2 intersect_aabb(in vec3 ro, in vec3 inv_dir, in vec3 bmin, in vec3 bmax, in float t)
 {
-	f16vec3 inv_dir = float16_t(1.0) / rd;
-	float16_t tx1 = bmin.x * inv_dir.x - ro.x * inv_dir.x;
-	float16_t tx2 = bmax.x * inv_dir.x - ro.x * inv_dir.x;
-	float16_t tmin = min(tx1, tx2);
-	float16_t tmax = max(tx1, tx2);
-
-	float16_t ty1 = bmin.y * inv_dir.y - ro.y * inv_dir.y;
-	float16_t ty2 = bmax.y * inv_dir.y - ro.y * inv_dir.y;
-
-	tmin = max(tmin, min(ty1, ty2));
-	tmax = min(tmax, max(ty1, ty2));
-
-	float16_t tz1 = bmin.z * inv_dir.z - ro.z * inv_dir.z;
-	float16_t tz2 = bmax.z * inv_dir.z - ro.z * inv_dir.z;
-
-	tmin = max(tmin, min(tz1, tz2));
-	tmax = min(tmax, max(tz1, tz2));
-
-	return f16vec2(tmin, tmax);
+	vec3 tmin = (bmin - ro) * inv_dir;
+	vec3 tmax = (bmax - ro) * inv_dir;
+	vec3 t0 = min(tmin, tmax);
+	vec3 t1 = max(tmin, tmax);
+	return vec2(max(t0.x, max(t0.y, max(t0.z, TMIN))), min(t1.x, min(t1.y, min(t1.z, t))));
 }
 
-f16vec3 get_bmax(in BVHNode node)
+vec3 get_bmax(in BVHNode node)
 {
-    return f16vec3(node.data2.xyz);
+    return node.data2.xyz;
 }
 
-f16vec3 get_bmin(in BVHNode node)
+vec3 get_bmin(in BVHNode node)
 {
-    return f16vec3(node.data1.xyz);
+    return node.data1.xyz;
 }
 
-shared uint16_t stack[gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z][14];
+shared uint stack[gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z][12];
 
-bool intersect_bvh_stack(in f16vec3 ro, in f16vec3 rd, out HitData data, inout float tmax)
+bool intersect_bvh_stack(in vec3 ro, in vec3 rd, out HitData data, inout float tmax)
 {
 	bool hit_anything = false;
 
-    int stack_top = 0;
-    stack[gl_LocalInvocationIndex][0] = uint16_t(0);
+	vec3 inv_dir = 1.0 / rd;
 
-    while (stack_top > -1)
+    int stack_size = 0;
+	uint current_index = 1;
+
+    while (true)
     {
-		uint16_t current_index = stack[gl_LocalInvocationIndex][stack_top];
-        stack_top--;
+        BVHNode node_left = bvh_nodes[current_index];
+        BVHNode node_right = bvh_nodes[current_index + 1];
 
-        BVHNode node = bvh_nodes[current_index];
-        f16vec3 bmin = get_bmin(node);
-        f16vec3 bmax = get_bmax(node);
-		uint16_t first_child_or_tri = uint16_t(node.data1.w);
-		uint16_t num_node_tris = uint16_t(node.data2.w);
+		vec2 intersect_left = intersect_aabb(ro, inv_dir, get_bmin(node_left), get_bmax(node_left), tmax);
+		vec2 intersect_right = intersect_aabb(ro, inv_dir, get_bmin(node_right), get_bmax(node_right), tmax);
+		bool hit_left = intersect_left.x <= intersect_left.y;
+		bool hit_right = intersect_right.x <= intersect_right.y;
+		bool is_left_leaf = node_left.data2.w > 0;
+		bool is_right_leaf = node_right.data2.w > 0;
 
-        // Check if ray intersects root node
-        f16vec2 intersection = intersect_aabb(ro, rd, bmin, bmax, float16_t(tmax));
-        bool hit_aabb = intersection.x <= intersection.y;
-        if (hit_aabb)
-        {
-            if (num_node_tris == 0u)
-            {
-                BVHNode node_left = bvh_nodes[first_child_or_tri];
-                BVHNode node_right = bvh_nodes[first_child_or_tri + uint16_t(1)];
+		uint num_tris = uint(hit_left ? node_left.data2.w : 0) + uint(hit_right ? node_right.data2.w : 0);
+		if(num_tris > 0)
+		{
+			uint first_prim = uint(hit_left && is_left_leaf ? node_left.data1.w : node_right.data1.w);
+			for (uint i = 0; i < num_tris; i++)
+			{
+				HitData local_data;
+				bool hit_tri = intersect_triangle(ro, rd, first_prim + i, local_data, tmax);
+				if (hit_tri)
+				{
+					hit_anything = true;
+					tmax = local_data.t;
+					data = local_data;
+				}
+			}
 
-                f16vec2 left_int = intersect_aabb(ro, rd, get_bmin(node_left), get_bmax(node_left), float16_t(tmax));
-                bool hit_left = left_int.x <= left_int.y;
-                f16vec2 right_int = intersect_aabb(ro, rd, get_bmin(node_right), get_bmax(node_right), float16_t(tmax));
-                bool hit_right = right_int.x <= right_int.y;
+			hit_left = hit_left && !is_left_leaf;
+			hit_right = hit_right && !is_right_leaf;
+		}
 
-                if(hit_left)
-                {
-                    if(hit_right)
-                    {
-                        if(left_int.x < right_int.x)
-                        {
-                            stack_top++;
-							stack[gl_LocalInvocationIndex][stack_top] = first_child_or_tri + uint16_t(1);
-                            stack_top++;
-							stack[gl_LocalInvocationIndex][stack_top] = first_child_or_tri;
-                        }
-                        else
-                        {
-                            stack_top++;
-							stack[gl_LocalInvocationIndex][stack_top] = first_child_or_tri;
-                            stack_top++;
-							stack[gl_LocalInvocationIndex][stack_top] = first_child_or_tri + uint16_t(1);
-                        }
-                    }
-                    else
-                    {
-                        stack_top++;
-						stack[gl_LocalInvocationIndex][stack_top] = first_child_or_tri;
-                    }
-                }
-                else
-                {
-                    if(hit_right)
-                    {
-                        stack_top++;
-						stack[gl_LocalInvocationIndex][stack_top] = first_child_or_tri + uint16_t(1);
-                    }
-                }
-            }
+        if(hit_left)
+		{
+			if(hit_right)
+			{
+				uint first = uint(node_left.data1.w);
+				uint second = uint(node_right.data1.w);
+				if(intersect_left.x > intersect_right.x)
+				{
+					uint tmp = first;
+					first = second;
+					second = tmp;
+				}
 
-            // If leaf node, test against triangles of node
-            for (uint16_t i = uint16_t(0); i < num_node_tris; i++)
-            {
-                HitData local_data;
-                bool hit_tri = intersect_triangle(ro, rd, first_child_or_tri + i, local_data, tmax);
-                if (hit_tri)
-                {
-                    hit_anything = true;
-                    tmax = local_data.t;
-                    data = local_data;
-                }
-            }
-        }
+				stack[gl_LocalInvocationIndex][stack_size++] = second;
+				current_index = first;
+			}
+			else
+			{
+				current_index = uint(node_left.data1.w);
+			}
+			continue;
+		}
+		else if(hit_right)
+		{
+			current_index = uint(node_right.data1.w);
+			continue;
+		}
+
+		if(stack_size == 0)
+			break;
+
+		current_index = stack[gl_LocalInvocationIndex][--stack_size];
     }
 
     return hit_anything;
@@ -1114,9 +1092,9 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
 	// TODO: separate into different shaders
-//	return estimator_path_tracing_BRDF(cam_origin.xyz, ray_direction, rng_state);
+	return estimator_path_tracing_BRDF(cam_origin.xyz, ray_direction, rng_state);
 //	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
-	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
+//	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 
 void main() 

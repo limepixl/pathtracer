@@ -45,9 +45,6 @@ Array<BVHNodeGLSL> CalculateBVH(Array<TriangleGLSL> &glsl_tris, Array<TriangleGL
 	bvh::SweepSahBuilder<bvh::Bvh<float>> builder(bvh);
 	builder.build(global_bbox, bboxes.get(), centers.get(), primitives.size());
 
-	bvh::NodeLayoutOptimizer optimizer(bvh);
-	optimizer.optimize();
-
 	sorted_glsl_tris = Array<TriangleGLSL>(glsl_tris.size);
 	sorted_glsl_tris.size = glsl_tris.size;
 
