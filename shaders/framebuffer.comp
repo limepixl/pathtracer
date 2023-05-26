@@ -326,9 +326,10 @@ vec3 get_bmin(in BVHNode node)
     return node.data1.xyz;
 }
 
-shared uint stack[gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z][12];
+shared uint stack[gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z][16];
 
 // https://gist.github.com/madmann91/911068852892d76db59d72b288aec2dc#file-bvh-glsl-L88
+// TODO: Reduce register usage by porting to float16
 bool intersect_bvh_stack(in vec3 ro, in vec3 rd, out HitData data, inout float tmax)
 {
 	bool hit_anything = false;
@@ -390,18 +391,20 @@ bool intersect_bvh_stack(in vec3 ro, in vec3 rd, out HitData data, inout float t
 			{
 				current_index = uint(node_left.data1.w);
 			}
-			continue;
 		}
 		else if(hit_right)
 		{
 			current_index = uint(node_right.data1.w);
-			continue;
 		}
+		else
+		{
+			if(stack_size == 0)
+			{
+				break;
+			}
 
-		if(stack_size == 0)
-			break;
-
-		current_index = stack[gl_LocalInvocationIndex][--stack_size];
+			current_index = stack[gl_LocalInvocationIndex][--stack_size];
+		}
     }
 
     return hit_anything;
