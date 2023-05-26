@@ -22,8 +22,8 @@ layout (std140, binding = 3) uniform Camera
 #define HALF_PI 		1.57079632
 
 // Ray constants
-#define TMIN            0.00001
-#define TMAX            10000.0
+#define TMIN            float16_t(0.00001)
+#define TMAX            float16_t(10000.0)
 #define NUM_SHADOW_RAYS 1
 
 // Misc
@@ -207,12 +207,12 @@ f16vec3 octahedral_normal_decoding(f16vec2 f)
 
 struct HitData
 {
-	float t;
-	vec3 normal;
+	float16_t t;
+	f16vec3 normal;
 	uint mat_index;
 	uint object_index;
-	uint object_type; // 0 tri, 1 sphere
-	vec2 uvs;
+	uint8_t object_type; // 0 tri, 1 sphere
+	f16vec2 uvs;
 };
 
 // Intersection
@@ -288,10 +288,10 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 		data.t = t;
 		data.mat_index = uint(tri.data1.w);
 		data.object_index = tri_index;
-		data.object_type = 0;
+		data.object_type = uint8_t(0);
 
-		float w = 1.0 - u - v;
-		data.uvs = w * vec2(tri.data2.w, tri.data3.w) + u * tri.data4.xy + v * tri.data4.zw;
+		float16_t w = float16_t(1.0 - u - v);
+		data.uvs = w * f16vec2(tri.data2.w, tri.data3.w) + float16_t(u) * f16vec2(tri.data4.xy) + float16_t(v) * f16vec2(tri.data4.zw);
 
 //		vec3 n0 = tri.data5.xyz;
 //		vec3 n1 = vec3(tri.data5.w, tri.data6.xy);
@@ -307,71 +307,71 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 
 // Slab method
 // https://tavianator.com/2011/ray_box.html
-vec2 intersect_aabb(in vec3 ro, in vec3 rd, in vec3 bmin, in vec3 bmax, in float t)
+f16vec2 intersect_aabb(in f16vec3 ro, in f16vec3 rd, in f16vec3 bmin, in f16vec3 bmax, in float16_t t)
 {
-	vec3 inv_dir = 1.0 / rd;
-	float tx1 = bmin.x * inv_dir.x - ro.x * inv_dir.x;
-	float tx2 = bmax.x * inv_dir.x - ro.x * inv_dir.x;
-	float tmin = min(tx1, tx2);
-	float tmax = max(tx1, tx2);
+	f16vec3 inv_dir = float16_t(1.0) / rd;
+	float16_t tx1 = bmin.x * inv_dir.x - ro.x * inv_dir.x;
+	float16_t tx2 = bmax.x * inv_dir.x - ro.x * inv_dir.x;
+	float16_t tmin = min(tx1, tx2);
+	float16_t tmax = max(tx1, tx2);
 
-	float ty1 = bmin.y * inv_dir.y - ro.y * inv_dir.y;
-	float ty2 = bmax.y * inv_dir.y - ro.y * inv_dir.y;
+	float16_t ty1 = bmin.y * inv_dir.y - ro.y * inv_dir.y;
+	float16_t ty2 = bmax.y * inv_dir.y - ro.y * inv_dir.y;
 
 	tmin = max(tmin, min(ty1, ty2));
 	tmax = min(tmax, max(ty1, ty2));
 
-	float tz1 = bmin.z * inv_dir.z - ro.z * inv_dir.z;
-	float tz2 = bmax.z * inv_dir.z - ro.z * inv_dir.z;
+	float16_t tz1 = bmin.z * inv_dir.z - ro.z * inv_dir.z;
+	float16_t tz2 = bmax.z * inv_dir.z - ro.z * inv_dir.z;
 
 	tmin = max(tmin, min(tz1, tz2));
 	tmax = min(tmax, max(tz1, tz2));
 
-	return vec2(tmin, tmax);
+	return f16vec2(tmin, tmax);
 }
 
-vec3 get_bmax(in BVHNode node)
+f16vec3 get_bmax(in BVHNode node)
 {
-    return node.data2.xyz;
+    return f16vec3(node.data2.xyz);
 }
 
-vec3 get_bmin(in BVHNode node)
+f16vec3 get_bmin(in BVHNode node)
 {
-    return node.data1.xyz;
+    return f16vec3(node.data1.xyz);
 }
 
-bool intersect_bvh_stack(in vec3 ro, in vec3 rd, out HitData data, inout float tmax)
+bool intersect_bvh_stack(in f16vec3 ro, in f16vec3 rd, out HitData data, inout float tmax)
 {
 	bool hit_anything = false;
 
     int stack_top = 0;
-    uint stack[14];
-    stack[0] = 0;
+    uint16_t stack[14];
+    stack[0] = uint16_t(0);
 
     while (stack_top > -1)
     {
-        uint current_index = stack[stack_top];
+		uint16_t current_index = stack[stack_top];
         stack_top--;
 
         BVHNode node = bvh_nodes[current_index];
-        vec3 bmin = get_bmin(node);
-        vec3 bmax = get_bmax(node);
-        uint first_child_or_tri = uint(node.data1.w);
-        uint num_node_tris = uint(node.data2.w);
+        f16vec3 bmin = get_bmin(node);
+        f16vec3 bmax = get_bmax(node);
+		uint16_t first_child_or_tri = uint16_t(node.data1.w);
+		uint16_t num_node_tris = uint16_t(node.data2.w);
 
         // Check if ray intersects root node
-        vec2 intersection = intersect_aabb(ro, rd, bmin, bmax, tmax);
+        f16vec2 intersection = intersect_aabb(ro, rd, bmin, bmax, float16_t(tmax));
         bool hit_aabb = intersection.x <= intersection.y;
         if (hit_aabb)
         {
-            if (num_node_tris == 0)
+            if (num_node_tris == 0u)
             {
                 BVHNode node_left = bvh_nodes[first_child_or_tri];
-                BVHNode node_right = bvh_nodes[first_child_or_tri + 1];
+                BVHNode node_right = bvh_nodes[first_child_or_tri + uint16_t(1)];
 
-                vec2 left_int = intersect_aabb(ro, rd, get_bmin(node_left), get_bmax(node_left), tmax);
+                f16vec2 left_int = intersect_aabb(ro, rd, get_bmin(node_left), get_bmax(node_left), float16_t(tmax));
                 bool hit_left = left_int.x <= left_int.y;
-                vec2 right_int = intersect_aabb(ro, rd, get_bmin(node_right), get_bmax(node_right), tmax);
+                f16vec2 right_int = intersect_aabb(ro, rd, get_bmin(node_right), get_bmax(node_right), float16_t(tmax));
                 bool hit_right = right_int.x <= right_int.y;
 
                 if(hit_left)
@@ -381,7 +381,7 @@ bool intersect_bvh_stack(in vec3 ro, in vec3 rd, out HitData data, inout float t
                         if(left_int.x < right_int.x)
                         {
                             stack_top++;
-                            stack[stack_top] = first_child_or_tri + 1;
+                            stack[stack_top] = first_child_or_tri + uint16_t(1);
                             stack_top++;
                             stack[stack_top] = first_child_or_tri;
                         }
@@ -390,7 +390,7 @@ bool intersect_bvh_stack(in vec3 ro, in vec3 rd, out HitData data, inout float t
                             stack_top++;
                             stack[stack_top] = first_child_or_tri;
                             stack_top++;
-                            stack[stack_top] = first_child_or_tri + 1;
+                            stack[stack_top] = first_child_or_tri + uint16_t(1);
                         }
                     }
                     else
@@ -404,13 +404,13 @@ bool intersect_bvh_stack(in vec3 ro, in vec3 rd, out HitData data, inout float t
                     if(hit_right)
                     {
                         stack_top++;
-                        stack[stack_top] = first_child_or_tri + 1;
+                        stack[stack_top] = first_child_or_tri + uint16_t(1);
                     }
                 }
             }
 
             // If leaf node, test against triangles of node
-            for (int i = 0; i < num_node_tris; i++)
+            for (uint16_t i = uint16_t(0); i < num_node_tris; i++)
             {
                 HitData local_data;
                 bool hit_tri = intersect_triangle(ro, rd, first_child_or_tri + i, local_data, tmax);
@@ -441,21 +441,21 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 		}
 	}
 
-//	hit_anything = intersect_bvh_stack(ro, rd, result, tmax);
+//	hit_anything = intersect_bvh_stack(f16vec3(ro), f16vec3(rd), result, tmax);
 
 	for(uint i = 0; i < spheres.length(); i++)
 	{
 		Sphere current_sphere = spheres[i];
-		float current_t = intersect_sphere(ro, rd, current_sphere);
+		float16_t current_t = float16_t(intersect_sphere(ro, rd, current_sphere));
 		if(current_t >= TMIN && current_t <= tmax)
 		{
 			tmax = current_t;
 			hit_anything = true;
 			result.t = current_t;
-			result.normal = (ro + rd * current_t - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w;
+			result.normal = f16vec3((ro + rd * current_t - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w);
 			result.mat_index = current_sphere.mat_index.x;
 			result.object_index = i;
-			result.object_type = 1;
+			result.object_type = uint8_t(1);
 		}
 	}
 
@@ -1052,13 +1052,13 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 				float pdf_NEE_area = 0.0;
 
 				// Triangle light source
-				if (data.object_type == 0)
+				if (data.object_type == uint8_t(0))
 				{
 					Triangle tri_NEE = triangles[data.object_index];
 					pdf_NEE_area = 1.0 / area_triangle(tri_NEE.data1.xyz, tri_NEE.data2.xyz, tri_NEE.data3.xyz);
 				}
 				// Sphere light source
-				else if (data.object_type == 1)
+				else if (data.object_type == uint8_t(1))
 				{
 					Sphere sphere_NEE = spheres[data.object_index];
 					pdf_NEE_area = 1.0 / area_sphere(sphere_NEE.sphere_data.w);
