@@ -24,7 +24,7 @@ layout (std140, binding = 3) uniform Camera
 // Ray constants
 #define TMIN            float16_t(0.00001)
 #define TMAX            float16_t(10000.0)
-#define NUM_SHADOW_RAYS 1
+#define NUM_SHADOW_RAYS uint8_t(1)
 
 // Misc
 #define ENVIRONMENT_MAP_LE 				0.05
@@ -174,9 +174,9 @@ void cartesian_to_spherical(in vec3 vec, out float theta, out float phi)
 	phi = atan(vec.x, vec.z) + PI;
 }
 
-vec3 sky_color(vec3 dir)
+f16vec3 sky_color(vec3 dir)
 {
-	vec2 cubemap_size = textureSize(u_cubemap, 0);
+	i16vec2 cubemap_size = i16vec2(textureSize(u_cubemap, 0));
 
 	float theta, phi;
 	cartesian_to_spherical(dir, theta, phi);
@@ -187,7 +187,7 @@ vec3 sky_color(vec3 dir)
 	if(phi > TWO_PI)
 		phi -= TWO_PI;
 
-	vec3 cubemap_color = texture(u_cubemap, vec2(phi / TWO_PI, theta / PI)).rgb;
+	f16vec3 cubemap_color = f16vec3(texture(u_cubemap, vec2(phi / TWO_PI, theta / PI)).rgb);
 	return cubemap_color;
 }
 
@@ -206,8 +206,8 @@ struct HitData
 {
 	float16_t t;
 	f16vec3 normal;
-	uint mat_index;
-	uint object_index;
+	uint8_t mat_index;
+	uint16_t object_index;
 	uint8_t object_type; // 0 tri, 1 sphere
 	f16vec2 uvs;
 };
@@ -287,8 +287,8 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 		f16vec3 n2 = octahedral_normal_decoding(unpackFloat2x16(tri.data4.z));
 
 		data.t = float16_t(t);
-		data.mat_index = tri.data4.w;
-		data.object_index = tri_index;
+		data.mat_index = uint8_t(tri.data4.w);
+		data.object_index = uint16_t(tri_index);
 		data.object_type = uint8_t(0);
 
 		float16_t w = float16_t(1.0 - u - v);
@@ -443,7 +443,7 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 
 //	hit_anything = intersect_bvh_stack(f16vec3(ro), f16vec3(rd), result, tmax);
 
-	for(uint i = 0; i < spheres.length(); i++)
+	for(uint16_t i = uint16_t(0); i < uint16_t(spheres.length()); i++)
 	{
 		Sphere current_sphere = spheres[i];
 		float16_t current_t = float16_t(intersect_sphere(ro, rd, current_sphere));
@@ -453,8 +453,8 @@ bool intersect(vec3 ro, vec3 rd, out HitData result)
 			hit_anything = true;
 			result.t = current_t;
 			result.normal = f16vec3((ro + rd * current_t - current_sphere.sphere_data.xyz) / current_sphere.sphere_data.w);
-			result.mat_index = current_sphere.mat_index.x;
-			result.object_index = i;
+			result.mat_index = uint8_t(current_sphere.mat_index.x);
+			result.object_index = uint16_t(i);
 			result.object_type = uint8_t(1);
 		}
 	}
@@ -892,7 +892,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 	}
 
 	vec3 y = ro + rd * data.t + NORMAL_OFFSET * data.normal;
-	vec3 normal_y = data.normal;
+	f16vec3 normal_y = data.normal;
 	Material mat_y = materials[data.mat_index];
 
 	bool prev_bounce_specular = false;
@@ -906,7 +906,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 	for (uint b = 1; b < num_bounces; b++)
 	{
 		vec3 x = y;
-		vec3 normal_x = normal_y;
+		f16vec3 normal_x = normal_y;
 		Material mat_x = mat_y;
 		float alpha_squared = mat_x.data1.w * mat_x.data1.w;
 
