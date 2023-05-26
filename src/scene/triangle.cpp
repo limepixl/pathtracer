@@ -1,4 +1,6 @@
 #include "triangle.hpp"
+#include "../math/math.hpp"
+#include <glm/packing.hpp>
 
 Triangle::Triangle()
         : v0(0.0f), v1(0.0f), v2(0.0f),
@@ -51,10 +53,16 @@ TriangleGLSL::TriangleGLSL(const glm::vec3 &v0, const glm::vec3 &v1, const glm::
 	  data2(v1.x, v1.y, v1.z, uv0.x),
 	  data3(v2.x, v2.y, v2.z, uv0.y),
 	  data4(uv1.x, uv1.y, uv2.x, uv2.y),
-	  data5(n0.x, n0.y, n0.z, n1.x),
-	  data6(n1.y, n1.z, n2.x, n2.y),
-	  data7(n2.z, 0.0f, 0.0f, 0.0f)
-{}
+	  data5(0)
+{
+    glm::vec2 n0_enc = pixl::octahedral_normal_encoding(n0);
+    glm::vec2 n1_enc = pixl::octahedral_normal_encoding(n1);
+    glm::vec2 n2_enc = pixl::octahedral_normal_encoding(n2);
+
+	data5.x = glm::packHalf2x16(n0_enc);
+	data5.y = glm::packHalf2x16(n1_enc);
+	data5.z = glm::packHalf2x16(n2_enc);
+}
 
 TriangleGLSL::TriangleGLSL(const Triangle &triangle)
 	: TriangleGLSL(triangle.v0, triangle.v1, triangle.v2,

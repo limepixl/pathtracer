@@ -29,9 +29,7 @@ struct TriangleGLSL
     glm::vec4 data2; // v1.x, v1.y, v1.z, uv0.x
     glm::vec4 data3; // v2.x, v2.y, v2.z, uv0.y
     glm::vec4 data4; // uv1.x, uv1.y, uv2.x, uv2.y
-	glm::vec4 data5; // n0.x, n0.y, n0.z, n1.x
-	glm::vec4 data6; // n1.y, n1.z, n2.x, n2.y
-	glm::vec4 data7; // n2.z, 0, 0, 0
+	glm::uvec4 data5; // n0_oct, n1_oct, n2_oct, 0
 
 	TriangleGLSL() = default;
 	explicit TriangleGLSL(const Triangle &triangle);

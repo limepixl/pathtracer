@@ -40,9 +40,7 @@ struct Triangle
 	vec4 data2;  // v1.x, v1.y, v1.z, uv0.x
 	vec4 data3;  // v2.x, v2.y, v2.z, uv0.y
 	vec4 data4;  // uv1.x, uv1.y, uv2.x, uv2.y
-	vec4 data5;  // n0.x, n0.y, n0.z, n1.x
-	vec4 data6;  // n1.y, n1.z, n2.x, n2.y
-	vec4 data7;  // n2.z, 0, 0, 0
+	uvec4 data5; // n0_oct, n1_oct, n2_oct, 0
 };
 
 struct Sphere
@@ -285,7 +283,11 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 	float t = inv_determinant * dot(edge2, qvec);
 	if ((v >= 0.0) && (u + v <= 1.0) && t > TMIN && t < tmax)
 	{
-		data.t = t;
+		f16vec3 n0 = octahedral_normal_decoding(unpackFloat2x16(tri.data5.x));
+		f16vec3 n1 = octahedral_normal_decoding(unpackFloat2x16(tri.data5.y));
+		f16vec3 n2 = octahedral_normal_decoding(unpackFloat2x16(tri.data5.z));
+
+		data.t = float16_t(t);
 		data.mat_index = uint(tri.data1.w);
 		data.object_index = tri_index;
 		data.object_type = uint8_t(0);
@@ -296,8 +298,8 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 //		vec3 n0 = tri.data5.xyz;
 //		vec3 n1 = vec3(tri.data5.w, tri.data6.xy);
 //		vec3 n2 = vec3(tri.data6.zw, tri.data7.x);
-		data.normal = normalize(w * tri.data5.xyz + u * vec3(tri.data5.w, tri.data6.xy) + v * vec3(tri.data6.zw, tri.data7.x));
-		data.normal *= -sign(dot(data.normal, rd));
+		data.normal = f16vec3(normalize(w * n0 + u * n1 + v * n2));
+		data.normal *= float16_t(-sign(dot(data.normal, rd)));
 
 		return true;
 	}
@@ -1113,9 +1115,9 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
 	// TODO: separate into different shaders
-//	return estimator_path_tracing_BRDF(cam_origin.xyz, ray_direction, rng_state);
+	return estimator_path_tracing_BRDF(cam_origin.xyz, ray_direction, rng_state);
 //	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
-	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
+//	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 
 void main() 
