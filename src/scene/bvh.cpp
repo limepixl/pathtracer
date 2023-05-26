@@ -1,7 +1,6 @@
 #include "bvh.h"
 #include "../math/math.hpp"
 
-#include <bvh/node_layout_optimizer.hpp>
 #include <bvh/sweep_sah_builder.hpp>
 #include <bvh/triangle.hpp>
 #include <bvh/vector.hpp>
