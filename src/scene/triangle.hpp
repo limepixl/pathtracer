@@ -25,11 +25,10 @@ struct Triangle
 
 struct TriangleGLSL
 {
-    glm::vec4 data1; // v0.x, v0.y, v0.z, mat_index
-    glm::vec4 data2; // v1.x, v1.y, v1.z, uv0.x
-    glm::vec4 data3; // v2.x, v2.y, v2.z, uv0.y
-    glm::vec4 data4; // uv1.x, uv1.y, uv2.x, uv2.y
-	glm::uvec4 data5; // n0_oct, n1_oct, n2_oct, 0
+    glm::vec4 data1; // v0.x, v0.y, v0.z, uv0
+    glm::vec4 data2; // v1.x, v1.y, v1.z, uv1
+    glm::vec4 data3; // v2.x, v2.y, v2.z, uv2
+	glm::uvec4 data4; // n0_oct, n1_oct, n2_oct, mat_index
 
 	TriangleGLSL() = default;
 	explicit TriangleGLSL(const Triangle &triangle);

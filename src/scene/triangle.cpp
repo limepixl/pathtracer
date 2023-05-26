@@ -49,19 +49,17 @@ TriangleGLSL::TriangleGLSL(const glm::vec3 &v0, const glm::vec3 &v1, const glm::
 			 const glm::vec2 &uv0, const glm::vec2 &uv1, const glm::vec2 &uv2,
 			 const glm::vec3 &n0, const glm::vec3 &n1, const glm::vec3 &n2,
 			 uint32 mat_index)
-	: data1(v0.x, v0.y, v0.z, (float)mat_index),
-	  data2(v1.x, v1.y, v1.z, uv0.x),
-	  data3(v2.x, v2.y, v2.z, uv0.y),
-	  data4(uv1.x, uv1.y, uv2.x, uv2.y),
-	  data5(0)
+	: data1(v0.x, v0.y, v0.z, glm::packHalf2x16(uv0)),
+	  data2(v1.x, v1.y, v1.z, glm::packHalf2x16(uv1)),
+	  data3(v2.x, v2.y, v2.z, glm::packHalf2x16(uv2)), data4(0)
 {
     glm::vec2 n0_enc = pixl::octahedral_normal_encoding(n0);
     glm::vec2 n1_enc = pixl::octahedral_normal_encoding(n1);
     glm::vec2 n2_enc = pixl::octahedral_normal_encoding(n2);
-
-	data5.x = glm::packHalf2x16(n0_enc);
-	data5.y = glm::packHalf2x16(n1_enc);
-	data5.z = glm::packHalf2x16(n2_enc);
+	data4.x = glm::packHalf2x16(n0_enc);
+	data4.y = glm::packHalf2x16(n1_enc);
+	data4.z = glm::packHalf2x16(n2_enc);
+	data4.w = mat_index;
 }
 
 TriangleGLSL::TriangleGLSL(const Triangle &triangle)

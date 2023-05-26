@@ -36,11 +36,10 @@ layout (std140, binding = 3) uniform Camera
 
 struct Triangle
 {
-	vec4 data1;  // v0.x, v0.y, v0.z, mat_index
-	vec4 data2;  // v1.x, v1.y, v1.z, uv0.x
-	vec4 data3;  // v2.x, v2.y, v2.z, uv0.y
-	vec4 data4;  // uv1.x, uv1.y, uv2.x, uv2.y
-	uvec4 data5; // n0_oct, n1_oct, n2_oct, 0
+	vec4 data1;  // v0.x, v0.y, v0.z, uv0
+	vec4 data2;  // v1.x, v1.y, v1.z, uv1
+	vec4 data3;  // v2.x, v2.y, v2.z, uv2
+	uvec4 data4; // n0_oct, n1_oct, n2_oct, mat_index
 };
 
 struct Sphere
@@ -283,17 +282,19 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 	float t = inv_determinant * dot(edge2, qvec);
 	if ((v >= 0.0) && (u + v <= 1.0) && t > TMIN && t < tmax)
 	{
-		f16vec3 n0 = octahedral_normal_decoding(unpackFloat2x16(tri.data5.x));
-		f16vec3 n1 = octahedral_normal_decoding(unpackFloat2x16(tri.data5.y));
-		f16vec3 n2 = octahedral_normal_decoding(unpackFloat2x16(tri.data5.z));
+		f16vec3 n0 = octahedral_normal_decoding(unpackFloat2x16(tri.data4.x));
+		f16vec3 n1 = octahedral_normal_decoding(unpackFloat2x16(tri.data4.y));
+		f16vec3 n2 = octahedral_normal_decoding(unpackFloat2x16(tri.data4.z));
 
 		data.t = float16_t(t);
-		data.mat_index = uint(tri.data1.w);
+		data.mat_index = tri.data4.w;
 		data.object_index = tri_index;
 		data.object_type = uint8_t(0);
 
 		float16_t w = float16_t(1.0 - u - v);
-		data.uvs = w * f16vec2(tri.data2.w, tri.data3.w) + float16_t(u) * f16vec2(tri.data4.xy) + float16_t(v) * f16vec2(tri.data4.zw);
+		data.uvs = 			  w * unpackFloat2x16(uint(tri.data1.w)) +
+				   float16_t(u) * unpackFloat2x16(uint(tri.data2.w)) +
+		           float16_t(v) * unpackFloat2x16(uint(tri.data3.w));
 
 //		vec3 n0 = tri.data5.xyz;
 //		vec3 n1 = vec3(tri.data5.w, tri.data6.xy);
@@ -1115,9 +1116,9 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
 	// TODO: separate into different shaders
-	return estimator_path_tracing_BRDF(cam_origin.xyz, ray_direction, rng_state);
+//	return estimator_path_tracing_BRDF(cam_origin.xyz, ray_direction, rng_state);
 //	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
-//	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
+	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 
 void main() 
