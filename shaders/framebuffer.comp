@@ -193,10 +193,10 @@ vec3 sky_color(vec3 dir)
 
 f16vec3 octahedral_normal_decoding(f16vec2 f)
 {
-	f = f * 2.0 - 1.0;
-	f16vec3 n = f16vec3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
+	f16vec3 n = f16vec3(f.xy, 1.0 - abs(f.x) - abs(f.y));
 	float16_t t = max(-n.z, 0.0);
-	n.xy += all(greaterThanEqual(n.xy, vec2(0.0))) ? -t : t;
+	n.x += n.x >= 0.0 ? -t : t;
+	n.y += n.y >= 0.0 ? -t : t;
 	return normalize(n);
 }
 

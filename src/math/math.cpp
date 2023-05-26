@@ -193,18 +193,19 @@ glm::mat3 pixl::construct_TNB_matrix(glm::vec3 &n)
 	return glm::transpose(res);
 }
 
+// https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
 glm::vec2 pixl::octahedral_wrap(const glm::vec2 &v)
 {
-	glm::vec2 v_yx(v.y, v.x);
-	glm::vec2 v_xy(v.x, v.y);
-	return ( 1.0f - abs( v_yx ) ) * (glm::all(glm::greaterThanEqual(v_xy, glm::vec2(0.0f))) ? 1.0f : -1.0f );
+	glm::vec2 v_xy(
+		v.x >= 0.0f ? 1.0f : -1.0f,
+		v.y >= 0.0f ? 1.0f : -1.0f
+	);
+	return (1.0f - abs(glm::vec2(v.y, v.x))) * v_xy;
 }
-
 glm::vec2 pixl::octahedral_normal_encoding(glm::vec3 n)
 {
 	n /= (glm::abs(n.x) + glm::abs(n.y) + glm::abs(n.z));
 	glm::vec2 n_xy(n.x, n.y);
 	n_xy = (n.z >= 0.0f) ? n_xy : octahedral_wrap(n_xy);
-	n_xy = n_xy * 0.5f + 0.5f;
 	return n_xy;
 }
