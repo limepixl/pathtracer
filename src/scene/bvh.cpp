@@ -1,10 +1,11 @@
 #include "bvh.h"
 #include "../math/math.hpp"
 
-#include <bvh/bvh.hpp>
+#include <bvh/node_layout_optimizer.hpp>
 #include <bvh/sweep_sah_builder.hpp>
 #include <bvh/triangle.hpp>
 #include <bvh/vector.hpp>
+#include <bvh/bvh.hpp>
 
 BVHNodeGLSL::BVHNodeGLSL(const glm::vec3 &bmin, const glm::vec3 &bmax, uint32 first_child_or_tri, uint32 num_tris)
 	: data1(bmin.x, bmin.y, bmin.z, (float) first_child_or_tri),
@@ -43,6 +44,9 @@ Array<BVHNodeGLSL> CalculateBVH(Array<TriangleGLSL> &glsl_tris, Array<TriangleGL
 	bvh::Bvh<float> bvh;
 	bvh::SweepSahBuilder<bvh::Bvh<float>> builder(bvh);
 	builder.build(global_bbox, bboxes.get(), centers.get(), primitives.size());
+
+	bvh::NodeLayoutOptimizer optimizer(bvh);
+	optimizer.optimize();
 
 	sorted_glsl_tris = Array<TriangleGLSL>(glsl_tris.size);
 	sorted_glsl_tris.size = glsl_tris.size;
