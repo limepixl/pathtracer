@@ -28,11 +28,8 @@ void PushDataToSSBO(Array<T> &data, Array<GLuint> &ssbo_array)
     ssbo_array.append(ssbo);
 }
 
-int main(int argc, char *argv[])
+int main()
 {
-    (void) argc;
-    (void) argv;
-
     Display display("Pathtracer", WIDTH, HEIGHT);
 
     Mesh mesh;
