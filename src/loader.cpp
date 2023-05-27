@@ -345,6 +345,8 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
         }
 
         // Find model matrix if any
+		// TODO: Overhaul loading of nodes and their transformations as the below is incorrect
+		// when a specific node has a transformation that the whole hierarchy doesn't
         for (cgltf_size node_index = 0; node_index < data->nodes_count; node_index++)
         {
             cgltf_node *node = &data->nodes[node_index];
@@ -368,7 +370,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 
 			if(node->has_scale)
 			{
-				glm::vec3 scale_vec(node->scale[0], node->scale[1], node->scale[2]);
+				glm::vec3 scale_vec(node->scale[0], node->scale[2], node->scale[1]);
 				out_mesh.model_matrix = glm::scale(out_mesh.model_matrix, scale_vec);
 			}
 
@@ -381,7 +383,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 
 			if(node->has_translation)
 			{
-				glm::vec3 translation_vec(node->translation[0], node->translation[1], node->translation[2]);
+				glm::vec3 translation_vec(node->translation[0], node->translation[2], node->translation[1]);
 				out_mesh.model_matrix = glm::translate(out_mesh.model_matrix, translation_vec);
 			}
 
