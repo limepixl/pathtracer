@@ -772,7 +772,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 					Triangle light_source = triangles[light_tri_indices[picked_light_source]];
 					light_area = area_triangle(light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
 
-					light_source_mat = materials[uint(light_source.data1.w)];
+					light_source_mat = materials[uint(light_source.data4.w)];
 
 					y = map_to_triangle(rand_vec2(rng_state), light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
 				}
@@ -925,7 +925,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 					Triangle light_source = triangles[light_tri_indices[picked_light_source]];
 					light_area = area_triangle(light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
 
-					light_source_mat = materials[uint(light_source.data1.w)];
+					light_source_mat = materials[uint(light_source.data4.w)];
 
 					y_nee = map_to_triangle(rand_vec2(rng_state), light_source.data1.xyz, light_source.data2.xyz, light_source.data3.xyz);
 				}
