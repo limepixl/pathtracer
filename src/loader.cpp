@@ -165,128 +165,136 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
                 {
                     cgltf_material *material = primitive->material;
 
-                    MaterialGLSL result_mat;
-					result_mat.data3.w = -1.0f;
+					glm::vec3 diffuse(1.0f, 0.0f, 1.0f);
+					glm::vec3 specular(0.0f);
+					glm::vec3 Le(0.0f);
+					float roughness = 0.0f;
+					int diffuse_tex_index = -1;
+					MaterialType material_type = MaterialType::MATERIAL_LAMBERTIAN;
 
-                    if (material == nullptr)
+					if (material != nullptr)
                     {
-                        result_mat.data1 = glm::vec4(1.0f, 0.0f, 1.0f, 0.0f);
+						if (material->has_emissive_strength)
+						{
+							Le = glm::vec3(
+								material->emissive_factor[0] * material->emissive_strength.emissive_strength,
+								material->emissive_factor[1] * material->emissive_strength.emissive_strength,
+								material->emissive_factor[2] * material->emissive_strength.emissive_strength);
+
+							material_type = MaterialType::MATERIAL_LIGHT;
+						}
+						else if (material->has_pbr_metallic_roughness)
+						{
+							cgltf_pbr_metallic_roughness &mat_properties = material->pbr_metallic_roughness;
+
+							cgltf_float *base_color_arr = mat_properties.base_color_factor;
+							if (base_color_arr[3] < 0.99f)
+							{
+								printf("ERROR (glTF Loader): Currently not supporting base color with any transparency!\n");
+								cgltf_free(data);
+								return false;
+							}
+
+							if (mat_properties.base_color_texture.texture != nullptr)
+							{
+								cgltf_image *image = mat_properties.base_color_texture.texture->image;
+
+								void *image_data_start = (void *)((uint8 *)image->buffer_view->buffer->data + image->buffer_view->offset);
+								cgltf_size len = image->buffer_view->size;
+
+								int w = -1;
+								int h = -1;
+								int channels = -1;
+
+								stbi_uc *image_data = stbi_load_from_memory((stbi_uc *)image_data_start,
+																			(int)len,
+																			&w,
+																			&h,
+																			&channels,
+																			3);
+								if (image_data == nullptr)
+								{
+									printf("ERROR (glTF Loader / Textures): Failed to load texture!\n");
+									cgltf_free(data);
+									return false;
+								}
+
+								if ((w != texture_layer_width || h != texture_layer_height) && channels != -1)
+								{
+									stbi_uc *resized_image_data = new stbi_uc[texture_layer_width * texture_layer_height * (uint64)channels];
+									stbir_resize_uint8(image_data, w, h, 0,
+													   resized_image_data, 512, 512, 0, channels);
+
+									if (resized_image_data != nullptr)
+									{
+										stbi_image_free(image_data);
+										image_data = resized_image_data;
+									}
+								}
+
+								// TODO: Abstract away texture loading and keep track how
+								// many textures the program has actually loaded, globally
+								// NOTE: Now the textures that the Display creation creates
+								// are just the framebuffer and the skybox textures.
+								int32 texture_index = num_loaded_textures++;
+								diffuse_tex_index = texture_index;
+
+								cgltf_sampler *sampler = mat_properties.base_color_texture.texture->sampler;
+								cgltf_int min_filter_mode = (sampler != nullptr) ? sampler->min_filter : GL_LINEAR;
+								cgltf_int mag_filter_mode = (sampler != nullptr) ? sampler->mag_filter : GL_LINEAR;
+								cgltf_int wrap_mode_s = (sampler != nullptr) ? sampler->wrap_s : GL_REPEAT;
+								cgltf_int wrap_mode_t = (sampler != nullptr) ? sampler->wrap_t : GL_REPEAT;
+
+								glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_MIN_FILTER, min_filter_mode);
+								glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_MAG_FILTER, mag_filter_mode);
+								glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_WRAP_S, wrap_mode_s);
+								glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_WRAP_T, wrap_mode_t);
+
+								glTextureSubImage3D(out_mesh.texture_array,
+													0,
+													0,
+													0,
+													texture_index,
+													texture_layer_width,
+													texture_layer_height,
+													1,
+													GL_RGB,
+													GL_UNSIGNED_BYTE,
+													image_data);
+
+								stbi_image_free(image_data);
+							}
+
+							if (mat_properties.metallic_factor < EPSILON)
+							{
+								// Material is assumed to be perfectly diffuse
+								diffuse = glm::vec3(base_color_arr[0], base_color_arr[1], base_color_arr[2]);
+								roughness = mat_properties.roughness_factor;
+
+								if (roughness > EPSILON)
+								{
+									material_type = MaterialType::MATERIAL_OREN_NAYAR;
+									// NOTE: this maps [0,1] to [0, 0.35] which is only based on hearsay and not any maths
+									// as I could not find a specific resource that outlines the max realistic roughness for O-N
+									// TODO: Implement other better purely diffuse material
+									roughness *= 0.35f;
+								}
+								else
+								{
+									material_type = MaterialType::MATERIAL_LAMBERTIAN;
+								}
+							}
+							else
+							{
+								// Material is assumed to be metallic
+								roughness = mat_properties.roughness_factor;
+								diffuse = glm::vec3(base_color_arr[0], base_color_arr[1], base_color_arr[2]);
+								roughness = MaterialType::MATERIAL_SPECULAR_METAL;
+							}
+						}
                     }
 
-                    else if (material->has_pbr_metallic_roughness)
-                    {
-                        cgltf_pbr_metallic_roughness &mat_properties = material->pbr_metallic_roughness;
-
-                        cgltf_float *base_color_arr = mat_properties.base_color_factor;
-                        if (base_color_arr[3] < 0.99f)
-                        {
-                            printf("ERROR (glTF Loader): Currently not supporting base color with any transparency!\n");
-                            cgltf_free(data);
-                            return false;
-                        }
-
-                        if (mat_properties.base_color_texture.texture != nullptr)
-                        {
-                            cgltf_image *image = mat_properties.base_color_texture.texture->image;
-
-                            void *image_data_start = (void *) ((uint8 *) image->buffer_view->buffer->data +
-                                                               image->buffer_view->offset);
-                            cgltf_size len = image->buffer_view->size;
-
-                            int w = -1;
-                            int h = -1;
-                            int channels = -1;
-
-                            stbi_uc *image_data = stbi_load_from_memory((stbi_uc *) image_data_start,
-                                                                        (int) len,
-                                                                        &w,
-                                                                        &h,
-                                                                        &channels,
-                                                                        3);
-                            if (image_data == nullptr)
-                            {
-                                printf("ERROR (glTF Loader / Textures): Failed to load texture!\n");
-                                cgltf_free(data);
-                                return false;
-                            }
-
-                            if ((w != texture_layer_width || h != texture_layer_height) && channels != -1)
-                            {
-                                stbi_uc *resized_image_data = new stbi_uc[texture_layer_width *
-                                                                          texture_layer_height *
-                                                                          (uint64) channels];
-                                stbir_resize_uint8(image_data, w, h, 0,
-                                                   resized_image_data, 512, 512, 0, channels);
-
-                                if (resized_image_data != nullptr)
-                                {
-                                    stbi_image_free(image_data);
-                                    image_data = resized_image_data;
-                                }
-                            }
-
-                            // TODO: Abstract away texture loading and keep track how
-                            // many textures the program has actually loaded, globally
-                            // NOTE: Now the textures that the Display creation creates
-                            // are just the framebuffer and the skybox textures.
-                            int32 texture_index = num_loaded_textures++;
-                            result_mat.data3.w = (float) texture_index;
-
-                            cgltf_sampler *sampler = mat_properties.base_color_texture.texture->sampler;
-                            cgltf_int min_filter_mode = (sampler != nullptr) ? sampler->min_filter : GL_LINEAR;
-                            cgltf_int mag_filter_mode = (sampler != nullptr) ? sampler->mag_filter : GL_LINEAR;
-                            cgltf_int wrap_mode_s = (sampler != nullptr) ? sampler->wrap_s : GL_REPEAT;
-                            cgltf_int wrap_mode_t = (sampler != nullptr) ? sampler->wrap_t : GL_REPEAT;
-
-                            glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_MIN_FILTER, min_filter_mode);
-                            glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_MAG_FILTER, mag_filter_mode);
-                            glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_WRAP_S, wrap_mode_s);
-                            glTextureParameteri(out_mesh.texture_array, GL_TEXTURE_WRAP_T, wrap_mode_t);
-
-                            glTextureSubImage3D(out_mesh.texture_array,
-                                                0,
-                                                0,
-                                                0,
-                                                texture_index,
-                                                texture_layer_width,
-                                                texture_layer_height,
-                                                1,
-                                                GL_RGB,
-                                                GL_UNSIGNED_BYTE,
-                                                image_data);
-
-                            stbi_image_free(image_data);
-                        }
-
-                        if (mat_properties.metallic_factor < EPSILON)
-                        {
-                            // Material is assumed to be perfectly diffuse
-                            result_mat.data1 = glm::vec4(base_color_arr[0],
-                                                     	 base_color_arr[1],
-                                                     	 base_color_arr[2],
-                                                     	 mat_properties.roughness_factor);
-
-                            if (mat_properties.roughness_factor > EPSILON)
-                            {
-                                result_mat.data2.w = (float) MaterialType::MATERIAL_OREN_NAYAR;
-                                // NOTE: this maps [0,1] to [0, 0.35] which is only based on hearsay and not any maths
-                                // as I could not find a specific resource that outlines the max realistic roughness for O-N
-                                // TODO: Implement other better purely diffuse material
-                                result_mat.data1.w *= 0.35f;
-                            }
-                            else
-                            {
-                                result_mat.data2.w = (float) MaterialType::MATERIAL_LAMBERTIAN;
-                            }
-                        }
-                        else
-                        {
-                            // Material is assumed to be metallic
-                            result_mat.data1.w = mat_properties.roughness_factor;
-                            result_mat.data2 = glm::vec4(base_color_arr[0], base_color_arr[1], base_color_arr[2], (float) MaterialType::MATERIAL_SPECULAR_METAL);
-                        }
-                    }
-
+					MaterialGLSL result_mat(diffuse, specular, Le, roughness, diffuse_tex_index, material_type);
                     out_mesh.materials.append(result_mat);
                 }
 
