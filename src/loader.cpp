@@ -51,7 +51,7 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
             glBindTextureUnit(2, out_mesh.texture_array);
             glTextureStorage3D(out_mesh.texture_array,
                                1,
-                               GL_RGB32F,
+                               GL_RGB8,
                                texture_layer_width,
                                texture_layer_height,
                                (GLsizei) num_textures);
@@ -261,6 +261,8 @@ bool LoadGLTF(const char *path, Mesh &out_mesh)
 													GL_RGB,
 													GL_UNSIGNED_BYTE,
 													image_data);
+
+								glGenerateTextureMipmap(out_mesh.texture_array);
 
 								stbi_image_free(image_data);
 							}
