@@ -22,12 +22,12 @@ layout (std140, binding = 3) uniform Camera
 #define HALF_PI 		1.57079632
 
 // Ray constants
-#define TMIN            float16_t(0.00001)
-#define TMAX            float16_t(10000.0)
-#define NUM_SHADOW_RAYS uint8_t(1)
+#define TMIN            0.00001
+#define TMAX            10000.0
+#define NUM_SHADOW_RAYS 1
 
 // Misc
-#define ENVIRONMENT_MAP_LE 				0.05
+#define ENVIRONMENT_MAP_LE 				1.0
 #define IMPORTANCE_SAMPLE_GGX 			1
 #define NEE_SPECULAR_ROUGHNESS_CUTOFF 	0.0
 #define NORMAL_OFFSET					0.005
