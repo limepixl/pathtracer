@@ -1,8 +1,8 @@
-#include "mesh.h"
+#include "model.h"
 #include "material.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
-Mesh::Mesh(Array<struct Triangle> &triangles,
+Model::Model(Array<struct Triangle> &triangles,
            Array<struct MaterialGLSL> &materials,
 		   glm::mat4 &model_matrix,
            uint32 texture_array)
@@ -12,7 +12,7 @@ Mesh::Mesh(Array<struct Triangle> &triangles,
           texture_array(texture_array)
 {}
 
-Array<TriangleGLSL> Mesh::ConvertToSSBOFormat()
+Array<TriangleGLSL> Model::ConvertToSSBOFormat()
 {
     Array<TriangleGLSL> mesh_tris_ssbo(triangles.size);
     for (uint32 i = 0; i < triangles.size; i++)
@@ -24,7 +24,7 @@ Array<TriangleGLSL> Mesh::ConvertToSSBOFormat()
     return mesh_tris_ssbo;
 }
 
-void Mesh::ApplyModelMatrixToTris()
+void Model::ApplyModelMatrixToTris()
 {
 	glm::mat3 normal_matrix = glm::mat3(glm::transpose(glm::inverse(model_matrix)));
     for(uint32 i = 0; i < triangles.size; i++)
@@ -41,28 +41,28 @@ void Mesh::ApplyModelMatrixToTris()
 	model_matrix = glm::mat4(1.0f);
 }
 
-Mesh::Mesh()
+Model::Model()
 	: model_matrix(1.0f), texture_array((uint32) -1)
 {}
 
-void Mesh::Translate(const glm::vec3 &translation)
+void Model::Translate(const glm::vec3 &translation)
 {
 	model_matrix = glm::translate(model_matrix, translation);
 }
 
-void Mesh::Rotate(const glm::vec3 &rotation)
+void Model::Rotate(const glm::vec3 &rotation)
 {
 	model_matrix = glm::rotate(model_matrix, rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
 	model_matrix = glm::rotate(model_matrix, rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
 	model_matrix = glm::rotate(model_matrix, rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
 }
 
-void Mesh::Scale(const glm::vec3 &scale)
+void Model::Scale(const glm::vec3 &scale)
 {
 	model_matrix = glm::scale(model_matrix, scale);
 }
 
-void Mesh::Scale(float scale)
+void Model::Scale(float scale)
 {
 	Scale(glm::vec3(scale));
 }

@@ -1,5 +1,4 @@
 #pragma once
-#include "scene/mesh.h"
+#include "scene/model.h"
 
-bool LoadGLTF(const char *path,
-              Mesh &out_mesh);
+bool LoadGLTF(const char *path, Model &out_mesh);

@@ -10,7 +10,7 @@
 #include <glm/fwd.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-bool LoadGLTF(const char *path, Mesh &out_mesh)
+bool LoadGLTF(const char *path, Model &out_mesh)
 {
     cgltf_options options = {};
     cgltf_data *data = nullptr;

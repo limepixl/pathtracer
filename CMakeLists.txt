@@ -20,7 +20,7 @@ set(SOURCE_FILES
     src/scene/bvh.cpp
     src/scene/material.cpp
     src/scene/triangle.cpp
-    src/scene/mesh.cpp
+    src/scene/model.cpp
     src/display/display.cpp
     src/scene/sphere.cpp
     src/resource/shader.cpp
@@ -42,14 +42,13 @@ set(HEADER_FILES
     src/scene/material.hpp
     src/scene/sphere.hpp
     src/scene/triangle.hpp
-    src/scene/mesh.h
+    src/scene/model.h
     src/display/display.hpp
     src/resource/shader.hpp
     src/core/array.hpp
     src/core/utils.h
 
-    src/math/math.hpp
-    )
+    src/math/math.hpp)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 

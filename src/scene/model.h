@@ -4,7 +4,7 @@
 #include "triangle.hpp"
 #include <glm/mat4x4.hpp>
 
-struct Mesh
+struct Model
 {
     Array<struct Triangle> triangles;
     Array<struct MaterialGLSL> materials;
@@ -12,9 +12,9 @@ struct Mesh
 	glm::mat4 model_matrix;
     uint32 texture_array;
 
-    Mesh();
+	Model();
 
-    Mesh(Array<struct Triangle> &triangles,
+	Model(Array<struct Triangle> &triangles,
          Array<struct MaterialGLSL> &materials,
 		 glm::mat4 &model_matrix,
          uint32 texture_array);

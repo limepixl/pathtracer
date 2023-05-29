@@ -15,30 +15,28 @@ int main(int argc, char *argv[])
 
     Display display("Pathtracer", WIDTH, HEIGHT);
 
-    Mesh mesh;
-
-    bool isLoaded = LoadGLTF("res/models/CornellBox_lit.glb", mesh);
-    if (!isLoaded)
+	Model model;
+    if (!LoadGLTF("res/models/CornellBox_lit.glb", model))
     {
         printf("Failed to load model!\n");
         return -1;
     }
 
     // Apply model matrix to tris
-	mesh.Translate(glm::vec3(0.0f, -2.0f, -5.0f));
-	mesh.Rotate(glm::vec3(0.0f, glm::radians(-90.0f), 0.0f));
-	mesh.Scale(2.0f);
-	mesh.ApplyModelMatrixToTris();
+	model.Translate(glm::vec3(0.0f, -2.0f, -6.0f));
+	model.Rotate(glm::vec3(0.0f, glm::radians(-90.0f), 0.0f));
+	model.Scale(2.0f);
+	model.ApplyModelMatrixToTris();
 
-    Array<TriangleGLSL> unsorted_model_tris = mesh.ConvertToSSBOFormat();
+    Array<TriangleGLSL> unsorted_model_tris = model.ConvertToSSBOFormat();
 
     Array<TriangleGLSL> model_glsl_tris;
     Array<BVHNodeGLSL> bvh_ssbo = CalculateBVH(unsorted_model_tris, model_glsl_tris);
 
     // Set up data to be passed to SSBOs
 
-    Array<MaterialGLSL> materials_ssbo = mesh.materials;
-	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1000.0f), 0.0f, 0, MaterialType::MATERIAL_LIGHT));
+    Array<MaterialGLSL> materials_ssbo = model.materials;
+//	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1000.0f), 0.0f, 0, MaterialType::MATERIAL_LIGHT));
 
     Array<SphereGLSL> spheres_ssbo;
 	spheres_ssbo.append(SphereGLSL(glm::vec3(6.5f, 2.0f, -3.0f), 0.1f, materials_ssbo.size - 1));
@@ -84,9 +82,9 @@ int main(int argc, char *argv[])
 
             glBindTextureUnit(1, display.cubemap_texture);
 
-			if(mesh.texture_array != (uint32) -1)
+			if(model.texture_array != (uint32) -1)
 			{
-            	glBindTextureUnit(2, mesh.texture_array);
+            	glBindTextureUnit(2, model.texture_array);
 			}
 
             if (display.frame_count == 0)
