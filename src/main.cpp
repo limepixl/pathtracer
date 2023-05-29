@@ -80,15 +80,7 @@ int main(int argc, char *argv[])
 	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.944f, 0.776f, 0.373f), glm::vec3(0.0f), 0.2f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
 	spheres_ssbo.append(SphereGLSL(glm::vec3(8.0f, 0.0f, -3.0f), 0.5f, materials_ssbo.size - 1));
 
-    Array<uint32> emissive_spheres_ssbo;
-    for (uint32 i = 0; i < spheres_ssbo.size; i++)
-    {
-        MaterialGLSL &mat = materials_ssbo[spheres_ssbo[i].mat_index[0]];
-        if (glm::all(glm::greaterThan(mat.emitted_radiance(), glm::vec3(EPSILON))))
-        {
-            emissive_spheres_ssbo.append(i);
-        }
-    }
+    Array<uint32> emissive_spheres_ssbo = FindEmissiveSpheres(spheres_ssbo, materials_ssbo);
 
     Array<GLuint> ssbo_array;
     PushDataToSSBO(spheres_ssbo, ssbo_array);

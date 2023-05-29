@@ -1,15 +1,17 @@
 #pragma once
+#include "../defines.hpp"
+#include "../core/array.hpp"
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 struct SphereGLSL
 {
-	glm::vec4 data {}; // o.x, o.y, o.z, radius
-    uint32 mat_index[4] {0}; // mat_index, 0, 0, 0
+	glm::vec4 data {};       // o.x, o.y, o.z, radius
+	glm::uvec4 mat_index {}; // mat_index, 0, 0, 0
 
     SphereGLSL() = default;
 
-    SphereGLSL(glm::vec3 origin, float radius, uint32 mat_index)
-        : data(glm::vec4(origin.x, origin.y, origin.z, radius))
-    {
-        this->mat_index[0] = mat_index;
-    }
+    SphereGLSL(glm::vec3 origin, float radius, uint32 mat_index);
 };
+
+Array<uint32> FindEmissiveSpheres(Array<SphereGLSL> &spheres, Array<struct MaterialGLSL> &materials);

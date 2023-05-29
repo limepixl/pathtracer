@@ -22,6 +22,7 @@ set(SOURCE_FILES
     src/scene/triangle.cpp
     src/scene/mesh.cpp
     src/display/display.cpp
+    src/scene/sphere.cpp
     src/resource/shader.cpp
     src/scene/camera.cpp
 
