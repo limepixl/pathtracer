@@ -1,5 +1,4 @@
 #include <glad/glad.h>
-#include <SDL.h>
 
 #include "display/display.hpp"
 #include "glm/trigonometric.hpp"
@@ -9,8 +8,6 @@
 #include "scene/camera.hpp"
 #include "scene/material.hpp"
 #include "scene/sphere.hpp"
-
-#include <string>
 
 template<class T>
 void PushDataToSSBO(Array<T> &data, Array<GLuint> &ssbo_array)
@@ -103,35 +100,14 @@ int main(int argc, char *argv[])
 
     glUseProgram(display.compute_shader.id);
 
-    uint32 last_time = 0;
-    uint32 last_report = 0;
-    uint32 frame_count = 0;
-
     Camera cam(glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(1.0f, 0.0f, 0.0f), 0.005f, 0.05f);
-
-    constexpr uint32 num_work_groups_x = WIDTH / 8;
-    constexpr uint32 num_work_groups_y = HEIGHT / 8;
 
     while (display.is_open)
     {
-        SDL_Event e;
-        while (SDL_PollEvent(&e))
-        {
-            if (e.type == SDL_QUIT)
-            {
-                display.is_open = false;
-            }
-            else if (e.type == SDL_MOUSEMOTION)
-            {
-                cam.mouse_look((float) e.motion.xrel, (float) e.motion.yrel);
-                frame_count = 0;
-            }
-        }
+        display.ProcessEvents(cam);
+		display.FrameStartMarker();
 
-        uint32 current_time = SDL_GetTicks();
-        uint32 delta_time = (uint32) current_time - (uint32) last_time;
-
-        cam.move(SDL_GetKeyboardState(nullptr), delta_time, frame_count);
+        cam.move(display.keyboard_state, display.delta_time, display.frame_count);
 
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -147,15 +123,15 @@ int main(int argc, char *argv[])
             	glBindTextureUnit(2, mesh.texture_array);
 			}
 
-            if (frame_count == 0)
+            if (display.frame_count == 0)
             {
                 CameraGLSL cam_glsl(cam.origin, cam.forward, cam.right, cam.fly_speed, cam.look_sens);
                 glNamedBufferSubData(cam.cam_ubo, 0, sizeof(CameraGLSL), &cam_glsl);
             }
 
-            glUniform3ui(0, pcg32_random(), frame_count++, BOUNCE_COUNT);
+            glUniform3ui(0, pcg32_random(), display.frame_count++, BOUNCE_COUNT);
 
-            glDispatchCompute(num_work_groups_x, num_work_groups_y, 1);
+            glDispatchCompute(NUM_WORK_GROUPS_X, NUM_WORK_GROUPS_Y, 1);
             glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
             glBindTextureUnit(2, 0);
@@ -175,23 +151,9 @@ int main(int argc, char *argv[])
         }
         glPopDebugGroup();
 
-        // Frame time calculation
-        if (current_time > last_report + 1000)
-        {
-            uint32 fps = (uint32) (1.0f / ((float) delta_time / 1000.0f));
-            std::string new_title = "Pathtracer | ";
-            new_title += std::to_string(delta_time) + "ms | ";
-            new_title += std::to_string(fps) + "fps | ";
-            new_title += std::to_string(frame_count) + " total frame count | ";
-
-            UpdateDisplayTitle(display, new_title.c_str());
-            last_report = current_time;
-        }
-        last_time = current_time;
-
-        SDL_GL_SwapWindow(display.window_handle);
+		display.FrameEndMarker();
     }
 
-    CloseDisplay(display);
+    display.CloseDisplay();
     return 0;
 }

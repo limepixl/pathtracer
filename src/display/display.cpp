@@ -1,8 +1,11 @@
 #include "display.hpp"
-#include <SDL.h>
-#include <cstdio>
+#include "../scene/camera.hpp"
+
 #include <glad/glad.h>
 #include <stb_image.h>
+#include <cstdio>
+#include <string>
+#include <SDL.h>
 
 // https://www.khronos.org/opengl/wiki/Debug_Output
 static void GLAPIENTRY MessageCallback(GLenum source,
@@ -191,14 +194,54 @@ bool Display::InitRenderBuffer()
     return true;
 }
 
-void CloseDisplay(Display &window)
+void Display::FrameStartMarker()
 {
-    SDL_GL_DeleteContext(window.context);
-    SDL_DestroyWindow(window.window_handle);
-    SDL_Quit();
+	current_time = SDL_GetTicks();
+	delta_time = current_time - last_time;
 }
 
-void UpdateDisplayTitle(Display &window, const char *new_title)
+void Display::FrameEndMarker()
 {
-    SDL_SetWindowTitle(window.window_handle, new_title);
+	// Frame time calculation
+	if (current_time > last_report + 1000)
+	{
+		uint32 fps = (uint32) (1.0f / ((float) delta_time / 1000.0f));
+		std::string new_title = "Pathtracer | ";
+		new_title += std::to_string(delta_time) + "ms | ";
+		new_title += std::to_string(fps) + "fps | ";
+		new_title += std::to_string(frame_count) + " total frame count | ";
+
+		SDL_SetWindowTitle(window_handle, new_title.c_str());
+		last_report = current_time;
+	}
+	last_time = current_time;
+
+	// Swap window
+	SDL_GL_SwapWindow(window_handle);
+}
+
+void Display::ProcessEvents(Camera &cam)
+{
+	SDL_Event e;
+	while (SDL_PollEvent(&e))
+	{
+		if (e.type == SDL_QUIT)
+		{
+			is_open = false;
+		}
+		else if (e.type == SDL_MOUSEMOTION)
+		{
+			cam.mouse_look((float) e.motion.xrel, (float) e.motion.yrel);
+			frame_count = 0;
+		}
+	}
+
+	keyboard_state = (uint8 *) SDL_GetKeyboardState(nullptr);
+}
+
+void Display::CloseDisplay()
+{
+    SDL_GL_DeleteContext(context);
+    SDL_DestroyWindow(window_handle);
+    SDL_Quit();
 }

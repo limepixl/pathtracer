@@ -20,10 +20,21 @@ struct Display
 
     uint32 cubemap_texture;
 
+	// Timing data
+	uint32 last_time = 0;
+	uint32 last_report = 0;
+	uint32 frame_count = 0;
+	uint32 delta_time;
+	uint32 current_time;
+
+	// Input state
+	uint8 *keyboard_state;
+
     Display(const char *title, uint32 width, uint32 height);
+
     bool InitRenderBuffer();
+	void FrameStartMarker();
+	void FrameEndMarker();
+	void ProcessEvents(struct Camera &cam);
+	void CloseDisplay();
 };
-
-void CloseDisplay(Display &window);
-
-void UpdateDisplayTitle(Display &window, const char *new_title);
