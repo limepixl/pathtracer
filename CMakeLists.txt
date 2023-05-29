@@ -46,6 +46,7 @@ set(HEADER_FILES
     src/display/display.hpp
     src/resource/shader.hpp
     src/core/array.hpp
+    src/core/utils.h
 
     src/math/math.hpp
     )
