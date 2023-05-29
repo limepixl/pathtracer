@@ -1,5 +1,6 @@
 #include "triangle.hpp"
 #include "../math/math.hpp"
+#include "material.hpp"
 #include <glm/packing.hpp>
 
 Triangle::Triangle()
@@ -68,3 +69,18 @@ TriangleGLSL::TriangleGLSL(const Triangle &triangle)
 				   triangle.n0, triangle.n1, triangle.n2,
 				   triangle.mat_index)
 {}
+
+Array<uint32> FindEmissiveTris(Array<TriangleGLSL> &tris, Array<struct MaterialGLSL> &materials)
+{
+	Array<uint32> emissive_tris(tris.size);
+	for (uint32 i = 0; i < tris.size; i++)
+	{
+		MaterialGLSL current_mat = materials[tris[i].data4.w];
+		if (current_mat.data3.x >= EPSILON || current_mat.data3.y >= EPSILON || current_mat.data3.z >= EPSILON)
+		{
+			emissive_tris.append(i);
+		}
+	}
+
+	return emissive_tris;
+}

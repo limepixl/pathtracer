@@ -41,3 +41,5 @@ struct TriangleGLSL
 	[[nodiscard]] glm::vec3 v1() const;
 	[[nodiscard]] glm::vec3 v2() const;
 };
+
+Array<uint32> FindEmissiveTris(Array<TriangleGLSL> &tris, Array<struct MaterialGLSL> &materials);

@@ -52,17 +52,6 @@ int main(int argc, char *argv[])
     Array<TriangleGLSL> model_glsl_tris;
     Array<BVHNodeGLSL> bvh_ssbo = CalculateBVH(unsorted_model_tris, model_glsl_tris);
 
-    // Find all emissive triangles in scene
-    Array<uint32> emissive_tris(model_glsl_tris.size);
-    for (uint32 i = 0; i < model_glsl_tris.size; i++)
-    {
-        MaterialGLSL current_mat = mesh.materials[model_glsl_tris[i].data4.w];
-        if (current_mat.data3.x >= EPSILON || current_mat.data3.y >= EPSILON || current_mat.data3.z >= EPSILON)
-        {
-            emissive_tris.append(i);
-        }
-    }
-
     // Set up data to be passed to SSBOs
 
     Array<MaterialGLSL> materials_ssbo = mesh.materials;
@@ -80,6 +69,8 @@ int main(int argc, char *argv[])
 	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.944f, 0.776f, 0.373f), glm::vec3(0.0f), 0.2f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
 	spheres_ssbo.append(SphereGLSL(glm::vec3(8.0f, 0.0f, -3.0f), 0.5f, materials_ssbo.size - 1));
 
+	// Find all emissive primitives in scene
+	Array<uint32> emissive_tris = FindEmissiveTris(model_glsl_tris, materials_ssbo);
     Array<uint32> emissive_spheres_ssbo = FindEmissiveSpheres(spheres_ssbo, materials_ssbo);
 
     Array<GLuint> ssbo_array;
