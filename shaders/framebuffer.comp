@@ -296,8 +296,9 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 				   float16_t(u) * unpackFloat2x16(uint(tri.data2.w)) +
 		           float16_t(v) * unpackFloat2x16(uint(tri.data3.w));
 
+		vec3 surface_normal = normalize(cross(edge1, edge2));
 		data.normal = f16vec3(normalize(w * n0 + u * n1 + v * n2));
-		data.normal *= float16_t(-sign(dot(data.normal, rd)));
+		data.normal *= float16_t(dot(surface_normal, rd) < 0.0 ? 1.0 : -1.0);
 
 		return true;
 	}
