@@ -22,8 +22,8 @@ layout (std140, binding = 3) uniform Camera
 #define HALF_PI 		1.57079632
 
 // Ray constants
-#define TMIN            0.00001
-#define TMAX            10000.0
+#define TMIN            0.001
+#define TMAX            100.0
 #define NUM_SHADOW_RAYS 1
 
 // Misc
