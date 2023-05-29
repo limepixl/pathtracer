@@ -292,9 +292,9 @@ bool intersect_triangle(vec3 ro, vec3 rd, uint tri_index, inout HitData data, in
 		data.object_type = uint8_t(0);
 
 		float16_t w = float16_t(1.0 - u - v);
-		data.uvs = 			  w * unpackFloat2x16(uint(tri.data1.w)) +
-				   float16_t(u) * unpackFloat2x16(uint(tri.data2.w)) +
-		           float16_t(v) * unpackFloat2x16(uint(tri.data3.w));
+		data.uvs = 			  w * unpackFloat2x16(floatBitsToUint(tri.data1.w)) +
+				   float16_t(u) * unpackFloat2x16(floatBitsToUint(tri.data2.w)) +
+		           float16_t(v) * unpackFloat2x16(floatBitsToUint(tri.data3.w));
 
 		vec3 surface_normal = normalize(cross(edge1, edge2));
 		data.normal = f16vec3(normalize(w * n0 + u * n1 + v * n2));
