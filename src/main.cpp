@@ -39,16 +39,16 @@ int main(int argc, char *argv[])
 //	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1000.0f), 0.0f, 0, MaterialType::MATERIAL_LIGHT));
 
     Array<SphereGLSL> spheres_ssbo;
-	spheres_ssbo.append(SphereGLSL(glm::vec3(6.5f, 2.0f, -3.0f), 0.1f, materials_ssbo.size - 1));
+//	spheres_ssbo.append(SphereGLSL(glm::vec3(6.5f, 2.0f, -3.0f), 0.1f, materials_ssbo.size - 1));
 
-	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.944f, 0.776f, 0.373f), glm::vec3(0.0f), 0.0f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
-	spheres_ssbo.append(SphereGLSL(glm::vec3(5.0f, 0.0f, -3.0f), 0.5f, materials_ssbo.size - 1));
-	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.944f, 0.776f, 0.373f), glm::vec3(0.0f), 0.1f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
-	spheres_ssbo.append(SphereGLSL(glm::vec3(6.0f, 0.0f, -3.0f), 0.5f, materials_ssbo.size - 1));
-	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.944f, 0.776f, 0.373f), glm::vec3(0.0f), 0.15f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
-	spheres_ssbo.append(SphereGLSL(glm::vec3(7.0f, 0.0f, -3.0f), 0.5f, materials_ssbo.size - 1));
-	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.944f, 0.776f, 0.373f), glm::vec3(0.0f), 0.2f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
-	spheres_ssbo.append(SphereGLSL(glm::vec3(8.0f, 0.0f, -3.0f), 0.5f, materials_ssbo.size - 1));
+//	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.944f, 0.776f, 0.373f), glm::vec3(0.0f), 0.0f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
+//	spheres_ssbo.append(SphereGLSL(glm::vec3(-1.0f, 1.0f, -5.0f), 0.3f, materials_ssbo.size - 1));
+//	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.944f, 0.776f, 0.373f), glm::vec3(0.0f), 0.1f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
+//	spheres_ssbo.append(SphereGLSL(glm::vec3(-0.4f, 1.0f, -5.0f), 0.3f, materials_ssbo.size - 1));
+//	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.944f, 0.776f, 0.373f), glm::vec3(0.0f), 0.15f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
+//	spheres_ssbo.append(SphereGLSL(glm::vec3(0.2f, 1.0f, -5.0f), 0.3f, materials_ssbo.size - 1));
+//	materials_ssbo.append(MaterialGLSL(glm::vec3(0.0f), glm::vec3(0.944f, 0.776f, 0.373f), glm::vec3(0.0f), 0.2f, -1, MaterialType::MATERIAL_SPECULAR_METAL));
+//	spheres_ssbo.append(SphereGLSL(glm::vec3(0.8f, 1.0f, -5.0f), 0.3f, materials_ssbo.size - 1));
 
 	// Find all emissive primitives in scene
 	Array<uint32> emissive_tris = FindEmissiveTris(model_glsl_tris, materials_ssbo);

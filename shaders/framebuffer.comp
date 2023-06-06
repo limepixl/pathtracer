@@ -1097,9 +1097,9 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
 	// TODO: separate into different shaders
-	return estimator_path_tracing_BRDF(cam_origin.xyz, ray_direction, rng_state);
+//	return estimator_path_tracing_BRDF(cam_origin.xyz, ray_direction, rng_state);
 //	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
-//	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
+	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
 
 void main() 
