@@ -14,7 +14,7 @@ Shader::Shader()
     : id(0), initialized(false)
 {}
 
-Shader LoadShaderFromFiles(const char *compute_source_path)
+Shader LoadShaderFromFiles(const char *compute_source_path, bool isSpirV)
 {
     if (compute_source_path == nullptr)
     {
@@ -47,8 +47,16 @@ Shader LoadShaderFromFiles(const char *compute_source_path)
     shader_source[(uint32) file_length] = '\0';
 
     GLuint compute_shader = glCreateShader(GL_COMPUTE_SHADER);
-    glShaderSource(compute_shader, 1, &(shader_source._data), nullptr);
-    glCompileShader(compute_shader);
+	if (isSpirV)
+	{
+		glShaderBinary(1, &compute_shader, GL_SHADER_BINARY_FORMAT_SPIR_V, shader_source._data, file_length);
+		glSpecializeShader(compute_shader, "main", 0, nullptr, nullptr);
+	}
+	else
+	{
+    	glShaderSource(compute_shader, 1, &(shader_source._data), nullptr);
+    	glCompileShader(compute_shader);
+	}
 
     GLint buffer_length = 0;
     glGetShaderiv(compute_shader, GL_INFO_LOG_LENGTH, &buffer_length);
@@ -89,6 +97,7 @@ Shader LoadShaderFromFiles(const char *compute_source_path)
         exit(-1);
     }
 
+	glDetachShader(program, compute_shader);
     glDeleteShader(compute_shader);
 
     return Shader(program);

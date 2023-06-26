@@ -12,4 +12,4 @@ struct Shader
 
 Shader LoadShaderFromFiles(const char *vertex_source_path, const char *fragment_source_path);
 
-Shader LoadShaderFromFiles(const char *compute_source_path);
+Shader LoadShaderFromFiles(const char *compute_source_path, bool isSpirV);
