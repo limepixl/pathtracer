@@ -191,6 +191,12 @@ bool Display::InitRenderBuffer()
 
     glBindTextureUnit(1, 0);
 
+	glCreateBuffers(1, &frame_data_ubo);
+	glBindBuffer(GL_UNIFORM_BUFFER, frame_data_ubo);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 4, frame_data_ubo);
+	glNamedBufferStorage(frame_data_ubo, sizeof(FrameData), nullptr, GL_DYNAMIC_STORAGE_BIT);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
     return true;
 }
 

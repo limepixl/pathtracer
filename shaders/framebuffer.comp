@@ -6,13 +6,16 @@ layout(rgba16f, binding = 0) restrict uniform image2D screen;
 layout(binding = 1) uniform sampler2D u_cubemap;
 layout(binding = 2) uniform sampler2DArray u_textures;
 
-layout(location = 0) uniform uvec3 u_frame_data; // seed, frame#, num_bounces
-
 layout (std140, binding = 3) uniform Camera
 {
 	vec4 cam_origin;
 	vec4 cam_forward;
 	vec4 cam_right;
+};
+
+layout (std140, binding = 4) uniform FrameData
+{
+	uvec4 frame_data; // seed, frame#, num_bounces
 };
 
 // Math constants
@@ -646,7 +649,7 @@ vec3 estimator_path_tracing_BRDF(in vec3 ro, in vec3 rd, in uint rng_state)
 	// float theta = acos(-rd.z);
 	// throughput_term = throughput_term * pow(cos(theta), 3);
 
-	for (uint b = 0; b < u_frame_data.z; b++)
+	for (uint b = 0; b < frame_data.z; b++)
 	{
 		HitData data;
 		if(!intersect(ro, rd, data)) // ray goes off into infinity
@@ -720,7 +723,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 
 	bool prev_bounce_specular = false;
 
-	for (uint bounce = 0; bounce < u_frame_data.z; bounce++)
+	for (uint bounce = 0; bounce < frame_data.z; bounce++)
 	{
 		HitData data;
 		if (!intersect(ro, rd, data))
@@ -886,7 +889,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 
 	uint num_light_sources = light_tri_indices.length() + light_sphere_indices.length();
 
-	uint num_bounces = u_frame_data.z + 1;
+	uint num_bounces = frame_data.z + 1;
 	for (uint b = 1; b < num_bounces; b++)
 	{
 		vec3 x = y;
@@ -1108,14 +1111,14 @@ void main()
 
 	vec2 screen_size = imageSize(screen);
 
-	uint rng_state = seed3(uvec3(pixel_coords, u_frame_data.x));
+	uint rng_state = seed3(uvec3(pixel_coords, frame_data.x));
 
 	vec3 color = render_function(screen_size, pixel_coords, rng_state);
 
 	// weigh current frame according to accumulated past
 	// frames and the current frame number
 	vec4 last_frame = imageLoad(screen, pixel_coords);
-	color = float(u_frame_data.y) / float(u_frame_data.y + 1) * last_frame.xyz + 1.0 / float(u_frame_data.y + 1) * color;
+	color = float(frame_data.y) / float(frame_data.y + 1) * last_frame.xyz + 1.0 / float(frame_data.y + 1) * color;
 
 	imageStore(screen, pixel_coords, vec4(color, 1.0));
 }

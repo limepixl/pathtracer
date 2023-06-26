@@ -4,6 +4,14 @@
 #include "../resource/shader.hpp"
 #include <SDL_video.h>
 
+struct FrameData
+{
+	uint32 seed;
+	uint32 frame_count;
+	uint32 bounce_count;
+	uint32 padding;
+};
+
 struct Display
 {
     // Window specific data
@@ -19,6 +27,8 @@ struct Display
     Shader compute_shader;
 
     uint32 cubemap_texture;
+
+	uint32 frame_data_ubo;
 
 	// Timing data
 	uint32 last_time = 0;
