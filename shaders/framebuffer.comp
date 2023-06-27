@@ -19,7 +19,7 @@ layout (std140, binding = 4) uniform FrameData
 };
 
 // Math constants
-#define EPSILON 		0.0001
+#define EPSILON 		0.001
 #define PI 				3.14159265
 #define TWO_PI  		6.28318530
 #define HALF_PI 		1.57079632
