@@ -60,7 +60,7 @@ Shader LoadShaderFromFiles(const char *compute_source_path, bool isSpirV)
 
     GLint buffer_length = 0;
     glGetShaderiv(compute_shader, GL_INFO_LOG_LENGTH, &buffer_length);
-    if (buffer_length > 1)
+    if (buffer_length > 0)
     {
         GLsizei log_length = 0;
         GLchar message[1024];
