@@ -24,7 +24,8 @@ layout (std140, binding = 4) uniform FrameData
 };
 
 // Math constants
-#define EPSILON 		0.001
+#define EPSILON 		0.0001
+#define FLOAT_COMPARE	0.01
 #define PI 				3.14159265
 #define TWO_PI  		6.28318530
 #define HALF_PI 		1.57079632
@@ -817,7 +818,7 @@ vec3 estimator_path_tracing_nee(in vec3 ro, in vec3 rd, in uint rng_state)
 
 				// Visibility check means we have a clear line of sight!
 				vec3 shadow_ray_hit = shadow_ro + shadow_rd * shadow_data.t;
-				if (shadow_hit_anything && all(lessThanEqual(abs(y - shadow_ray_hit), vec3(EPSILON))))
+				if (shadow_hit_anything && all(lessThanEqual(abs(y - shadow_ray_hit), vec3(FLOAT_COMPARE))))
 				{
 					vec3 wi = normalize(tnb * shadow_rd);
 					vec3 wm = normalize(tnb * data.normal);
@@ -970,7 +971,7 @@ vec3 estimator_path_tracing_mis(in vec3 ro, in vec3 rd, in uint rng_state)
 				bool shadow_hit_anything = intersect(shadow_ro, shadow_rd, shadow_data);
 
 				// Visibility check means we have a clear line of sight!
-				if (shadow_hit_anything && all(lessThan(y_nee - (shadow_ro + shadow_rd * shadow_data.t), vec3(EPSILON))))
+				if (shadow_hit_anything && all(lessThan(y_nee - (shadow_ro + shadow_rd * shadow_data.t), vec3(FLOAT_COMPARE))))
 				{
 					vec3 wi = normalize(tnb * shadow_rd);
 					vec3 wm = normalize(tnb * data.normal);
@@ -1105,7 +1106,7 @@ vec3 render_function(vec2 screen_size, ivec2 pixel_coords, in uint rng_state)
 	vec3 ray_direction = normalize(point_on_grid - cam_origin.xyz);
 
 	// TODO: separate into different shaders
-	return estimator_path_tracing_BRDF(cam_origin.xyz, ray_direction, rng_state);
+//	return estimator_path_tracing_BRDF(cam_origin.xyz, ray_direction, rng_state);
 //	return estimator_path_tracing_nee(cam_origin.xyz, ray_direction, rng_state);
 //	return estimator_path_tracing_mis(cam_origin.xyz, ray_direction, rng_state);
 }
