@@ -87,7 +87,6 @@ Display::Display(const char *title,
     }
 
     render_buffer_shader = LoadShaderFromFiles("shaders/framebuffer.vert", "shaders/framebuffer.frag");
-//	compute_shader = LoadShaderFromFiles("shaders/framebuffer_comp.spv", true);
 	compute_shader = LoadShaderFromFiles("shaders/framebuffer.comp");
 
     // Query limits
