@@ -19,6 +19,7 @@ struct Display
     SDL_Window *window_handle;
     SDL_GLContext context;
     bool is_open;
+	float max_frametime;
 
     // Render buffer data
     uint32 vao;
@@ -40,7 +41,7 @@ struct Display
 	// Input state
 	uint8 *keyboard_state;
 
-    Display(const char *title, uint32 width, uint32 height);
+    Display(const char *title, uint32 width, uint32 height, uint16 max_framerate);
 
     bool InitRenderBuffer();
 	void FrameStartMarker();

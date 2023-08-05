@@ -33,10 +33,12 @@ static void GLAPIENTRY MessageCallback(GLenum source,
 
 Display::Display(const char *title,
                  uint32 width,
-                 uint32 height)
+                 uint32 height,
+				 uint16 max_framerate)
     : width(width),
       height(height),
       is_open(true),
+	  max_frametime(1000.0f / (float)max_framerate),
       vao(0),
       render_buffer_texture(0),
       cubemap_texture(0)
@@ -98,8 +100,7 @@ Display::Display(const char *title,
     glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &data3);
     printf("max size of work group (x, y, z): %d %d %d\n", data1, data2, data3);
 
-    // Turn off VSync
-    SDL_GL_SetSwapInterval(1);
+    SDL_GL_SetSwapInterval(0);
 
     // SDL input specifics
     SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -204,6 +205,13 @@ void Display::FrameStartMarker()
 {
 	current_time = SDL_GetTicks();
 	delta_time = current_time - last_time;
+
+	if ((float)delta_time < max_frametime)
+	{
+		SDL_Delay(uint32(roundf(max_frametime - (float)delta_time)));
+		current_time = SDL_GetTicks();
+		delta_time = current_time - last_time;
+	}
 }
 
 void Display::FrameEndMarker()

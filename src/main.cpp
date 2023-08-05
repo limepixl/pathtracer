@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
     (void) argc;
     (void) argv;
 
-    Display display("Pathtracer", WIDTH, HEIGHT);
+    Display display("Pathtracer", WIDTH, HEIGHT, FRAMERATE);
 
 	Model model;
     if (!LoadGLTF("res/models/CornellBox_lit.glb", model))

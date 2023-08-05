@@ -14,6 +14,7 @@ typedef long int64;
 
 constexpr uint32 WIDTH = 1280;
 constexpr uint32 HEIGHT = 720;
+constexpr uint16 FRAMERATE = 120;
 constexpr uint32 BOUNCE_COUNT = 5;
 
 constexpr uint32 NUM_WORK_GROUPS_X = WIDTH / 8;
