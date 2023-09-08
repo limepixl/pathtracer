@@ -3,8 +3,7 @@
 *.exe
 .vs
 build
-build-linux
-build-clang
+build-*
 .vscode/c_cpp_properties.json
 cmake-build-debug
 cmake-build-release
