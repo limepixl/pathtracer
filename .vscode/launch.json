@@ -8,11 +8,16 @@
       "name": "(Windows) Launch",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/pathtracer.exe",
+      "program": "${command:cmake.launchTargetPath}",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
-      "environment": [],
+      "environment": [
+        {
+          "name": "PATH",
+          "value": "${env:PATH}:${command:cmake.getLaunchTargetDirectory}"
+        }
+      ],
       "console": "integratedTerminal"
     }
   ]
